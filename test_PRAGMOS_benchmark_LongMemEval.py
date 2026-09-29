@@ -1,4 +1,7 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 from PRAGMOS_benchmark_LongMemEval import (
     aggregate_longmemeval_retrieval_metrics,
@@ -14,12 +17,14 @@ from PRAGMOS_benchmark_LongMemEval import (
     infer_requested_answer_slot,
     longmemeval_session_retrieval_metrics,
     parse_number_value,
+    prepare_run_checkpoint,
     format_answer_slot_candidates,
     rerank_answer_slot_candidates,
     select_answer_slot_candidates,
     select_session_diverse_memories,
     session_neighbor_priority,
     temporal_join_result,
+    with_manifest_fingerprint,
 )
 
 
@@ -82,6 +87,153 @@ class FakeCandidateExtractionContext:
         else:
             text = self.extraction_output
         return {"choices": [{"text": text}]}
+
+
+class ResumeCheckpointTests(unittest.TestCase):
+    @staticmethod
+    def manifest(mode="raw_phi3_haystack"):
+        return with_manifest_fingerprint(
+            {
+                "schema_version": 1,
+                "created_at": "2026-01-01T00:00:00+00:00",
+                "run_name": "resume-test",
+                "mode": mode,
+                "config": {"mode": mode, "n_ctx": 2048},
+                "data_identity": {"sha256": "data"},
+                "model_identity": {"sha256": "model"},
+                "source_identities": {"runner": {"sha256": "source"}},
+                "workload": [
+                    {"dataset_index": 0, "question_id": "q1"},
+                    {"dataset_index": 1, "question_id": "q2"},
+                ],
+            }
+        )
+
+    @staticmethod
+    def workload():
+        return [
+            {"dataset_index": 0, "question_id": "q1"},
+            {"dataset_index": 1, "question_id": "q2"},
+        ]
+
+    @staticmethod
+    def write_jsonl(path, rows, trailing_text=""):
+        text = "".join(json.dumps(row) + "\n" for row in rows)
+        Path(path).write_text(text + trailing_text, encoding="utf-8")
+
+    def paths(self, directory):
+        root = Path(directory)
+        return {
+            "manifest_path": root / "run_manifest.json",
+            "predictions_path": root / "run_predictions.jsonl",
+            "trace_path": root / "run_trace.jsonl",
+            "summary_path": root / "run_summary.json",
+        }
+
+    def prepare(self, paths, manifest=None, resume=True):
+        return prepare_run_checkpoint(
+            **paths,
+            manifest=manifest or self.manifest(),
+            workload=self.workload(),
+            resume=resume,
+        )
+
+    def test_resume_creates_manifest_and_loads_a_paired_prefix(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = self.paths(directory)
+            initial = self.prepare(paths)
+            self.assertEqual(initial["completed_count"], 0)
+            self.assertTrue(paths["manifest_path"].is_file())
+
+            predictions = [
+                {"question_id": "q1", "hypothesis": "one"},
+                {"question_id": "q2", "hypothesis": "two"},
+            ]
+            traces = [
+                {**predictions[0], "dataset_index": 0},
+                {**predictions[1], "dataset_index": 1},
+            ]
+            self.write_jsonl(paths["predictions_path"], predictions)
+            self.write_jsonl(paths["trace_path"], traces)
+
+            resumed = self.prepare(paths)
+
+            self.assertEqual(resumed["completed_count"], 2)
+            self.assertFalse(resumed["repaired"])
+            self.assertEqual(
+                [row["question_id"] for row in resumed["traces"]],
+                ["q1", "q2"],
+            )
+
+    def test_resume_truncates_an_unpaired_prediction(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = self.paths(directory)
+            self.prepare(paths)
+            predictions = [
+                {"question_id": "q1", "hypothesis": "one"},
+                {"question_id": "q2", "hypothesis": "two"},
+            ]
+            traces = [{**predictions[0], "dataset_index": 0}]
+            self.write_jsonl(paths["predictions_path"], predictions)
+            self.write_jsonl(paths["trace_path"], traces)
+
+            resumed = self.prepare(paths)
+
+            self.assertEqual(resumed["completed_count"], 1)
+            self.assertTrue(resumed["repaired"])
+            persisted = paths["predictions_path"].read_text(encoding="utf-8")
+            self.assertIn('"question_id": "q1"', persisted)
+            self.assertNotIn('"question_id": "q2"', persisted)
+
+    def test_resume_truncates_a_partial_final_trace_line(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = self.paths(directory)
+            self.prepare(paths)
+            predictions = [
+                {"question_id": "q1", "hypothesis": "one"},
+                {"question_id": "q2", "hypothesis": "two"},
+            ]
+            traces = [{**predictions[0], "dataset_index": 0}]
+            self.write_jsonl(paths["predictions_path"], predictions)
+            self.write_jsonl(paths["trace_path"], traces, trailing_text='{"question_id":')
+
+            resumed = self.prepare(paths)
+
+            self.assertEqual(resumed["completed_count"], 1)
+            self.assertTrue(resumed["repaired"])
+            self.assertTrue(
+                paths["trace_path"].read_text(encoding="utf-8").endswith("\n")
+            )
+
+    def test_resume_rejects_a_changed_manifest(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = self.paths(directory)
+            self.prepare(paths)
+
+            with self.assertRaisesRegex(ValueError, "manifest changed"):
+                self.prepare(paths, manifest=self.manifest(mode="pragmos_context"))
+
+    def test_resume_rejects_a_non_prefix_checkpoint(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = self.paths(directory)
+            self.prepare(paths)
+            prediction = {"question_id": "q2", "hypothesis": "two"}
+            self.write_jsonl(paths["predictions_path"], [prediction])
+            self.write_jsonl(
+                paths["trace_path"],
+                [{**prediction, "dataset_index": 1}],
+            )
+
+            with self.assertRaisesRegex(ValueError, "not an exact prefix"):
+                self.prepare(paths)
+
+    def test_non_resume_mode_does_not_overwrite_existing_artifacts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = self.paths(directory)
+            self.prepare(paths, resume=False)
+
+            with self.assertRaises(FileExistsError):
+                self.prepare(paths, resume=False)
 
 
 class StructuredAnswerCandidateTests(unittest.TestCase):

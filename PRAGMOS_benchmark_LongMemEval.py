@@ -17,6 +17,7 @@ same loading, output, and metric code.
 
 import argparse
 import datetime
+import hashlib
 import json
 import math
 import os
@@ -41,6 +42,7 @@ from Phi3_raw_baseline import (
 DEFAULT_OUTPUT_DIR = "benchmark_outputs"
 DEFAULT_BENCHMARK_MAX_TOKENS = 64
 LONGMEMEVAL_RETRIEVAL_KS = (1, 5, 10)
+RUN_MANIFEST_SCHEMA_VERSION = 1
 BENCHMARK_ANSWER_POLICY = (
     "Return only the final answer, as one short phrase or at most one short "
     "sentence. Do not include an Answer label, explanation, reasoning, evidence "
@@ -3904,6 +3906,377 @@ def atomic_write_json(path, payload):
     tmp_path.replace(path)
 
 
+def sha256_file(path, chunk_size=1024 * 1024):
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        while True:
+            chunk = handle.read(chunk_size)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def local_file_identity(path):
+    resolved = Path(path).expanduser().resolve()
+    if not resolved.is_file():
+        raise FileNotFoundError(f"Required file does not exist: {resolved}")
+    stat = resolved.stat()
+    return {
+        "path": str(resolved),
+        "size_bytes": stat.st_size,
+        "sha256": sha256_file(resolved),
+    }
+
+
+def select_benchmark_workload(records, args):
+    workload = []
+    skipped = []
+    seen_question_ids = set()
+    for dataset_index, record in iter_records(
+        records,
+        limit=args.limit,
+        question_type=args.question_type,
+        start_index=args.start_index,
+    ):
+        question_id_value = first_present(
+            record,
+            ID_FIELD_CANDIDATES,
+            args.id_field,
+        )
+        if question_id_value is None:
+            question_id_value = f"row-{dataset_index}"
+        question_id = str(question_id_value)
+        if question_id in seen_question_ids:
+            raise ValueError(
+                "Selected benchmark workload contains duplicate question_id "
+                f"{question_id!r}. Resume checkpoints require unique IDs."
+            )
+        seen_question_ids.add(question_id)
+
+        question = first_present(
+            record,
+            QUESTION_FIELD_CANDIDATES,
+            args.question_field,
+        )
+        if not question:
+            skipped.append(
+                {
+                    "dataset_index": dataset_index,
+                    "question_id": question_id,
+                    "reason": "no question field",
+                }
+            )
+            continue
+        workload.append(
+            {
+                "dataset_index": dataset_index,
+                "question_id": question_id,
+                "question_id_value": question_id_value,
+                "question": question,
+                "record": record,
+            }
+        )
+    return workload, skipped
+
+
+def manifest_fingerprint_payload(manifest):
+    return {
+        key: value
+        for key, value in manifest.items()
+        if key not in {"created_at", "fingerprint"}
+    }
+
+
+def with_manifest_fingerprint(manifest):
+    result = dict(manifest)
+    canonical = json.dumps(
+        manifest_fingerprint_payload(result),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    result["fingerprint"] = hashlib.sha256(canonical).hexdigest()
+    return result
+
+
+def build_run_manifest(args, data_source, workload):
+    ignored_runtime_arguments = {
+        "flush_every",
+        "output_dir",
+        "resume",
+        "run_name",
+        "verbose_model",
+    }
+    config = {
+        key: value
+        for key, value in vars(args).items()
+        if key not in ignored_runtime_arguments
+    }
+    model_identity = local_file_identity(args.model_path)
+    config["model_path"] = model_identity["path"]
+
+    if args.data_file:
+        data_identity = {"kind": "local_file", **local_file_identity(args.data_file)}
+        config["data_file"] = data_identity["path"]
+    else:
+        data_identity = {
+            "kind": "huggingface_dataset",
+            "dataset": args.hf_dataset,
+            "subset": args.hf_subset,
+            "split": args.split,
+        }
+
+    source_dir = Path(__file__).resolve().parent
+    source_files = [
+        source_dir / "PRAGMOS_benchmark_LongMemEval.py",
+        source_dir / "Phi3_raw_baseline.py",
+    ]
+    if args.mode == "pragmos_context":
+        source_files.append(source_dir / "PRAGMOS_context_layer_org.py")
+    source_identities = {
+        path.name: local_file_identity(path) for path in source_files
+    }
+
+    manifest = {
+        "schema_version": RUN_MANIFEST_SCHEMA_VERSION,
+        "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "run_name": args.run_name,
+        "mode": args.mode,
+        "data_source": (
+            data_identity["path"]
+            if data_identity["kind"] == "local_file"
+            else data_source
+        ),
+        "data_identity": data_identity,
+        "model_identity": model_identity,
+        "source_identities": source_identities,
+        "config": config,
+        "workload": [
+            {
+                "dataset_index": item["dataset_index"],
+                "question_id": item["question_id"],
+            }
+            for item in workload
+        ],
+    }
+    return with_manifest_fingerprint(manifest)
+
+
+def manifest_mismatch_fields(existing, current):
+    mismatches = []
+    for field in (
+        "schema_version",
+        "run_name",
+        "mode",
+        "data_source",
+        "data_identity",
+        "model_identity",
+        "source_identities",
+        "workload",
+    ):
+        if existing.get(field) != current.get(field):
+            mismatches.append(field)
+    existing_config = existing.get("config", {})
+    current_config = current.get("config", {})
+    for key in sorted(set(existing_config) | set(current_config)):
+        if existing_config.get(key) != current_config.get(key):
+            mismatches.append(f"config.{key}")
+    return mismatches
+
+
+def read_jsonl_checkpoint(path):
+    path = Path(path)
+    if not path.exists():
+        return {
+            "records": [],
+            "offsets": [0],
+            "file_size": 0,
+            "tail_repair_needed": False,
+        }
+
+    records = []
+    offsets = [0]
+    tail_repair_needed = False
+    with path.open("rb") as handle:
+        while True:
+            line = handle.readline()
+            if not line:
+                break
+            try:
+                stripped = line.strip()
+                if not stripped:
+                    raise ValueError("blank JSONL line")
+                record = json.loads(stripped.decode("utf-8"))
+                if not isinstance(record, dict):
+                    raise ValueError("JSONL record is not an object")
+            except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+                if handle.read().strip():
+                    raise ValueError(
+                        f"Corrupt JSONL checkpoint before the final line: {path}"
+                    ) from exc
+                tail_repair_needed = True
+                break
+            records.append(record)
+            offsets.append(handle.tell())
+
+    return {
+        "records": records,
+        "offsets": offsets,
+        "file_size": path.stat().st_size,
+        "tail_repair_needed": tail_repair_needed,
+    }
+
+
+def truncate_jsonl_checkpoint(path, checkpoint, record_count):
+    path = Path(path)
+    if not path.exists():
+        return False
+    target_size = checkpoint["offsets"][record_count]
+    if checkpoint["file_size"] == target_size:
+        return False
+    with path.open("r+b") as handle:
+        handle.truncate(target_size)
+        handle.flush()
+        os.fsync(handle.fileno())
+    return True
+
+
+def reconcile_resume_outputs(predictions_path, trace_path, workload):
+    predictions_checkpoint = read_jsonl_checkpoint(predictions_path)
+    trace_checkpoint = read_jsonl_checkpoint(trace_path)
+    predictions = predictions_checkpoint["records"]
+    traces = trace_checkpoint["records"]
+    common_count = min(len(predictions), len(traces))
+
+    for index in range(common_count):
+        prediction = predictions[index]
+        trace = traces[index]
+        prediction_id = str(prediction.get("question_id"))
+        trace_id = str(trace.get("question_id"))
+        if prediction_id != trace_id:
+            raise ValueError(
+                "Prediction and trace checkpoints disagree at line "
+                f"{index + 1}: {prediction_id!r} != {trace_id!r}."
+            )
+        if prediction.get("hypothesis") != trace.get("hypothesis"):
+            raise ValueError(
+                "Prediction and trace hypotheses disagree at line "
+                f"{index + 1} for question {prediction_id!r}."
+            )
+
+    if common_count > len(workload):
+        raise ValueError(
+            "Checkpoint contains more completed records than the selected workload."
+        )
+    for index in range(common_count):
+        expected = workload[index]
+        prediction_id = str(predictions[index].get("question_id"))
+        trace_id = str(traces[index].get("question_id"))
+        trace_dataset_index = traces[index].get("dataset_index")
+        if prediction_id != expected["question_id"] or trace_id != expected[
+            "question_id"
+        ]:
+            raise ValueError(
+                "Checkpoint is not an exact prefix of the selected workload at "
+                f"line {index + 1}; expected {expected['question_id']!r}."
+            )
+        if trace_dataset_index != expected["dataset_index"]:
+            raise ValueError(
+                "Trace dataset_index does not match the selected workload at "
+                f"line {index + 1}; expected {expected['dataset_index']}."
+            )
+
+    repaired = False
+    repaired |= truncate_jsonl_checkpoint(
+        predictions_path,
+        predictions_checkpoint,
+        common_count,
+    )
+    repaired |= truncate_jsonl_checkpoint(
+        trace_path,
+        trace_checkpoint,
+        common_count,
+    )
+    return {
+        "predictions": predictions[:common_count],
+        "traces": traces[:common_count],
+        "completed_count": common_count,
+        "repaired": repaired,
+    }
+
+
+def prepare_run_checkpoint(
+    *,
+    manifest_path,
+    predictions_path,
+    trace_path,
+    summary_path,
+    manifest,
+    workload,
+    resume,
+):
+    manifest_path = Path(manifest_path)
+    predictions_path = Path(predictions_path)
+    trace_path = Path(trace_path)
+    summary_path = Path(summary_path)
+    artifact_paths = [manifest_path, predictions_path, trace_path, summary_path]
+
+    if not resume:
+        existing = [str(path) for path in artifact_paths if path.exists()]
+        if existing:
+            raise FileExistsError(
+                "Run artifacts already exist. Use a new --run-name or rerun the "
+                "identical command with --resume. Existing: " + ", ".join(existing)
+            )
+        atomic_write_json(manifest_path, manifest)
+        return {
+            "predictions": [],
+            "traces": [],
+            "completed_count": 0,
+            "repaired": False,
+        }
+
+    if manifest_path.exists():
+        with manifest_path.open("r", encoding="utf-8") as handle:
+            existing_manifest = json.load(handle)
+        verified_existing = with_manifest_fingerprint(existing_manifest)
+        if existing_manifest.get("fingerprint") != verified_existing.get(
+            "fingerprint"
+        ):
+            raise ValueError(
+                "Cannot resume because the existing run manifest is corrupt or "
+                "was edited after creation."
+            )
+        if existing_manifest.get("fingerprint") != manifest.get("fingerprint"):
+            mismatches = manifest_mismatch_fields(existing_manifest, manifest)
+            mismatch_text = ", ".join(mismatches) if mismatches else "fingerprint"
+            raise ValueError(
+                "Refusing to resume because the run manifest changed: "
+                f"{mismatch_text}. Use a new --run-name for a different run."
+            )
+    else:
+        legacy_artifacts = [
+            str(path)
+            for path in (predictions_path, trace_path, summary_path)
+            if path.exists()
+        ]
+        if legacy_artifacts:
+            raise ValueError(
+                "Cannot safely resume outputs created without a run manifest: "
+                + ", ".join(legacy_artifacts)
+            )
+        atomic_write_json(manifest_path, manifest)
+
+    return reconcile_resume_outputs(predictions_path, trace_path, workload)
+
+
+def flush_and_sync(*handles):
+    for handle in handles:
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Run LongMemEval with raw Phi-3 baseline.",
@@ -4014,6 +4387,14 @@ def parse_args():
         default=1,
         help="Flush prediction/trace files every N examples.",
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help=(
+            "Resume an interrupted run after validating its manifest and paired "
+            "prediction/trace checkpoint. The command must otherwise be identical."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -4031,61 +4412,74 @@ def main():
     predictions_path = output_dir / f"{args.run_name}_predictions.jsonl"
     trace_path = output_dir / f"{args.run_name}_trace.jsonl"
     summary_path = output_dir / f"{args.run_name}_summary.json"
+    manifest_path = output_dir / f"{args.run_name}_manifest.json"
+
+    workload, skipped_records = select_benchmark_workload(records, args)
+    for skipped in skipped_records:
+        print(f"[skip] {skipped['question_id']}: {skipped['reason']}")
+    manifest = build_run_manifest(args, data_source, workload)
+    checkpoint = prepare_run_checkpoint(
+        manifest_path=manifest_path,
+        predictions_path=predictions_path,
+        trace_path=trace_path,
+        summary_path=summary_path,
+        manifest=manifest,
+        workload=workload,
+        resume=args.resume,
+    )
+    resumed_from_count = checkpoint["completed_count"]
+    if checkpoint["repaired"]:
+        print(
+            "[resume] Repaired an unpaired or partial final checkpoint record; "
+            f"continuing from {resumed_from_count}."
+        )
+    elif resumed_from_count:
+        print(f"[resume] Continuing after {resumed_from_count} completed records.")
 
     model = None
     context_layer = None
-    if args.mode == "pragmos_context":
-        from PRAGMOS_context_layer_org import ContextLayer
+    if resumed_from_count < len(workload):
+        if args.mode == "pragmos_context":
+            from PRAGMOS_context_layer_org import ContextLayer
 
-        context_layer = ContextLayer(
-            session_id="longmemeval-bootstrap",
-            model_path=args.model_path,
-            context_length=args.n_ctx,
-            n_threads=args.n_threads,
-            n_gpu_layers=args.n_gpu_layers,
-            offload_kqv=not args.no_offload_kqv,
-            seed=args.seed,
-            verbose=args.verbose_model,
-        )
-    else:
-        model = Phi3RawChat(
-            model_path=args.model_path,
-            n_ctx=args.n_ctx,
-            n_threads=args.n_threads,
-            n_gpu_layers=args.n_gpu_layers,
-            offload_kqv=not args.no_offload_kqv,
-            seed=args.seed,
-            verbose=args.verbose_model,
-        )
+            context_layer = ContextLayer(
+                session_id="longmemeval-bootstrap",
+                model_path=args.model_path,
+                context_length=args.n_ctx,
+                n_threads=args.n_threads,
+                n_gpu_layers=args.n_gpu_layers,
+                offload_kqv=not args.no_offload_kqv,
+                seed=args.seed,
+                verbose=args.verbose_model,
+            )
+        else:
+            model = Phi3RawChat(
+                model_path=args.model_path,
+                n_ctx=args.n_ctx,
+                n_threads=args.n_threads,
+                n_gpu_layers=args.n_gpu_layers,
+                offload_kqv=not args.no_offload_kqv,
+                seed=args.seed,
+                verbose=args.verbose_model,
+            )
 
-    predictions_handle = predictions_path.open("w", encoding="utf-8")
-    trace_handle = trace_path.open("w", encoding="utf-8")
+    predictions_handle = predictions_path.open("a", encoding="utf-8")
+    trace_handle = trace_path.open("a", encoding="utf-8")
     started_at = time.perf_counter()
-    metric_rows = []
-    run_rows = []
-    dataset_indices = []
-    question_ids = []
-    processed = 0
+    persisted_traces = checkpoint["traces"]
+    metric_rows = [row["local_metrics"] for row in persisted_traces]
+    run_rows = list(persisted_traces)
+    dataset_indices = [row["dataset_index"] for row in persisted_traces]
+    question_ids = [str(row["question_id"]) for row in persisted_traces]
+    processed = resumed_from_count
+    newly_processed = 0
 
     try:
-        for dataset_index, record in iter_records(
-            records,
-            limit=args.limit,
-            question_type=args.question_type,
-            start_index=args.start_index,
-        ):
-            question_id = first_present(record, ID_FIELD_CANDIDATES, args.id_field)
-            if question_id is None:
-                question_id = f"row-{dataset_index}"
-
-            question = first_present(
-                record,
-                QUESTION_FIELD_CANDIDATES,
-                args.question_field,
-            )
-            if not question:
-                print(f"[skip] {question_id}: no question field")
-                continue
+        for workload_item in workload[resumed_from_count:]:
+            dataset_index = workload_item["dataset_index"]
+            record = workload_item["record"]
+            question_id = workload_item["question_id_value"]
+            question = workload_item["question"]
 
             expected_answer = first_present(
                 record,
@@ -4138,12 +4532,7 @@ def main():
                     repeat_penalty=args.repeat_penalty,
                 )
             prediction = result["text"]
-            run_rows.append(result)
             local_metrics = best_local_metrics(prediction, references)
-            metric_rows.append(local_metrics)
-            dataset_indices.append(dataset_index)
-            question_ids.append(str(question_id))
-            processed += 1
 
             predictions_record = {
                 "question_id": question_id,
@@ -4280,25 +4669,42 @@ def main():
             predictions_handle.write(json.dumps(predictions_record, ensure_ascii=False) + "\n")
             trace_handle.write(json.dumps(trace_record, ensure_ascii=False) + "\n")
 
-            if processed % max(1, args.flush_every) == 0:
-                predictions_handle.flush()
-                trace_handle.flush()
+            run_rows.append(trace_record)
+            metric_rows.append(local_metrics)
+            dataset_indices.append(dataset_index)
+            question_ids.append(str(question_id))
+            processed += 1
+            newly_processed += 1
+
+            if newly_processed % max(1, args.flush_every) == 0:
+                flush_and_sync(predictions_handle, trace_handle)
 
             print(
-                f"[{processed}] {question_id} "
+                f"[{processed}/{len(workload)}] {question_id} "
                 f"f1={local_metrics['token_f1']:.3f} "
                 f"em={local_metrics['exact_match']:.0f} "
                 f"time={result['elapsed_seconds']:.2f}s"
             )
     finally:
-        predictions_handle.close()
-        trace_handle.close()
+        try:
+            flush_and_sync(predictions_handle, trace_handle)
+        finally:
+            predictions_handle.close()
+            trace_handle.close()
 
-    total_elapsed_seconds = time.perf_counter() - started_at
+    invocation_elapsed_seconds = time.perf_counter() - started_at
+    total_elapsed_seconds = sum(
+        float(row.get("elapsed_seconds", 0.0)) for row in run_rows
+    )
     summary = {
         "mode": args.mode,
         "data_source": data_source,
         "processed": processed,
+        "target_record_count": len(workload),
+        "newly_processed": newly_processed,
+        "resumed_from_count": resumed_from_count,
+        "resume_enabled": args.resume,
+        "checkpoint_repaired": checkpoint["repaired"],
         "limit": args.limit,
         "start_index": args.start_index,
         "dataset_indices": dataset_indices,
@@ -4315,6 +4721,8 @@ def main():
         "haystack_order": args.haystack_order if args.mode == "raw_phi3_haystack" else None,
         "predictions_path": str(predictions_path),
         "trace_path": str(trace_path),
+        "manifest_path": str(manifest_path),
+        "manifest_fingerprint": manifest["fingerprint"],
         "official_prediction_format": {
             "jsonl": True,
             "fields": ["question_id", "hypothesis"],
@@ -4330,7 +4738,14 @@ def main():
             "benchmark/longMemEval/longmemeval_oracle.json"
         ),
         "total_elapsed_seconds": total_elapsed_seconds,
-        "avg_elapsed_seconds": total_elapsed_seconds / processed if processed else 0.0,
+        "invocation_elapsed_seconds": invocation_elapsed_seconds,
+        "avg_elapsed_seconds": (
+            statistics.mean(
+                float(row.get("elapsed_seconds", 0.0)) for row in run_rows
+            )
+            if run_rows
+            else 0.0
+        ),
         "local_metric_note": (
             "These are cheap local string metrics for smoke testing only. "
             "Use LongMemEval's official evaluator for publishable scores."
@@ -4519,7 +4934,8 @@ def main():
         )
 
     atomic_write_json(summary_path, summary)
-    print(f"\nWrote predictions: {predictions_path}")
+    print(f"\nWrote manifest: {manifest_path}")
+    print(f"Wrote predictions: {predictions_path}")
     print(f"Wrote trace: {trace_path}")
     print(f"Wrote summary: {summary_path}")
 
