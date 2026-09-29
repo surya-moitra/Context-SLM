@@ -1,0 +1,21 @@
+{
+  "avg_contains_reference": 0.0,
+  "avg_elapsed_seconds": 3.338950200000545,
+  "avg_exact_match": 0.0,
+  "avg_token_f1": 0.0,
+  "data_source": "benchmark/longMemEval/longmemeval_s_cleaned.json",
+  "limit": 5,
+  "local_metric_note": "These are cheap local string metrics for smoke testing only. Use LongMemEval's official evaluator for publishable scores.",
+  "max_tokens": 512,
+  "mode": "raw_phi3",
+  "model_path": "../phi3-gguf/Phi-3-mini-4k-instruct-q4.gguf",
+  "n_ctx": 2048,
+  "predictions_path": "benchmark/longMemEval/phi3_raw_smoke_predictions.jsonl",
+  "processed": 5,
+  "question_type_filter": null,
+  "temperature": 0.0,
+  "top_p": 1.0,
+  "total_elapsed_seconds": 16.694751000002725,
+  "trace_path": "benchmark/longMemEval/phi3_raw_smoke_trace.jsonl",
+  "used_haystack_sessions": false
+}

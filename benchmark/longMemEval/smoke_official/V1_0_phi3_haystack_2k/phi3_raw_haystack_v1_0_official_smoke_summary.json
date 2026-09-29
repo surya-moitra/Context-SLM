@@ -1,0 +1,48 @@
+{
+  "avg_contains_reference": 0.2,
+  "avg_elapsed_seconds": 14.272277658403619,
+  "avg_exact_match": 0.0,
+  "avg_token_f1": 0.03781512605042017,
+  "data_source": "benchmark/longMemEval/longmemeval_s_cleaned.json",
+  "dataset_indices": [
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "haystack_order": "recent-first",
+  "limit": 5,
+  "local_metric_note": "These are cheap local string metrics for smoke testing only. Use LongMemEval's official evaluator for publishable scores.",
+  "max_tokens": 512,
+  "mode": "raw_phi3_haystack",
+  "model_path": "../phi3-gguf/Phi-3-mini-4k-instruct-q4.gguf",
+  "n_ctx": 2048,
+  "n_gpu_layers": 40,
+  "official_evaluation_command": "python /path/to/LongMemEval/src/evaluation/evaluate_qa.py gpt-4o benchmark/longMemEval/smoke_official/V1_0_phi3_haystack_2k/phi3_raw_haystack_v1_0_official_smoke_predictions.jsonl benchmark/longMemEval/longmemeval_oracle.json",
+  "official_evaluation_note": "Predictions are compatible with LongMemEval's official QA evaluator. Official scoring requires longmemeval_oracle.json and an OPENAI_API_KEY for the GPT-4o judge.",
+  "official_prediction_format": {
+    "fields": [
+      "question_id",
+      "hypothesis"
+    ],
+    "jsonl": true
+  },
+  "offload_kqv": true,
+  "predictions_path": "benchmark/longMemEval/smoke_official/V1_0_phi3_haystack_2k/phi3_raw_haystack_v1_0_official_smoke_predictions.jsonl",
+  "processed": 5,
+  "question_ids": [
+    "c5e8278d",
+    "6ade9755",
+    "6f9b354f",
+    "58ef2f1c",
+    "f8c5f88b"
+  ],
+  "question_type_filter": null,
+  "start_index": 5,
+  "temperature": 0.0,
+  "top_p": 1.0,
+  "total_elapsed_seconds": 71.36138829201809,
+  "trace_path": "benchmark/longMemEval/smoke_official/V1_0_phi3_haystack_2k/phi3_raw_haystack_v1_0_official_smoke_trace.jsonl",
+  "used_haystack_sessions": true
+}

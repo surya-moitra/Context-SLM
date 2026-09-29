@@ -1,0 +1,67 @@
+{
+  "answer_session_retrieval_recall": 1,
+  "avg_contains_reference": 0.4,
+  "avg_elapsed_seconds": 97.05823978339905,
+  "avg_exact_match": 0.4,
+  "avg_generation_seconds": 16.04655779139721,
+  "avg_ingestion_seconds": 10.84444614140666,
+  "avg_retrieval_seconds": 69.93461004199926,
+  "avg_token_f1": 0.5533333333333333,
+  "data_source": "benchmark/longMemEval/longmemeval_s_cleaned.json",
+  "dataset_indices": [
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "haystack_order": null,
+  "limit": 5,
+  "local_metric_note": "These are cheap local string metrics for smoke testing only. Use LongMemEval's official evaluator for publishable scores.",
+  "max_tokens": 64,
+  "mode": "pragmos_context",
+  "model_path": "../phi3-gguf/Phi-3-mini-4k-instruct-q4.gguf",
+  "n_ctx": 2048,
+  "n_gpu_layers": 40,
+  "official_evaluation_command": "python /path/to/LongMemEval/src/evaluation/evaluate_qa.py gpt-4o benchmark/longMemEval/smoke_official/V2_3_pragmos_context_2k/pragmos_context_v2_3_official_smoke_predictions.jsonl benchmark/longMemEval/longmemeval_oracle.json",
+  "official_evaluation_note": "Predictions are compatible with LongMemEval's official QA evaluator. Official scoring requires longmemeval_oracle.json and an OPENAI_API_KEY for the GPT-4o judge.",
+  "official_prediction_format": {
+    "fields": [
+      "question_id",
+      "hypothesis"
+    ],
+    "jsonl": true
+  },
+  "offload_kqv": true,
+  "pragmos_answer_context_tokens": 900,
+  "pragmos_chunk_overlap_words": 32,
+  "pragmos_chunk_words": 160,
+  "pragmos_embedding_batch_size": 64,
+  "pragmos_graph_candidates": 4,
+  "pragmos_graph_depth": 2,
+  "pragmos_graph_evidence": 4,
+  "pragmos_graph_policy": "selective_materialization_from_hybrid_candidates",
+  "pragmos_min_score": 0.2,
+  "pragmos_session_neighbor_radius": 2,
+  "pragmos_session_neighbors": 4,
+  "pragmos_top_k": 6,
+  "predictions_path": "benchmark/longMemEval/smoke_official/V2_3_pragmos_context_2k/pragmos_context_v2_3_official_smoke_predictions.jsonl",
+  "processed": 5,
+  "question_ids": [
+    "c5e8278d",
+    "6ade9755",
+    "6f9b354f",
+    "58ef2f1c",
+    "f8c5f88b"
+  ],
+  "question_type_filter": null,
+  "rerankers_used": [
+    "cross_encoder:cross-encoder/ms-marco-MiniLM-L6-v2"
+  ],
+  "start_index": 5,
+  "temperature": 0.0,
+  "top_p": 1.0,
+  "total_elapsed_seconds": 485.2911989169952,
+  "trace_path": "benchmark/longMemEval/smoke_official/V2_3_pragmos_context_2k/pragmos_context_v2_3_official_smoke_trace.jsonl",
+  "used_haystack_sessions": true
+}

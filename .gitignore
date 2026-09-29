@@ -1,0 +1,24 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+
+.venv/
+__pycache__/
+*.py[cod]
+
+*.gguf
+*.log
+
+# Downloaded benchmark data is large and should be fetched separately.
+benchmark/longMemEval/longmemeval_s_cleaned.json
+
+# Keep summaries, reports, and compact predictions; omit bulky diagnostic traces.
+benchmark/**/*_trace.jsonl
+benchmark/longMemEval/regression_audit/
+
+# Historical copies are replaced by Git history once the repository is initialized.
+backup/
+
+benchmark/longMemEval/longmemeval_oracle.json
+benchmark/longMemEval/.cache/
