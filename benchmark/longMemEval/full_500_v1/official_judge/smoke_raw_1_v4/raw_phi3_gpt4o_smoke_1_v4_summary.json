@@ -1,0 +1,46 @@
+{
+  "abstention_accuracy": null,
+  "abstention_count": 0,
+  "avg_judge_seconds": 1.6837442080141045,
+  "by_question_type": {
+    "knowledge-update": {
+      "accuracy": null,
+      "count": 0
+    },
+    "multi-session": {
+      "accuracy": null,
+      "count": 0
+    },
+    "single-session-assistant": {
+      "accuracy": null,
+      "count": 0
+    },
+    "single-session-preference": {
+      "accuracy": null,
+      "count": 0
+    },
+    "single-session-user": {
+      "accuracy": 0.0,
+      "count": 1
+    },
+    "temporal-reasoning": {
+      "accuracy": null,
+      "count": 0
+    }
+  },
+  "checkpoint_repaired": false,
+  "complete": true,
+  "failure": null,
+  "manifest_fingerprint": "9d7c4546047c19b8bea33bfd3a5439e97cb1b6363906ccbdaf3e89bbe147c85a",
+  "metric_model": "gpt-4o-2024-08-06",
+  "metric_model_short": "gpt-4o",
+  "overall_accuracy": 0.0,
+  "processed": 1,
+  "results_path": "context/benchmark/longMemEval/full_500_v1/official_judge/smoke_raw_1_v4/raw_phi3_gpt4o_smoke_1_v4_results.jsonl",
+  "resume_enabled": true,
+  "resumed_from_count": 0,
+  "run_name": "raw_phi3_gpt4o_smoke_1_v4",
+  "target_record_count": 1,
+  "task_averaged_accuracy": 0.0,
+  "total_judge_seconds": 1.6837442080141045
+}

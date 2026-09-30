@@ -1,15 +1,55 @@
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from PRAGMOS_evaluate_LongMemEval import (
+    OFFICIAL_API_BASE_URL,
     OFFICIAL_METRIC_MODEL,
+    create_official_client,
+    chat_completion_with_bounded_retries,
     fingerprint_manifest,
+    is_retryable_api_error,
     official_metrics,
     prepare_checkpoint,
     validate_workload,
 )
+
+
+class FakeAPIError(Exception):
+    def __init__(self, message, *, status_code=None, code=None):
+        super().__init__(message)
+        self.status_code = status_code
+        self.body = {"code": code} if code else None
+
+
+class FakeConnectionError(FakeAPIError):
+    pass
+
+
+class FakeCompletions:
+    def __init__(self, outcomes):
+        self.outcomes = list(outcomes)
+        self.call_count = 0
+
+    def create(self, **_request):
+        outcome = self.outcomes[self.call_count]
+        self.call_count += 1
+        if isinstance(outcome, BaseException):
+            raise outcome
+        return outcome
+
+
+def fake_official():
+    return SimpleNamespace(
+        openai=SimpleNamespace(
+            APIConnectionError=FakeConnectionError,
+            APITimeoutError=type("FakeTimeoutError", (FakeAPIError,), {}),
+        )
+    )
 
 
 class OfficialJudgeWrapperTests(unittest.TestCase):
@@ -176,6 +216,76 @@ class OfficialJudgeWrapperTests(unittest.TestCase):
 
             with self.assertRaisesRegex(ValueError, "changed"):
                 prepare_checkpoint(*paths, changed, workload, resume=True)
+
+    def test_bounded_retry_recovers_from_transient_server_error(self):
+        completion = SimpleNamespace(_request_id="request-ok")
+        completions = FakeCompletions(
+            [FakeAPIError("temporary", status_code=500), completion]
+        )
+        client = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+        delays = []
+
+        result, audit = chat_completion_with_bounded_retries(
+            fake_official(),
+            client,
+            max_attempts=3,
+            retry_base_seconds=2,
+            retry_max_seconds=10,
+            sleep=delays.append,
+            model=OFFICIAL_METRIC_MODEL,
+        )
+
+        self.assertIs(result, completion)
+        self.assertEqual(audit, {"attempt_count": 2, "request_id": "request-ok"})
+        self.assertEqual(delays, [2])
+        self.assertEqual(completions.call_count, 2)
+
+    def test_insufficient_quota_is_not_retried(self):
+        error = FakeAPIError(
+            "quota exhausted",
+            status_code=429,
+            code="insufficient_quota",
+        )
+        completions = FakeCompletions([error])
+        client = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+        delays = []
+
+        self.assertFalse(is_retryable_api_error(fake_official(), error))
+        with self.assertRaisesRegex(FakeAPIError, "quota exhausted"):
+            chat_completion_with_bounded_retries(
+                fake_official(),
+                client,
+                max_attempts=4,
+                retry_base_seconds=2,
+                retry_max_seconds=10,
+                sleep=delays.append,
+                model=OFFICIAL_METRIC_MODEL,
+            )
+
+        self.assertEqual(delays, [])
+        self.assertEqual(completions.call_count, 1)
+
+    def test_connection_error_is_retryable_without_status_code(self):
+        error = FakeConnectionError("network unavailable")
+        self.assertTrue(is_retryable_api_error(fake_official(), error))
+
+    def test_official_client_ignores_base_url_environment_override(self):
+        captured = {}
+
+        def construct_client(**options):
+            captured.update(options)
+            return SimpleNamespace()
+
+        official = SimpleNamespace(OpenAI=construct_client)
+        with patch.dict(
+            os.environ,
+            {"OPENAI_BASE_URL": "http://127.0.0.1:9999/v1"},
+        ):
+            create_official_client(official, "test-key", 30)
+
+        self.assertEqual(captured["base_url"], OFFICIAL_API_BASE_URL)
+        self.assertEqual(captured["max_retries"], 0)
+        captured["http_client"].close()
 
 
 if __name__ == "__main__":

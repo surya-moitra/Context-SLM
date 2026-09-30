@@ -1,0 +1,9 @@
+# LongMemEval official QA evaluator runtime.
+# The upstream requirements-lite.txt pins openai but leaves httpx unpinned;
+# openai 1.35.1 does not work reliably with httpx 0.28.x in this evaluator.
+backoff==2.2.1
+httpcore==1.0.9
+httpx==0.27.2
+numpy==1.26.3
+openai==1.35.1
+tqdm==4.66.4

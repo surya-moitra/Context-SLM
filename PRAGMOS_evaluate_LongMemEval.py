@@ -3,17 +3,20 @@
 """Resumable wrapper around LongMemEval's official GPT-4o QA evaluator.
 
 The wrapper imports the evaluator from a pinned LongMemEval checkout and uses
-its prompt builder, model mapping, retry helper, request settings, and label
-rule unchanged. It adds input validation, immutable run manifests, durable
-JSONL checkpoints, resume support, and official metric aggregation.
+its prompt builder, model mapping, request settings, and label rule unchanged.
+It adds input validation, bounded and visible API retries, immutable run
+manifests, durable JSONL checkpoints, resume support, and official metric
+aggregation.
 """
 
 import argparse
 import datetime
 import hashlib
+import importlib.metadata
 import importlib.util
 import json
 import os
+import platform
 import subprocess
 import time
 from pathlib import Path
@@ -22,6 +25,7 @@ from pathlib import Path
 MANIFEST_SCHEMA_VERSION = 1
 OFFICIAL_METRIC_MODEL_SHORT = "gpt-4o"
 OFFICIAL_METRIC_MODEL = "gpt-4o-2024-08-06"
+OFFICIAL_API_BASE_URL = "https://api.openai.com/v1"
 OFFICIAL_QUESTION_TYPES = (
     "single-session-user",
     "single-session-preference",
@@ -146,14 +150,167 @@ def load_official_evaluator(official_repo, expected_commit):
     }
 
 
-def create_official_client(official, api_key):
+def create_official_client(official, api_key, request_timeout_seconds):
     import httpx
 
+    timeout = httpx.Timeout(request_timeout_seconds)
     return official.OpenAI(
         api_key=api_key,
-        base_url=None,
-        http_client=httpx.Client(),
+        base_url=OFFICIAL_API_BASE_URL,
+        max_retries=0,
+        timeout=timeout,
+        http_client=httpx.Client(timeout=timeout),
     )
+
+
+def api_error_metadata(error):
+    body = getattr(error, "body", None)
+    error_body = body.get("error", body) if isinstance(body, dict) else {}
+    code = error_body.get("code") if isinstance(error_body, dict) else None
+    error_type = error_body.get("type") if isinstance(error_body, dict) else None
+    status_code = getattr(error, "status_code", None)
+    request_id = getattr(error, "request_id", None)
+    response_url = None
+    response_headers = {}
+    response = getattr(error, "response", None)
+    if response is not None:
+        status_code = status_code or getattr(response, "status_code", None)
+        headers = getattr(response, "headers", {}) or {}
+        request_id = request_id or headers.get("x-request-id")
+        request = getattr(response, "request", None)
+        if request is not None:
+            response_url = str(getattr(request, "url", "")) or None
+        for header_name in (
+            "cf-ray",
+            "content-length",
+            "content-type",
+            "openai-processing-ms",
+            "server",
+            "via",
+            "x-request-id",
+        ):
+            header_value = headers.get(header_name)
+            if header_value is not None:
+                response_headers[header_name] = header_value
+        if body is None:
+            try:
+                if not response.is_closed:
+                    response.read()
+                if response.is_stream_consumed:
+                    body = response.text.strip() or None
+            except Exception:
+                body = None
+    message = " ".join(str(error).split())
+    if len(message) > 500:
+        message = message[:497] + "..."
+    return {
+        "error_type": type(error).__name__,
+        "status_code": status_code,
+        "error_code": code,
+        "api_error_type": error_type,
+        "request_id": request_id,
+        "response_url": response_url,
+        "response_headers": response_headers,
+        "response_body": body,
+        "message": message,
+    }
+
+
+def is_retryable_api_error(official, error):
+    metadata = api_error_metadata(error)
+    permanent_codes = {
+        "billing_hard_limit_reached",
+        "insufficient_quota",
+        "invalid_api_key",
+        "model_not_found",
+    }
+    if metadata["error_code"] in permanent_codes:
+        return False
+
+    openai_module = official.openai
+    connection_errors = tuple(
+        error_class
+        for error_class in (
+            getattr(openai_module, "APIConnectionError", None),
+            getattr(openai_module, "APITimeoutError", None),
+        )
+        if error_class is not None
+    )
+    if connection_errors and isinstance(error, connection_errors):
+        return True
+
+    status_code = metadata["status_code"]
+    return status_code in {408, 409, 429} or (
+        isinstance(status_code, int) and status_code >= 500
+    )
+
+
+def chat_completion_with_bounded_retries(
+    official,
+    client,
+    *,
+    max_attempts,
+    retry_base_seconds,
+    retry_max_seconds,
+    sleep=time.sleep,
+    **request,
+):
+    for attempt in range(1, max_attempts + 1):
+        try:
+            completion = client.chat.completions.create(**request)
+            return completion, {
+                "attempt_count": attempt,
+                "request_id": getattr(completion, "_request_id", None),
+            }
+        except Exception as error:
+            metadata = api_error_metadata(error)
+            retryable = is_retryable_api_error(official, error)
+            details = " ".join(
+                f"{key}={value}"
+                for key, value in (
+                    ("type", metadata["error_type"]),
+                    ("status", metadata["status_code"]),
+                    ("code", metadata["error_code"]),
+                    ("request_id", metadata["request_id"]),
+                )
+                if value is not None
+            )
+            print(
+                f"[judge-error] attempt={attempt}/{max_attempts} "
+                f"retryable={'yes' if retryable else 'no'} {details}: "
+                f"{metadata['message']}",
+                flush=True,
+            )
+            if metadata["response_url"]:
+                print(
+                    f"[judge-endpoint] {metadata['response_url']}",
+                    flush=True,
+                )
+            if metadata["response_headers"]:
+                print(
+                    "[judge-response-headers] "
+                    + json.dumps(metadata["response_headers"], sort_keys=True),
+                    flush=True,
+                )
+            if metadata["response_body"] is not None:
+                body_text = json.dumps(
+                    metadata["response_body"],
+                    ensure_ascii=False,
+                    default=str,
+                )
+                if len(body_text) > 1000:
+                    body_text = body_text[:997] + "..."
+                print(f"[judge-error-body] {body_text}", flush=True)
+            if not retryable or attempt == max_attempts:
+                raise
+            delay = min(
+                retry_max_seconds,
+                retry_base_seconds * (2 ** (attempt - 1)),
+            )
+            print(f"[judge-retry] sleeping {delay:.1f}s", flush=True)
+            sleep(delay)
+
+    raise AssertionError("Retry loop ended without a completion or exception.")
 
 
 def validate_workload(predictions, references, start_index=0, limit=None):
@@ -225,6 +382,19 @@ def fingerprint_manifest(manifest):
     return result
 
 
+def runtime_identity():
+    package_versions = {}
+    for package in ("backoff", "httpcore", "httpx", "openai"):
+        try:
+            package_versions[package] = importlib.metadata.version(package)
+        except importlib.metadata.PackageNotFoundError:
+            package_versions[package] = None
+    return {
+        "python": platform.python_version(),
+        "packages": package_versions,
+    }
+
+
 def build_manifest(args, workload, evaluator_identity):
     manifest = {
         "schema_version": MANIFEST_SCHEMA_VERSION,
@@ -237,6 +407,15 @@ def build_manifest(args, workload, evaluator_identity):
             "temperature": 0,
             "max_tokens": 10,
         },
+        "transport_settings": {
+            "api_base_url": OFFICIAL_API_BASE_URL,
+            "request_timeout_seconds": args.request_timeout_seconds,
+            "sdk_max_retries": 0,
+            "max_attempts": args.max_attempts,
+            "retry_base_seconds": args.retry_base_seconds,
+            "retry_max_seconds": args.retry_max_seconds,
+        },
+        "runtime": runtime_identity(),
         "label_rule": "'yes' in eval_response.lower()",
         "predictions": file_identity(args.predictions),
         "oracle": file_identity(args.oracle),
@@ -426,6 +605,7 @@ def write_summary(
     resumed_from_count,
     repaired,
     complete,
+    failure=None,
 ):
     metrics = official_metrics(results, reference_by_id)
     total_judge_seconds = sum(
@@ -442,6 +622,7 @@ def write_summary(
         "resume_enabled": args.resume,
         "checkpoint_repaired": repaired,
         "complete": complete,
+        "failure": failure,
         "manifest_fingerprint": manifest["fingerprint"],
         "results_path": str(Path(args.output_dir) / f"{args.run_name}_results.jsonl"),
         "total_judge_seconds": total_judge_seconds,
@@ -472,6 +653,30 @@ def parse_args():
     parser.add_argument("--flush-every", type=int, default=1)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument(
+        "--request-timeout-seconds",
+        type=float,
+        default=60.0,
+        help="Per-request OpenAI timeout. Default: 60 seconds.",
+    )
+    parser.add_argument(
+        "--max-attempts",
+        type=int,
+        default=4,
+        help="Maximum attempts for a retryable API request. Default: 4.",
+    )
+    parser.add_argument(
+        "--retry-base-seconds",
+        type=float,
+        default=2.0,
+        help="Initial exponential retry delay. Default: 2 seconds.",
+    )
+    parser.add_argument(
+        "--retry-max-seconds",
+        type=float,
+        default=20.0,
+        help="Maximum retry delay. Default: 20 seconds.",
+    )
+    parser.add_argument(
         "--validate-only",
         action="store_true",
         help="Validate inputs and official evaluator without making API calls.",
@@ -481,6 +686,12 @@ def parse_args():
 
 def main():
     args = parse_args()
+    if args.request_timeout_seconds <= 0:
+        raise ValueError("--request-timeout-seconds must be positive.")
+    if args.max_attempts <= 0:
+        raise ValueError("--max-attempts must be positive.")
+    if args.retry_base_seconds < 0 or args.retry_max_seconds < 0:
+        raise ValueError("Retry delays must be non-negative.")
     predictions = load_json_or_jsonl(args.predictions)
     references = load_json_or_jsonl(args.oracle)
     workload = validate_workload(
@@ -501,7 +712,11 @@ def main():
     )
     manifest = build_manifest(args, workload, evaluator_identity)
     if args.validate_only:
-        client_probe = create_official_client(official, "validation-only")
+        client_probe = create_official_client(
+            official,
+            "validation-only",
+            args.request_timeout_seconds,
+        )
         client_probe.close()
         print(
             json.dumps(
@@ -554,7 +769,17 @@ def main():
                 "export it only in the current shell."
             )
         official.openai.organization = os.getenv("OPENAI_ORGANIZATION")
-        client = create_official_client(official, api_key)
+        client = create_official_client(
+            official,
+            api_key,
+            args.request_timeout_seconds,
+        )
+        print(
+            f"[judge] endpoint={OFFICIAL_API_BASE_URL} "
+            f"model={OFFICIAL_METRIC_MODEL} "
+            f"remaining={len(workload) - resumed_from_count}",
+            flush=True,
+        )
     try:
         with result_path.open("a", encoding="utf-8") as output:
             newly_processed = 0
@@ -573,8 +798,12 @@ def main():
                     abstention="_abs" in question_id,
                 )
                 started_at = time.perf_counter()
-                completion = official.chat_completions_with_backoff(
+                completion, request_audit = chat_completion_with_bounded_retries(
+                    official,
                     client,
+                    max_attempts=args.max_attempts,
+                    retry_base_seconds=args.retry_base_seconds,
+                    retry_max_seconds=args.retry_max_seconds,
                     model=OFFICIAL_METRIC_MODEL,
                     messages=[{"role": "user", "content": prompt}],
                     n=1,
@@ -592,6 +821,7 @@ def main():
                 result["judge_audit"] = {
                     "response": eval_response,
                     "elapsed_seconds": elapsed_seconds,
+                    **request_audit,
                 }
                 output.write(json.dumps(result, ensure_ascii=False) + "\n")
                 results.append(result)
@@ -607,7 +837,7 @@ def main():
                 )
             output.flush()
             os.fsync(output.fileno())
-    except BaseException:
+    except BaseException as error:
         write_summary(
             summary_path,
             args=args,
@@ -618,6 +848,7 @@ def main():
             resumed_from_count=resumed_from_count,
             repaired=repaired,
             complete=False,
+            failure=api_error_metadata(error),
         )
         raise
     finally:

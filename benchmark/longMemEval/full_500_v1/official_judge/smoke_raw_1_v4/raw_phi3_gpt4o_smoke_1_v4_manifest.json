@@ -1,0 +1,66 @@
+{
+  "created_at": "2026-09-30T15:50:59.683250+00:00",
+  "fingerprint": "9d7c4546047c19b8bea33bfd3a5439e97cb1b6363906ccbdaf3e89bbe147c85a",
+  "label_rule": "'yes' in eval_response.lower()",
+  "metric_model": "gpt-4o-2024-08-06",
+  "metric_model_short": "gpt-4o",
+  "official_evaluator": {
+    "commit": "9e0b455f4ef0e2ab8f2e582289761153549043fc",
+    "evaluator_file": {
+      "path": "/Users/moitra/surya/dev_project/LongMemEval-official/src/evaluation/evaluate_qa.py",
+      "sha256": "ecce9c4c79dc89d99534ac17b383a5cbb5b9f0c69ee98adaf0684742e3d95251",
+      "size_bytes": 7436
+    },
+    "repository_path": "/Users/moitra/surya/dev_project/LongMemEval-official"
+  },
+  "oracle": {
+    "path": "/Users/moitra/surya/dev_project/context/benchmark/longMemEval/longmemeval_oracle.json",
+    "sha256": "821a2034d219ab45846873dd14c14f12cfe7776e73527a483f9dac095d38620c",
+    "size_bytes": 15388478
+  },
+  "predictions": {
+    "path": "/Users/moitra/surya/dev_project/context/benchmark/longMemEval/full_500_v1/raw_phi3_2k/phi3_raw_haystack_full_500_v1_predictions.jsonl",
+    "sha256": "e04e486a9387e964be101763467263251e0c251cc7a17707b5dd32ee11e51d8b",
+    "size_bytes": 88465
+  },
+  "request_settings": {
+    "max_tokens": 10,
+    "n": 1,
+    "temperature": 0
+  },
+  "run_name": "raw_phi3_gpt4o_smoke_1_v4",
+  "runtime": {
+    "packages": {
+      "backoff": "2.2.1",
+      "httpcore": "1.0.9",
+      "httpx": "0.27.2",
+      "openai": "1.35.1"
+    },
+    "python": "3.11.16"
+  },
+  "schema_version": 1,
+  "selection": {
+    "expected_count": 1,
+    "limit": 1,
+    "start_index": 0
+  },
+  "transport_settings": {
+    "api_base_url": "https://api.openai.com/v1",
+    "max_attempts": 2,
+    "request_timeout_seconds": 30.0,
+    "retry_base_seconds": 2.0,
+    "retry_max_seconds": 5.0,
+    "sdk_max_retries": 0
+  },
+  "workload": [
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "e47becba"
+    }
+  ],
+  "wrapper": {
+    "path": "/Users/moitra/surya/dev_project/context/PRAGMOS_evaluate_LongMemEval.py",
+    "sha256": "cbaebb3b0e20ac3d6523214d92a16feff6ff0e41aa9a7cdca74b34b0f6f5fe11",
+    "size_bytes": 31406
+  }
+}
