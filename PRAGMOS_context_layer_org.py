@@ -5,6 +5,7 @@ import getpass
 import csv
 import time
 import re
+from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from llama_cpp import Llama
@@ -67,6 +68,8 @@ RERANKER_LOCAL_FILES_ONLY = os.environ.get(
 ).lower() not in {"0", "false", "no"}
 RERANKER_MAX_LENGTH = int(os.environ.get("PRAGMOS_RERANKER_MAX_LENGTH", "512"))
 RERANKER_SCORE_WEIGHT = 0.65
+EMBEDDING_CACHE_SIZE = int(os.environ.get("PRAGMOS_EMBEDDING_CACHE_SIZE", "20000"))
+RERANKER_CACHE_SIZE = int(os.environ.get("PRAGMOS_RERANKER_CACHE_SIZE", "20000"))
 ACTIVE_STATUS = "active"
 SUPERSEDED_STATUS = "superseded"
 UPDATE_REPLACE_RELATION_KEYS = {"like", "live in", "work at"}
@@ -210,6 +213,12 @@ class ContextLayer:
         offload_kqv=True,
         seed=42,
         verbose=False,
+        enable_dense_retrieval=True,
+        enable_lexical_retrieval=True,
+        enable_graph_retrieval=True,
+        enable_reranker=True,
+        embedding_cache_size=EMBEDDING_CACHE_SIZE,
+        reranker_cache_size=RERANKER_CACHE_SIZE,
     ):
         # ---------- LOAD MODEL ----------
         self.model_path = model_path
@@ -248,6 +257,20 @@ class ContextLayer:
         self.embedder = SentenceTransformer(EMBEDDING_MODEL)
         self.local_reranker = None
         self.local_reranker_load_attempted = False
+        self.enable_dense_retrieval = bool(enable_dense_retrieval)
+        self.enable_lexical_retrieval = bool(enable_lexical_retrieval)
+        self.enable_graph_retrieval = bool(enable_graph_retrieval)
+        self.enable_reranker = bool(enable_reranker)
+        self.embedding_cache_size = max(0, int(embedding_cache_size))
+        self.reranker_cache_size = max(0, int(reranker_cache_size))
+        self.embedding_cache = OrderedDict()
+        self.reranker_score_cache = OrderedDict()
+        self.cache_counters = {
+            "embedding_hits": 0,
+            "embedding_misses": 0,
+            "reranker_hits": 0,
+            "reranker_misses": 0,
+        }
 
         self.reset_memory(session_id=session_id)
 
@@ -1091,6 +1114,8 @@ Text:
                 "source_session_id": turn.session_id,
                 "source_quote": turn.text,
                 "timestamp": turn.timestamp,
+                "role": turn.role,
+                "speaker": turn.speaker,
                 "source_type": "raw_turn",
                 "temporal_scope": self.infer_text_temporal_scope(turn.text),
                 "relation_keys": relation_keys,
@@ -1495,6 +1520,125 @@ Text:
         norms[norms == 0.0] = 1.0
         return embedding / norms
 
+    def _cache_get(self, cache, key, counter_name):
+        if key not in cache:
+            return None
+        value = cache.pop(key)
+        cache[key] = value
+        self.cache_counters[counter_name] += 1
+        return value
+
+    def _cache_put(self, cache, key, value, max_size):
+        if max_size <= 0:
+            return
+        if key in cache:
+            cache.pop(key)
+        cache[key] = value
+        while len(cache) > max_size:
+            cache.popitem(last=False)
+
+    def encode_normalized_texts(self, texts, batch_size=EMBEDDING_BATCH_SIZE):
+        """Encode exact text misses once and return normalized vectors in order."""
+        texts = [str(text) for text in texts or []]
+        if not texts:
+            return np.empty((0, EMBEDDING_DIMENSION), dtype=np.float32)
+
+        resolved = [None] * len(texts)
+        missing_texts = []
+        missing_positions = {}
+        for position, text in enumerate(texts):
+            cached = self._cache_get(
+                self.embedding_cache,
+                text,
+                "embedding_hits",
+            )
+            if cached is not None:
+                resolved[position] = cached
+                continue
+            if text in missing_positions:
+                missing_positions[text].append(position)
+                self.cache_counters["embedding_hits"] += 1
+                continue
+            missing_positions[text] = [position]
+            missing_texts.append(text)
+            self.cache_counters["embedding_misses"] += 1
+
+        if missing_texts:
+            encoded = self.embedder.encode(
+                missing_texts,
+                batch_size=max(1, int(batch_size)),
+                show_progress_bar=False,
+                convert_to_numpy=True,
+            )
+            encoded = self.normalize_embedding(encoded)
+            for text, vector in zip(missing_texts, encoded):
+                vector = np.asarray(vector, dtype=np.float32)
+                self._cache_put(
+                    self.embedding_cache,
+                    text,
+                    vector.copy(),
+                    self.embedding_cache_size,
+                )
+                for position in missing_positions[text]:
+                    resolved[position] = vector
+
+        return np.vstack(resolved).astype(np.float32, copy=False)
+
+    def cache_stats(self):
+        return {
+            **self.cache_counters,
+            "embedding_cache_entries": len(self.embedding_cache),
+            "reranker_cache_entries": len(self.reranker_score_cache),
+        }
+
+    def predict_reranker_pairs(self, pairs):
+        """Return raw cross-encoder scores, caching only successful predictions."""
+        pairs = [(str(query), str(document)) for query, document in pairs or []]
+        if not pairs or not self.enable_reranker:
+            return None
+        reranker = self.get_local_reranker()
+        if reranker is None:
+            return None
+
+        resolved = [None] * len(pairs)
+        missing_pairs = []
+        missing_positions = {}
+        for position, pair in enumerate(pairs):
+            cached = self._cache_get(
+                self.reranker_score_cache,
+                pair,
+                "reranker_hits",
+            )
+            if cached is not None:
+                resolved[position] = cached
+                continue
+            if pair in missing_positions:
+                missing_positions[pair].append(position)
+                self.cache_counters["reranker_hits"] += 1
+                continue
+            missing_positions[pair] = [position]
+            missing_pairs.append(pair)
+            self.cache_counters["reranker_misses"] += 1
+
+        if missing_pairs:
+            try:
+                scores = [float(score) for score in reranker.predict(missing_pairs)]
+            except Exception:
+                return None
+            if len(scores) != len(missing_pairs):
+                return None
+            for pair, score in zip(missing_pairs, scores):
+                self._cache_put(
+                    self.reranker_score_cache,
+                    pair,
+                    score,
+                    self.reranker_cache_size,
+                )
+                for position in missing_positions[pair]:
+                    resolved[position] = score
+
+        return [float(score) for score in resolved]
+
     def vector_distance_to_score(self, distance):
         # IndexFlatL2 returns squared L2 distance. For unit vectors:
         # cosine_similarity = 1 - squared_l2_distance / 2.
@@ -1653,7 +1797,7 @@ Text:
     def dense_candidate_scores(self, query, candidate_k):
         if len(self.vector_memory) == 0 or candidate_k <= 0:
             return {}
-        embedding = self.normalize_embedding(self.embedder.encode([query]))
+        embedding = self.encode_normalized_texts([query], batch_size=1)
         distances, indices = self.index.search(embedding, candidate_k)
 
         scores = {}
@@ -1723,6 +1867,8 @@ Text:
         return " ".join(part for part in parts if part)
 
     def get_local_reranker(self):
+        if not self.enable_reranker:
+            return None
         if self.local_reranker_load_attempted:
             return self.local_reranker
         self.local_reranker_load_attempted = True
@@ -1775,6 +1921,24 @@ Text:
         if not candidate_records:
             return []
 
+        if not self.enable_reranker:
+            return sorted(
+                [
+                    {
+                        **candidate,
+                        "score": candidate.get(
+                            "hybrid_score",
+                            candidate.get("score", 0.0),
+                        ),
+                        "rerank_score": None,
+                        "reranker": "disabled",
+                    }
+                    for candidate in candidate_records
+                ],
+                key=lambda item: item.get("score", 0.0),
+                reverse=True,
+            )
+
         reranker = self.get_local_reranker()
         reranker_name = "local_heuristic"
         rerank_scores = []
@@ -1784,8 +1948,9 @@ Text:
                 for candidate in candidate_records
             ]
             try:
-                raw_scores = reranker.predict(pairs)
-                raw_scores = [float(score) for score in raw_scores]
+                raw_scores = self.predict_reranker_pairs(pairs)
+                if raw_scores is None:
+                    raise RuntimeError("local reranker prediction failed")
                 min_raw = min(raw_scores)
                 max_raw = max(raw_scores)
                 if max_raw > min_raw:
@@ -1850,13 +2015,10 @@ Text:
             return []
 
         texts = [str(entry.get("text", "")) for entry in entries]
-        embeddings = self.embedder.encode(
+        embeddings = self.encode_normalized_texts(
             texts,
-            batch_size=max(1, int(batch_size)),
-            show_progress_bar=False,
-            convert_to_numpy=True,
+            batch_size=batch_size,
         )
-        embeddings = self.normalize_embedding(embeddings)
         self.index.add(embeddings)
 
         stored_records = []
@@ -1905,41 +2067,54 @@ Text:
             ),
         )
 
-        if graph_evidence is None:
+        if graph_evidence is None and self.enable_graph_retrieval:
             graph_evidence = self.retrieve_graph_evidence(
                 query=query,
                 exclude_turn_ids=exclude_turn_ids,
                 query_time_scope=query_time_scope,
                 source_turn=source_turn,
             )
+        elif not self.enable_graph_retrieval:
+            graph_evidence = []
 
         candidates = {}
-        for memory_index, score in self.dense_candidate_scores(query, candidate_k).items():
-            self.add_candidate_score(
-                candidates,
-                memory_index,
-                "dense_score",
-                score,
-                "dense",
-            )
+        if self.enable_dense_retrieval:
+            for memory_index, score in self.dense_candidate_scores(
+                query,
+                candidate_k,
+            ).items():
+                self.add_candidate_score(
+                    candidates,
+                    memory_index,
+                    "dense_score",
+                    score,
+                    "dense",
+                )
 
-        for memory_index, score in self.lexical_candidate_scores(query, candidate_k).items():
-            self.add_candidate_score(
-                candidates,
-                memory_index,
-                "lexical_score",
-                score,
-                "bm25",
-            )
+        if self.enable_lexical_retrieval:
+            for memory_index, score in self.lexical_candidate_scores(
+                query,
+                candidate_k,
+            ).items():
+                self.add_candidate_score(
+                    candidates,
+                    memory_index,
+                    "lexical_score",
+                    score,
+                    "bm25",
+                )
 
-        for memory_index, score in self.graph_expanded_candidate_scores(graph_evidence).items():
-            self.add_candidate_score(
-                candidates,
-                memory_index,
-                "graph_score",
-                score,
-                "graph_expansion",
-            )
+        if self.enable_graph_retrieval:
+            for memory_index, score in self.graph_expanded_candidate_scores(
+                graph_evidence
+            ).items():
+                self.add_candidate_score(
+                    candidates,
+                    memory_index,
+                    "graph_score",
+                    score,
+                    "graph_expansion",
+                )
 
         candidate_records = []
         for memory_index, candidate in candidates.items():

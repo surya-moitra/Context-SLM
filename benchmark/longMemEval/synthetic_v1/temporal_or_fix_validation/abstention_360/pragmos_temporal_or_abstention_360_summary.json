@@ -1,0 +1,142 @@
+{
+  "all_selected_evidence_represented_rate": 1,
+  "answer_session_any_hit_rate": 1,
+  "answer_session_coverage_metric_version": 2,
+  "answer_session_full_coverage_rate": 1,
+  "answer_session_retrieval_recall": 1.0,
+  "answer_session_retrieval_recall_definition": "Mean fraction of gold answer sessions represented in final retrieval evidence; gold session IDs are used for evaluation only, never for retrieval selection.",
+  "avg_candidate_extraction_seconds": 9.79192620899994,
+  "avg_contains_reference": 0.0,
+  "avg_context_build_seconds": 0.03562004095874727,
+  "avg_elapsed_seconds": 114.24078083399218,
+  "avg_exact_match": 0.0,
+  "avg_generation_seconds": 0.0,
+  "avg_graph_materialization_seconds": 95.15821966598742,
+  "avg_graph_retrieval_seconds": 4.016800375073217,
+  "avg_ingestion_seconds": 1.7406668330077082,
+  "avg_initial_retrieval_seconds": 2.919434375013225,
+  "avg_local_llm_calls_per_question": 13,
+  "avg_operation_seconds": 0.0037227090215310454,
+  "avg_preference_synthesis_seconds": 2.420798409730196e-05,
+  "avg_retrieval_seconds": 102.09487020701636,
+  "avg_selected_candidate_evidence_count": 18,
+  "avg_token_f1": 0.22222222222222224,
+  "cache_activity_totals": {
+    "embedding_hits": 13,
+    "embedding_misses": 212,
+    "reranker_hits": 37,
+    "reranker_misses": 232
+  },
+  "candidate_extraction_error_count": 0,
+  "candidate_pool_answer_session_recall": 1.0,
+  "checkpoint_repaired": false,
+  "data_source": "benchmark/longMemEval/synthetic_v1/pragmos_synthetic_longmemeval_500_v1_multisession_block.json",
+  "dataset_indices": [
+    360
+  ],
+  "haystack_order": null,
+  "invocation_elapsed_seconds": 114.26545033301227,
+  "limit": 1,
+  "local_metric_note": "These are cheap local string metrics for smoke testing only. Use LongMemEval's official evaluator for publishable scores.",
+  "longmemeval_session_retrieval_metrics": {
+    "candidate_pool": {
+      "by_question_type": {},
+      "excluded_by_reason": {
+        "abstention_question": 1
+      },
+      "excluded_question_count": 1,
+      "metrics": {},
+      "question_count": 0
+    },
+    "eligibility_policy": "Questions whose question_id contains _abs, or which lack answer_session_ids, are excluded from retrieval metric aggregates.",
+    "final_evidence": {
+      "by_question_type": {},
+      "excluded_by_reason": {
+        "abstention_question": 1
+      },
+      "excluded_question_count": 1,
+      "metrics": {},
+      "question_count": 0
+    },
+    "formula_compatibility": "LongMemEval src/retrieval/eval_utils.py binary session relevance: recall@k aliases strict recall_all@k; ndcg@k aliases ndcg_any@k.",
+    "ks": [
+      1,
+      5,
+      10
+    ],
+    "label_usage": "answer_session_ids are accessed after retrieval for evaluation only and never influence ranking.",
+    "metric_version": 1
+  },
+  "manifest_fingerprint": "ab76f92d6b7abcc3348bcb128c4ce8031a8ceef27b0d42bc66c561dc2f4335aa",
+  "manifest_path": "benchmark/longMemEval/synthetic_v1/temporal_or_fix_validation/abstention_360/pragmos_temporal_or_abstention_360_manifest.json",
+  "max_tokens": 64,
+  "mode": "pragmos_context",
+  "model_path": "../phi3-gguf/Phi-3-mini-4k-instruct-q4.gguf",
+  "n_ctx": 2048,
+  "n_gpu_layers": 40,
+  "newly_processed": 1,
+  "official_evaluation_command": "python /path/to/LongMemEval/src/evaluation/evaluate_qa.py gpt-4o benchmark/longMemEval/synthetic_v1/temporal_or_fix_validation/abstention_360/pragmos_temporal_or_abstention_360_predictions.jsonl benchmark/longMemEval/longmemeval_oracle.json",
+  "official_evaluation_note": "Predictions are compatible with LongMemEval's official QA evaluator. Official scoring requires longmemeval_oracle.json and an OPENAI_API_KEY for the GPT-4o judge.",
+  "official_prediction_format": {
+    "fields": [
+      "question_id",
+      "hypothesis"
+    ],
+    "jsonl": true
+  },
+  "offload_kqv": true,
+  "operation_completion_rate": 0,
+  "operation_question_count": 1,
+  "pragmos_ablations": [],
+  "pragmos_answer_context_tokens": 1300,
+  "pragmos_candidate_extraction_policy": "batched_extraction_from_all_selected_evidence_with_provenance",
+  "pragmos_chunk_overlap_words": 32,
+  "pragmos_chunk_words": 160,
+  "pragmos_component_policy": {
+    "candidate_extraction": "enabled",
+    "dense": "enabled",
+    "graph": "enabled",
+    "lexical": "enabled",
+    "operations": "enabled",
+    "preference_synthesis": "enabled",
+    "reranker": "enabled",
+    "session_neighbors": "enabled"
+  },
+  "pragmos_embedding_batch_size": 64,
+  "pragmos_embedding_cache_size": 20000,
+  "pragmos_graph_candidates": 4,
+  "pragmos_graph_depth": 2,
+  "pragmos_graph_evidence": 4,
+  "pragmos_graph_policy": "selective_materialization_from_hybrid_candidates",
+  "pragmos_max_retrieval_sessions": 12,
+  "pragmos_min_score": 0.2,
+  "pragmos_multisession_graph_candidates": 12,
+  "pragmos_operation_selection_policy": "strict_grounded_deterministic_for_multisession_count_average_extrema_with_llm_fallback",
+  "pragmos_preference_synthesis_policy": "explicit_user_constraints_with_provenance_and_updates",
+  "pragmos_reranker_cache_size": 20000,
+  "pragmos_retrieval_pool": 24,
+  "pragmos_session_neighbor_radius": 2,
+  "pragmos_session_neighbors": 4,
+  "pragmos_top_k": 6,
+  "predictions_path": "benchmark/longMemEval/synthetic_v1/temporal_or_fix_validation/abstention_360/pragmos_temporal_or_abstention_360_predictions.jsonl",
+  "preference_profile_coverage_rate": 0.0,
+  "preference_question_count": 0,
+  "processed": 1,
+  "question_ids": [
+    "synthetic_v1_0360_abs"
+  ],
+  "question_type_filter": null,
+  "rerankers_used": [
+    "cross_encoder:cross-encoder/ms-marco-MiniLM-L6-v2"
+  ],
+  "resume_enabled": false,
+  "resumed_from_count": 0,
+  "safe_abstention_count": 1,
+  "start_index": 360,
+  "target_record_count": 1,
+  "temperature": 0.0,
+  "top_p": 1.0,
+  "total_elapsed_seconds": 114.24078083399218,
+  "trace_path": "benchmark/longMemEval/synthetic_v1/temporal_or_fix_validation/abstention_360/pragmos_temporal_or_abstention_360_trace.jsonl",
+  "used_haystack_sessions": true
+}

@@ -1,0 +1,2062 @@
+{
+  "created_at": "2026-09-30T17:09:15.930870+00:00",
+  "fingerprint": "257d84c4afeb6486d432033487c1f1b80f5778e5a9280413cb361665179cfce9",
+  "label_rule": "'yes' in eval_response.lower()",
+  "metric_model": "gpt-4o-2024-08-06",
+  "metric_model_short": "gpt-4o",
+  "official_evaluator": {
+    "commit": "9e0b455f4ef0e2ab8f2e582289761153549043fc",
+    "evaluator_file": {
+      "path": "/Users/moitra/surya/dev_project/LongMemEval-official/src/evaluation/evaluate_qa.py",
+      "sha256": "ecce9c4c79dc89d99534ac17b383a5cbb5b9f0c69ee98adaf0684742e3d95251",
+      "size_bytes": 7436
+    },
+    "repository_path": "/Users/moitra/surya/dev_project/LongMemEval-official"
+  },
+  "oracle": {
+    "path": "/Users/moitra/surya/dev_project/context/benchmark/longMemEval/longmemeval_oracle.json",
+    "sha256": "821a2034d219ab45846873dd14c14f12cfe7776e73527a483f9dac095d38620c",
+    "size_bytes": 15388478
+  },
+  "predictions": {
+    "path": "/Users/moitra/surya/dev_project/context/benchmark/longMemEval/full_500_v1/pragmos_v4_2k/pragmos_context_full_500_v1_predictions.jsonl",
+    "sha256": "3d102cca06ee4e1796ed84117ed20fb0a231bf7839f3b4c55f47b07090877b91",
+    "size_bytes": 36094
+  },
+  "request_settings": {
+    "max_tokens": 10,
+    "n": 1,
+    "temperature": 0
+  },
+  "run_name": "pragmos_gpt4o_full_500_v1",
+  "runtime": {
+    "packages": {
+      "backoff": "2.2.1",
+      "httpcore": "1.0.9",
+      "httpx": "0.27.2",
+      "openai": "1.35.1"
+    },
+    "python": "3.11.16"
+  },
+  "schema_version": 1,
+  "selection": {
+    "expected_count": 500,
+    "limit": null,
+    "start_index": 0
+  },
+  "transport_settings": {
+    "api_base_url": "https://api.openai.com/v1",
+    "max_attempts": 4,
+    "request_timeout_seconds": 60.0,
+    "retry_base_seconds": 2.0,
+    "retry_max_seconds": 20.0,
+    "sdk_max_retries": 0
+  },
+  "workload": [
+    {
+      "hypothesis": "Business Administration",
+      "question_id": "e47becba"
+    },
+    {
+      "hypothesis": "45 minutes each way",
+      "question_id": "118b2229"
+    },
+    {
+      "hypothesis": "email inbox",
+      "question_id": "51a45a95"
+    },
+    {
+      "hypothesis": "local community theater",
+      "question_id": "58bf7951"
+    },
+    {
+      "hypothesis": "Summer Vibes playlist on Spotify",
+      "question_id": "1e043500"
+    },
+    {
+      "hypothesis": "Johnson",
+      "question_id": "c5e8278d"
+    },
+    {
+      "hypothesis": "Yoga Studio\n- response source: turn 505",
+      "question_id": "6ade9755"
+    },
+    {
+      "hypothesis": "lighter shade of gray",
+      "question_id": "6f9b354f"
+    },
+    {
+      "hypothesis": "in February",
+      "question_id": "58ef2f1c"
+    },
+    {
+      "hypothesis": "sports store downtown",
+      "question_id": "f8c5f88b"
+    },
+    {
+      "hypothesis": "marketing specialist at a small startup",
+      "question_id": "5d3d2817"
+    },
+    {
+      "hypothesis": "$800",
+      "question_id": "7527f7e2"
+    },
+    {
+      "hypothesis": "20",
+      "question_id": "c960da58"
+    },
+    {
+      "hypothesis": "University of Melbourne",
+      "question_id": "3b6f954b"
+    },
+    {
+      "hypothesis": "10%",
+      "question_id": "726462e0"
+    },
+    {
+      "hypothesis": "4 hours",
+      "question_id": "94f70d80"
+    },
+    {
+      "hypothesis": "Yellow dress and a pair of earrings",
+      "question_id": "66f24dbb"
+    },
+    {
+      "hypothesis": "500 Mbps",
+      "question_id": "ad7109d1"
+    },
+    {
+      "hypothesis": "7",
+      "question_id": "af8d2e46"
+    },
+    {
+      "hypothesis": "staunch atheist",
+      "question_id": "dccbc061"
+    },
+    {
+      "hypothesis": "Nike",
+      "question_id": "c8c3f81d"
+    },
+    {
+      "hypothesis": "completed certification in Data Science",
+      "question_id": "8ebdbe50"
+    },
+    {
+      "hypothesis": "three",
+      "question_id": "6b168ec8"
+    },
+    {
+      "hypothesis": "Golden Retriever",
+      "question_id": "75499fd8"
+    },
+    {
+      "hypothesis": "12",
+      "question_id": "21436231"
+    },
+    {
+      "hypothesis": "10",
+      "question_id": "95bcc1c8"
+    },
+    {
+      "hypothesis": "Luna",
+      "question_id": "0862e8bf"
+    },
+    {
+      "hypothesis": "18 years old",
+      "question_id": "853b0a1d"
+    },
+    {
+      "hypothesis": "3:1",
+      "question_id": "a06e4cfe"
+    },
+    {
+      "hypothesis": "16GB",
+      "question_id": "37d43f65"
+    },
+    {
+      "hypothesis": "The painting of a sunset is worth triple the amount I paid for it.",
+      "question_id": "b86304ba"
+    },
+    {
+      "hypothesis": "Grand Ballroom",
+      "question_id": "d52b4f67"
+    },
+    {
+      "hypothesis": "UCLA",
+      "question_id": "25e5aa4f"
+    },
+    {
+      "hypothesis": "around 5 hours",
+      "question_id": "caf9ead2"
+    },
+    {
+      "hypothesis": "lavender gin fizz recipe",
+      "question_id": "8550ddae"
+    },
+    {
+      "hypothesis": "Japanese short-grain rice",
+      "question_id": "60d45044"
+    },
+    {
+      "hypothesis": "Sarah",
+      "question_id": "3f1e9474"
+    },
+    {
+      "hypothesis": "IKEA",
+      "question_id": "86b68151"
+    },
+    {
+      "hypothesis": "7 pm",
+      "question_id": "577d4d32"
+    },
+    {
+      "hypothesis": "500",
+      "question_id": "ec81a493"
+    },
+    {
+      "hypothesis": "three months",
+      "question_id": "15745da0"
+    },
+    {
+      "hypothesis": "Hawaii",
+      "question_id": "e01b8e2f"
+    },
+    {
+      "hypothesis": "lemon blueberry cake",
+      "question_id": "bc8a6e93"
+    },
+    {
+      "hypothesis": "Spotify",
+      "question_id": "ccb36322"
+    },
+    {
+      "hypothesis": "Over a year",
+      "question_id": "001be529"
+    },
+    {
+      "hypothesis": "rare blue Snaggletooth action figure",
+      "question_id": "b320f3f8"
+    },
+    {
+      "hypothesis": "two weeks",
+      "question_id": "19b5f2b3"
+    },
+    {
+      "hypothesis": "Xfinity Center",
+      "question_id": "4fd1909e"
+    },
+    {
+      "hypothesis": "2 hours per day",
+      "question_id": "545bd2b5"
+    },
+    {
+      "hypothesis": "Philips LED bulb in bedside lamp",
+      "question_id": "8a137a7f"
+    },
+    {
+      "hypothesis": "55-inch",
+      "question_id": "76d63226"
+    },
+    {
+      "hypothesis": "\"The Seven Husbands of Evelyn Hugo\"",
+      "question_id": "86f00804"
+    },
+    {
+      "hypothesis": "17",
+      "question_id": "8e9d538c"
+    },
+    {
+      "hypothesis": "10",
+      "question_id": "311778f1"
+    },
+    {
+      "hypothesis": "6:30 pm on weekdays",
+      "question_id": "c19f7a0b"
+    },
+    {
+      "hypothesis": "mixed ethnicity (Irish and Italian)",
+      "question_id": "4100d0a0"
+    },
+    {
+      "hypothesis": "30 minutes",
+      "question_id": "29f2956b"
+    },
+    {
+      "hypothesis": "Denver",
+      "question_id": "1faac195"
+    },
+    {
+      "hypothesis": "24 hours",
+      "question_id": "faba32e5"
+    },
+    {
+      "hypothesis": "sister",
+      "question_id": "f4f1d8a4"
+    },
+    {
+      "hypothesis": "Trader Joe's",
+      "question_id": "c14c00dd"
+    },
+    {
+      "hypothesis": "bronchitis",
+      "question_id": "36580ce8"
+    },
+    {
+      "hypothesis": "coffee shop in the city",
+      "question_id": "3d86fd0a"
+    },
+    {
+      "hypothesis": "Dark Souls 3 DLC",
+      "question_id": "a82c026e"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "0862e8bf_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "15745da0_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "bc8a6e93_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "19b5f2b3_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "29f2956b_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "f4f1d8a4_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "0a995998"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "6d550036"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_59c863d7"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "b5ef892d"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "e831120c"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "3a704032"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_d84a3211"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "aae3761f"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_f2262a51"
+    },
+    {
+      "hypothesis": "2 AM",
+      "question_id": "dd2973ad"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "c4a1ceb8"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_a56e767c"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "6cb6f249"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "46a3abf7"
+    },
+    {
+      "hypothesis": "$2 + $500\n- response: \"$2 + $500\"",
+      "question_id": "36b9f61e"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "28dc39ac"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_2f8be40d"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "2e6d26dc"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_15e38248"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "88432d0a"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "80ec1f4f"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "d23cf73b"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_7fce9456"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "d682f1a2"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "7024f17c"
+    },
+    {
+      "hypothesis": "540",
+      "question_id": "gpt4_5501fe77"
+    },
+    {
+      "hypothesis": "$120 at Walmart\n- [explanation]: The user mentioned spending around $120 at Walmart during the conversation on 2023/05/26 (Fri) 14:05, which is earlier than any other grocery store mentions in",
+      "question_id": "gpt4_2ba83207"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "2318644b"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "2ce6a0f2"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_d12ceb0e"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "00ca467f"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "b3c15d39"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_31ff4165"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "eeda8a6d"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "2788b940"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "60bf93ed"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "9d25d4e0"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "129d1232"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "60472f9c"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_194be4b3"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "a9f6b44c"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "d851d5ba"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "5a7937c8"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_ab202e7f"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_e05b82a6"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_731e37d7"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "edced276"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "10d9b85a"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "e3038f8c"
+    },
+    {
+      "hypothesis": "$120",
+      "question_id": "2b8f3739"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "1a8a66a6"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "c2ac3c61"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "bf659f65"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_372c3eed"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_2f91af09"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "81507db6"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "88432d0a_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "80ec1f4f_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "eeda8a6d_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "60bf93ed_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "edced276_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_372c3eed_abs"
+    },
+    {
+      "hypothesis": "Online resources and book recommendations for learning advanced settings in Adobe Premiere Pro\n- candidate from turn 86: entity tips on advanced settings for video editing | fact: speaker user -[seeking]-> entity tips on advanced settings for video editing | source_role: user | source_quote: \"",
+      "question_id": "8a2466db"
+    },
+    {
+      "hypothesis": "Sony HVL-F60RM -[compatible flash]-> Sony A7R IV",
+      "question_id": "06878be2"
+    },
+    {
+      "hypothesis": "research papers or articles on explainable AI in medical image analysis",
+      "question_id": "75832dbd"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "0edc2aef"
+    },
+    {
+      "hypothesis": "French and Spanish languages",
+      "question_id": "35a27287"
+    },
+    {
+      "hypothesis": "John Mulaney's 'Kid Gorgeous'",
+      "question_id": "32260d93"
+    },
+    {
+      "hypothesis": "suggest meditation apps or guided meditation resources",
+      "question_id": "195a1a1b"
+    },
+    {
+      "hypothesis": "Purge and Categorize",
+      "question_id": "afdc33df"
+    },
+    {
+      "hypothesis": "Try more recipes with it.",
+      "question_id": "caf03d32"
+    },
+    {
+      "hypothesis": "socializing with colleagues",
+      "question_id": "54026fce"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "06f04340"
+    },
+    {
+      "hypothesis": "find new inspiration",
+      "question_id": "6b7dfb22"
+    },
+    {
+      "hypothesis": "Pimm's Cup with a Twist",
+      "question_id": "1a1907b4"
+    },
+    {
+      "hypothesis": "waterproof phone case or pouch",
+      "question_id": "09d032c9"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "38146c39"
+    },
+    {
+      "hypothesis": "bake a cake for your friend's birthday",
+      "question_id": "d24813b1"
+    },
+    {
+      "hypothesis": "bedroom dresser",
+      "question_id": "57f827a0"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "95228167"
+    },
+    {
+      "hypothesis": "Lemon Ginger\n- candidate from turn 109: spring-themed coffee flavors | fact: assistant -[recommends]-> Lemon Ginger | source_role: assistant | source_quote: \"Spring is a great time to refresh your coffee routine! I'd be happy to",
+      "question_id": "505af2f5"
+    },
+    {
+      "hypothesis": "living room -[affected by]-> cat's shedding",
+      "question_id": "75f70248"
+    },
+    {
+      "hypothesis": "attending my high school reunion",
+      "question_id": "d6233ab6"
+    },
+    {
+      "hypothesis": "Considering the current date is 2023/05/30 and you are concerned about storage capacity issues and data security, it might be beneficial to buy a NAS device now. There are options with strong security features like AES-256 bit encryption and access control that can help protect",
+      "question_id": "1da05512"
+    },
+    {
+      "hypothesis": "upcoming theme park events with thrill rides, unique food experiences, and nighttime shows",
+      "question_id": "fca70973"
+    },
+    {
+      "hypothesis": "Roasted sweet potatoes",
+      "question_id": "b6025781"
+    },
+    {
+      "hypothesis": "Red Rocks Amphitheater\n- Denver -[has]-> Red Rocks Amphitheater",
+      "question_id": "a89d7624"
+    },
+    {
+      "hypothesis": "recommend documentary series similar to \"Our Planet\", \"Free Solo\", and \"Tiger King\"",
+      "question_id": "b0479f84"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "1d4e3b97"
+    },
+    {
+      "hypothesis": "phone wallet case",
+      "question_id": "07b6f563"
+    },
+    {
+      "hypothesis": "Staying productive and entertained during bike ride",
+      "question_id": "1c0ddc50"
+    },
+    {
+      "hypothesis": "No helpful tips provided for getting around Tokyo.",
+      "question_id": "0a34ad58"
+    },
+    {
+      "hypothesis": "The total distance of the hikes I did on two consecutive weekends is 5 miles.",
+      "question_id": "d3ab962e"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "2311e44b"
+    },
+    {
+      "hypothesis": "$12",
+      "question_id": "cc06de0d"
+    },
+    {
+      "hypothesis": "350 followers",
+      "question_id": "a11281a2"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "4f54b7c9"
+    },
+    {
+      "hypothesis": "$40",
+      "question_id": "85fa3a3f"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "9aaed6a3"
+    },
+    {
+      "hypothesis": "$200-$250 vs $80-$100",
+      "question_id": "1f2b8d4f"
+    },
+    {
+      "hypothesis": "2/5\n- candidate from turn 37: a lot of shoes for last trip | fact: Speaker -[packed]-> a lot of shoes for last trip | source_role: user | source_quote: \"I'm planning a 5-day trip and I want",
+      "question_id": "e6041065"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "51c32626"
+    },
+    {
+      "hypothesis": "0.0% discount received\n- candidate from turn 358: discount received | fact: speaker assistant -[appreciates]-> discount received | source_role: assistant | source_quote: \"That's great! It's always exciting to get your hands on a",
+      "question_id": "d905b33f"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "7405e8b1"
+    },
+    {
+      "hypothesis": "I've listened to episode 12 of \"My Favorite Murder\" podcast.\n- response: I've listened to episode 12 of \"My Favorish Murder\" podcast",
+      "question_id": "f35224e0"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "6456829e"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "a4996e51"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "3c1045c8"
+    },
+    {
+      "hypothesis": "The evidence does not provide a specific number of people reached by the Facebook ad campaign and Instagram influencer collaboration.",
+      "question_id": "60036106"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "681a1674"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "e25c3b8d"
+    },
+    {
+      "hypothesis": "3 goals\n- candidate from turn 313: 3 goals | fact: speaker user -[scored]-> 3 goals",
+      "question_id": "4adc0475"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "4bc144e2"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "ef66a6e5"
+    },
+    {
+      "hypothesis": "online communities related to cooking",
+      "question_id": "5025383b"
+    },
+    {
+      "hypothesis": "21",
+      "question_id": "a1cc6108"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "9ee3ecd6"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "3fdac837"
+    },
+    {
+      "hypothesis": "$150",
+      "question_id": "91b15a6e"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "27016adc"
+    },
+    {
+      "hypothesis": "$50",
+      "question_id": "720133ac"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "77eafa52"
+    },
+    {
+      "hypothesis": "3\n- ai: 3",
+      "question_id": "8979f9ec"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "0100672e"
+    },
+    {
+      "hypothesis": "first research conference",
+      "question_id": "a96c20ee"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "92a0aa75"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "3fe836c9"
+    },
+    {
+      "hypothesis": "$20",
+      "question_id": "1c549ce4"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "6c49646a"
+    },
+    {
+      "hypothesis": "40 minutes",
+      "question_id": "1192316e"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "0ea62687"
+    },
+    {
+      "hypothesis": "12 courses on Coursera",
+      "question_id": "67e0d0f2"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "bb7c3b45"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "ba358f49"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "61f8c8f8"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "60159905"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "ef9cf60a"
+    },
+    {
+      "hypothesis": "Monday, 7 AM",
+      "question_id": "73d42213"
+    },
+    {
+      "hypothesis": "50 pounds",
+      "question_id": "bc149d6b"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "099778bb"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "09ba9854"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "d6062bb9"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "157a136e"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "c18a7dc8"
+    },
+    {
+      "hypothesis": "$100 for brother's graduation gift + $75 for sister's birthday gift = $175",
+      "question_id": "a3332713"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "55241a1f"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "a08a253f"
+    },
+    {
+      "hypothesis": "$500",
+      "question_id": "f0e564bc"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "078150f1"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "8cf4d046"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "a346bb18"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "37f165cf"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "8e91e7d9"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "87f22b4a"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "e56a43b9"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "efc3f7c2"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "21d02d0d"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "2311e44b_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "6456829e_abs"
+    },
+    {
+      "hypothesis": "$378",
+      "question_id": "e5ba910e_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "a96c20ee_abs"
+    },
+    {
+      "hypothesis": "Rachel -[getting married]-> next year",
+      "question_id": "ba358f49_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "09ba9854_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_59149c77"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_f49edff3"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "71017276"
+    },
+    {
+      "hypothesis": "2 months",
+      "question_id": "b46e15ed"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_fa19884c"
+    },
+    {
+      "hypothesis": "2 months\n- candidate from turn 93: 2 | fact: Science Museum -[relation]-> events calendar | source_role: assistant | source_quote: \"That sounds like a fascinating experience! I'm happy to help you discover upcoming exhibits or events related to chemistry",
+      "question_id": "0bc8ad92"
+    },
+    {
+      "hypothesis": "2 weeks ago",
+      "question_id": "af082822"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_4929293a"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_b5700ca9"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "9a707b81"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_1d4ab0c9"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_e072b769"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "0db4c65d"
+    },
+    {
+      "hypothesis": "The evidence does not provide a specific number of days spent on the solo camping trip to Yosemite National Park.",
+      "question_id": "gpt4_1d80365e"
+    },
+    {
+      "hypothesis": "Eastern Sierra, day hike to Muir Woods National Monument, 3-4 days",
+      "question_id": "gpt4_7f6b06db"
+    },
+    {
+      "hypothesis": "1 month",
+      "question_id": "gpt4_6dc9b45b"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_8279ba02"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_18c2b244"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_a1b77f9c"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_1916e0ea"
+    },
+    {
+      "hypothesis": "1 week",
+      "question_id": "gpt4_7a0daae1"
+    },
+    {
+      "hypothesis": "6 days ago",
+      "question_id": "gpt4_468eb063"
+    },
+    {
+      "hypothesis": "Modern Art Museum\n- assistant reply: \"Wonderful! The Modern Art Museum is a fantastic institution, and I'm glad you enjoyed the \"The Evolution of Abstract Expressionism\" installation. Anselm Kiefer's work is indeed powerful and thought-provoking.\"",
+      "question_id": "gpt4_7abb270c"
+    },
+    {
+      "hypothesis": "2 days",
+      "question_id": "gpt4_1e4a8aeb"
+    },
+    {
+      "hypothesis": "72 days",
+      "question_id": "gpt4_4fc4f797"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "4dfccbf7"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_61e13b3c"
+    },
+    {
+      "hypothesis": "January 5-8, 2023",
+      "question_id": "gpt4_45189cb4"
+    },
+    {
+      "hypothesis": "No answer found.",
+      "question_id": "2ebe6c90"
+    },
+    {
+      "hypothesis": "Little Creatures Daytime Disco - Fremantle - earlier than other events",
+      "question_id": "gpt4_e061b84f"
+    },
+    {
+      "hypothesis": "5",
+      "question_id": "370a8ff4"
+    },
+    {
+      "hypothesis": "I attended a music festival in Brooklyn recently.",
+      "question_id": "gpt4_d6585ce8"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_4ef30696"
+    },
+    {
+      "hypothesis": "bus",
+      "question_id": "gpt4_ec93e27f"
+    },
+    {
+      "hypothesis": "1",
+      "question_id": "6e984301"
+    },
+    {
+      "hypothesis": "1 day",
+      "question_id": "8077ef71"
+    },
+    {
+      "hypothesis": "American Airlines, Delta\n- response: American Airlines, Delta",
+      "question_id": "gpt4_f420262c"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_8e165409"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_74aed68e"
+    },
+    {
+      "hypothesis": "2 weeks ago",
+      "question_id": "bcbe585f"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_21adecb5"
+    },
+    {
+      "hypothesis": "2 months ago",
+      "question_id": "5e1b23de"
+    },
+    {
+      "hypothesis": "charity bake sale",
+      "question_id": "gpt4_98f46fc6"
+    },
+    {
+      "hypothesis": "12 days ago",
+      "question_id": "gpt4_af6db32f"
+    },
+    {
+      "hypothesis": "2 days ago\n- candidate from turn 4: 2 | fact: Speaker assistant -[congratulates]-> Speaker (launching website and creating business plan outline) | source_role: assistant | source_quote: \"Congratulations on launching your website and creating a",
+      "question_id": "eac54adc"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_7ddcf75f"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_a2d1d1f6"
+    },
+    {
+      "hypothesis": "1 week\n- candidate from turn 216: Summer Nights | fact: speaker user -[attended]-> Universal Studios Hollywood | source_role: user | source_quote: \"I'm planning a theme park trip soon and I was wondering if you could help me compare the different ticket options",
+      "question_id": "gpt4_85da3956"
+    },
+    {
+      "hypothesis": "2 days ago",
+      "question_id": "gpt4_b0863698"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_68e94287"
+    },
+    {
+      "hypothesis": "No answer found in the evidence.",
+      "question_id": "gpt4_e414231e"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_7ca326fa"
+    },
+    {
+      "hypothesis": "14 days",
+      "question_id": "gpt4_7bc6cf22"
+    },
+    {
+      "hypothesis": "\"The Nightingale\" by Kristin Hannah",
+      "question_id": "2ebe6c92"
+    },
+    {
+      "hypothesis": "I cannot find a specific fact about the sports event mentioned two weeks ago in the provided evidence.",
+      "question_id": "gpt4_e061b84g"
+    },
+    {
+      "hypothesis": "No answer found.",
+      "question_id": "71017277"
+    },
+    {
+      "hypothesis": "charity event -[helps]-> local children's hospital",
+      "question_id": "b46e15ee"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_d6585ce9"
+    },
+    {
+      "hypothesis": "I used a gardening app to track the weather and soil moisture levels.",
+      "question_id": "gpt4_1e4a8aec"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_f420262d"
+    },
+    {
+      "hypothesis": "City Art Museum",
+      "question_id": "gpt4_59149c78"
+    },
+    {
+      "hypothesis": "mountain bike",
+      "question_id": "gpt4_e414231f"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_4929293b"
+    },
+    {
+      "hypothesis": "Emma",
+      "question_id": "gpt4_468eb064"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_fa19884d"
+    },
+    {
+      "hypothesis": "banana bread",
+      "question_id": "9a707b82"
+    },
+    {
+      "hypothesis": "Sundance",
+      "question_id": "eac54add"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "4dfccbf8"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "0bc8ad93"
+    },
+    {
+      "hypothesis": "craft books and patterns",
+      "question_id": "6e984302"
+    },
+    {
+      "hypothesis": "No kitchen appliance was bought 10 days ago.",
+      "question_id": "gpt4_8279ba03"
+    },
+    {
+      "hypothesis": "Episcopal Church",
+      "question_id": "gpt4_b5700ca0"
+    },
+    {
+      "hypothesis": "#PlankChallenge",
+      "question_id": "gpt4_68e94288"
+    },
+    {
+      "hypothesis": "GPS system -[had issue]-> 3/22",
+      "question_id": "gpt4_2655b836"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_2487a7cb"
+    },
+    {
+      "hypothesis": "bike in mid-February",
+      "question_id": "gpt4_76048e76"
+    },
+    {
+      "hypothesis": "Dell XPS 13\n- candidate from turn 83: Dell XPS 13 | fact: speaker user -[laptop]-> Dell XPS 13 | source_role: user | source_quote: \"I'm planning a trip to Hawaii and I need",
+      "question_id": "gpt4_2312f94c"
+    },
+    {
+      "hypothesis": "4 days",
+      "question_id": "0bb5a684"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "08f4fc43"
+    },
+    {
+      "hypothesis": "15 days",
+      "question_id": "2c63a862"
+    },
+    {
+      "hypothesis": "marigold seeds started first\n- candidate from turn 111: marigold seeds | fact: speaker user -[started]-> marigold seeds | source_role: user | source_quote: \"I'm planning to plant some seedlings in my backyard soon.",
+      "question_id": "gpt4_385a5000"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "2a1811e2"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "bbf86515"
+    },
+    {
+      "hypothesis": "white Adidas sneakers",
+      "question_id": "gpt4_5dcc0aab"
+    },
+    {
+      "hypothesis": "Coffee Maker Desserts",
+      "question_id": "gpt4_0b2f1d21"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "f0853d11"
+    },
+    {
+      "hypothesis": "dog bed for Max",
+      "question_id": "gpt4_6ed717ea"
+    },
+    {
+      "hypothesis": "trimming the goats' hooves",
+      "question_id": "gpt4_70e84552"
+    },
+    {
+      "hypothesis": "5",
+      "question_id": "a3838d2b"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_93159ced"
+    },
+    {
+      "hypothesis": "\"The Nightingale\"",
+      "question_id": "gpt4_2d58bcd6"
+    },
+    {
+      "hypothesis": "smart thermostat",
+      "question_id": "gpt4_65aabe59"
+    },
+    {
+      "hypothesis": "three",
+      "question_id": "982b5123"
+    },
+    {
+      "hypothesis": "17 hours",
+      "question_id": "b9cfe692"
+    },
+    {
+      "hypothesis": "3rd of June",
+      "question_id": "gpt4_4edbafa2"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "c8090214"
+    },
+    {
+      "hypothesis": "Game of Thrones\n- candidate from turn 394: started | fact: user -[action]-> started | source_role: user | source_quote: \"I'm looking for some new shows to watch on HBO Max. I've been meaning to check out \"Game of Th",
+      "question_id": "gpt4_483dd43c"
+    },
+    {
+      "hypothesis": "three weeks",
+      "question_id": "e4e14d04"
+    },
+    {
+      "hypothesis": "about 3 months",
+      "question_id": "c9f37c46"
+    },
+    {
+      "hypothesis": "15 minutes earlier",
+      "question_id": "gpt4_2c50253f"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "dcfa8644"
+    },
+    {
+      "hypothesis": "road trip to the coast",
+      "question_id": "gpt4_b4a80587"
+    },
+    {
+      "hypothesis": "United Airlines\n- [evidence]: \"In March, I took a business trip to Chicago with United Airlines, flying from my hometown to Chicago on the 10th and returning on the 12th, with two flights each way.\"",
+      "question_id": "gpt4_9a159967"
+    },
+    {
+      "hypothesis": "a month",
+      "question_id": "cc6d1ec1"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_8c8961ae"
+    },
+    {
+      "hypothesis": "new router on January 15th",
+      "question_id": "gpt4_d9af6064"
+    },
+    {
+      "hypothesis": "skin tag removal",
+      "question_id": "gpt4_7de946e7"
+    },
+    {
+      "hypothesis": "I moved to the United States 32 years ago.",
+      "question_id": "d01c6aa8"
+    },
+    {
+      "hypothesis": "a month",
+      "question_id": "993da5e2"
+    },
+    {
+      "hypothesis": "15 days",
+      "question_id": "a3045048"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_d31cdae3"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_cd90e484"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_88806d6e"
+    },
+    {
+      "hypothesis": "3 weeks",
+      "question_id": "gpt4_4cd9eba1"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_93f6379c"
+    },
+    {
+      "hypothesis": "two weeks",
+      "question_id": "b29f3365"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_2f56ae70"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "6613b389"
+    },
+    {
+      "hypothesis": "old phone charger",
+      "question_id": "gpt4_78cf46a3"
+    },
+    {
+      "hypothesis": "tourist from Australia",
+      "question_id": "gpt4_0a05b494"
+    },
+    {
+      "hypothesis": "Rachel on April 10th\n- candidate from turn 403: Rachel on April 10th | fact: speaker user -[had meeting with]-> Rachel on April 10th | source_role: user | source_quote: \"I'm planning to discuss this",
+      "question_id": "gpt4_1a1dc16d"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_2f584639"
+    },
+    {
+      "hypothesis": "charity 5K run",
+      "question_id": "gpt4_213fd887"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_5438fa52"
+    },
+    {
+      "hypothesis": "Japanese Zero fighter plane",
+      "question_id": "gpt4_c27434e8"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_fe651585"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "8c18457d"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_70e84552_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_93159ced_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "982b5123_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "c8090214_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_c27434e8_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "gpt4_fe651585_abs"
+    },
+    {
+      "hypothesis": "27:12",
+      "question_id": "6a1eabeb"
+    },
+    {
+      "hypothesis": "three",
+      "question_id": "6aeb4375"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "830ce83f"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "852ce960"
+    },
+    {
+      "hypothesis": "feeling more grounded and centered",
+      "question_id": "945e3d21"
+    },
+    {
+      "hypothesis": "grocery list app | fact: mom -[uses]-> grocery list app",
+      "question_id": "d7c942c3"
+    },
+    {
+      "hypothesis": "10",
+      "question_id": "71315a70"
+    },
+    {
+      "hypothesis": "three",
+      "question_id": "89941a93"
+    },
+    {
+      "hypothesis": "Friday",
+      "question_id": "ce6d2d27"
+    },
+    {
+      "hypothesis": "10 days island-hopping in Hawaii",
+      "question_id": "9ea5eabc"
+    },
+    {
+      "hypothesis": "under bed",
+      "question_id": "07741c44"
+    },
+    {
+      "hypothesis": "four",
+      "question_id": "a1eacc2a"
+    },
+    {
+      "hypothesis": "220",
+      "question_id": "184da446"
+    },
+    {
+      "hypothesis": "4",
+      "question_id": "031748ae"
+    },
+    {
+      "hypothesis": "25",
+      "question_id": "4d6b87c8"
+    },
+    {
+      "hypothesis": "125",
+      "question_id": "0f05491a"
+    },
+    {
+      "hypothesis": "9 months",
+      "question_id": "08e075c7"
+    },
+    {
+      "hypothesis": "three",
+      "question_id": "f9e8c073"
+    },
+    {
+      "hypothesis": "50mm prime lens",
+      "question_id": "41698283"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "2698e78f"
+    },
+    {
+      "hypothesis": "4",
+      "question_id": "b6019101"
+    },
+    {
+      "hypothesis": "two",
+      "question_id": "45dc21b6"
+    },
+    {
+      "hypothesis": "TechCorp",
+      "question_id": "5a4f22c0"
+    },
+    {
+      "hypothesis": "5 ounces of water per tablespoon of coffee",
+      "question_id": "6071bd76"
+    },
+    {
+      "hypothesis": "bedroom",
+      "question_id": "e493bb7c"
+    },
+    {
+      "hypothesis": "four",
+      "question_id": "618f13b2"
+    },
+    {
+      "hypothesis": "50",
+      "question_id": "72e3ee87"
+    },
+    {
+      "hypothesis": "No, I do not go to the gym more frequently than previously.",
+      "question_id": "c4ea545c"
+    },
+    {
+      "hypothesis": "25",
+      "question_id": "01493427"
+    },
+    {
+      "hypothesis": "20",
+      "question_id": "6a27ffc2"
+    },
+    {
+      "hypothesis": "a month",
+      "question_id": "2133c1b5"
+    },
+    {
+      "hypothesis": "Kansas City Masterpiece BBQ sauce",
+      "question_id": "18bc8abd"
+    },
+    {
+      "hypothesis": "six months",
+      "question_id": "db467c8c"
+    },
+    {
+      "hypothesis": "3 weeks",
+      "question_id": "7a87bd0c"
+    },
+    {
+      "hypothesis": "about 9 months",
+      "question_id": "e61a7584"
+    },
+    {
+      "hypothesis": "600",
+      "question_id": "1cea1afa"
+    },
+    {
+      "hypothesis": "dozen",
+      "question_id": "ed4ddc30"
+    },
+    {
+      "hypothesis": "three",
+      "question_id": "8fb83627"
+    },
+    {
+      "hypothesis": "Yes, I finished reading 'The Nightingale' by Kristin Hannah.",
+      "question_id": "b01defab"
+    },
+    {
+      "hypothesis": "Main St",
+      "question_id": "22d2cb42"
+    },
+    {
+      "hypothesis": "132 points",
+      "question_id": "0e4e4c46"
+    },
+    {
+      "hypothesis": "three",
+      "question_id": "4b24c848"
+    },
+    {
+      "hypothesis": "$420",
+      "question_id": "7e974930"
+    },
+    {
+      "hypothesis": "10",
+      "question_id": "603deb26"
+    },
+    {
+      "hypothesis": "6:00 pm",
+      "question_id": "59524333"
+    },
+    {
+      "hypothesis": "10",
+      "question_id": "5831f84d"
+    },
+    {
+      "hypothesis": "Hawaii",
+      "question_id": "eace081b"
+    },
+    {
+      "hypothesis": "27",
+      "question_id": "affe2881"
+    },
+    {
+      "hypothesis": "Premier Silver status\n- candidate from turn 4: frequent flyer status | fact: speaker user -[earned]-> Premier Silver status | source_role: assistant | source_quote: \"Congratulations on reaching 20,000 miles and earning Premier Silver status! As a Silver",
+      "question_id": "50635ada"
+    },
+    {
+      "hypothesis": "26 minutes and 30 seconds",
+      "question_id": "e66b632c"
+    },
+    {
+      "hypothesis": "20",
+      "question_id": "0ddfec37"
+    },
+    {
+      "hypothesis": "previously every other week\nnow: unknown",
+      "question_id": "f685340e"
+    },
+    {
+      "hypothesis": "about two hours",
+      "question_id": "cc5ded98"
+    },
+    {
+      "hypothesis": "Wednesday evening",
+      "question_id": "dfde3500"
+    },
+    {
+      "hypothesis": "37",
+      "question_id": "69fee5aa"
+    },
+    {
+      "hypothesis": "5",
+      "question_id": "7401057b"
+    },
+    {
+      "hypothesis": "10",
+      "question_id": "cf22b7bf"
+    },
+    {
+      "hypothesis": "1250",
+      "question_id": "a2f3aa27"
+    },
+    {
+      "hypothesis": "No current record in the recreational volleyball league.",
+      "question_id": "c7dc5443"
+    },
+    {
+      "hypothesis": "4",
+      "question_id": "06db6396"
+    },
+    {
+      "hypothesis": "Ford Mustang Shelby GT350R model",
+      "question_id": "3ba21379"
+    },
+    {
+      "hypothesis": "previous goal for my Apex Legends level was to reach level 150",
+      "question_id": "9bbe84a2"
+    },
+    {
+      "hypothesis": "9",
+      "question_id": "10e09553"
+    },
+    {
+      "hypothesis": "8:30 am on Saturdays",
+      "question_id": "dad224aa"
+    },
+    {
+      "hypothesis": "6 women",
+      "question_id": "ba61f0b9"
+    },
+    {
+      "hypothesis": "Yes, I have a spare screwdriver for opening up my laptop.",
+      "question_id": "42ec0761"
+    },
+    {
+      "hypothesis": "2",
+      "question_id": "5c40ec5b"
+    },
+    {
+      "hypothesis": "increased",
+      "question_id": "c6853660"
+    },
+    {
+      "hypothesis": "five",
+      "question_id": "26bdc477"
+    },
+    {
+      "hypothesis": "crispy sweet potato fries",
+      "question_id": "0977f2af"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "6aeb4375_abs"
+    },
+    {
+      "hypothesis": "4",
+      "question_id": "031748ae_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "2698e78f_abs"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "2133c1b5_abs"
+    },
+    {
+      "hypothesis": "20",
+      "question_id": "0ddfec37_abs"
+    },
+    {
+      "hypothesis": "friends every other week at local park",
+      "question_id": "f685340e_abs"
+    },
+    {
+      "hypothesis": "I have a mountain bike and a commuter bike.",
+      "question_id": "89941a94"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "07741c45"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "7161e7e2"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "c4f10528"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "89527b6b"
+    },
+    {
+      "hypothesis": "Lickety Splitz - located in Orlando",
+      "question_id": "e9327a54"
+    },
+    {
+      "hypothesis": "Roscioli",
+      "question_id": "4c36ccef"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "6ae235be"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "7e00a6cb"
+    },
+    {
+      "hypothesis": "content creator",
+      "question_id": "1903aded"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "ceb54acb"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "f523d9fe"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "0e5e2d1a"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "fea54f57"
+    },
+    {
+      "hypothesis": "No specific back-end programming languages were recommended.",
+      "question_id": "cc539528"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "dc439ea3"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "18dcd5a5"
+    },
+    {
+      "hypothesis": "GR-90",
+      "question_id": "488d3006"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "58470ed2"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "8cf51dda"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "1d4da289"
+    },
+    {
+      "hypothesis": "Roscioli",
+      "question_id": "8464fc84"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "8aef76bc"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "71a3fd6b"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "2bf43736"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "70b3e69b"
+    },
+    {
+      "hypothesis": "The 27th parameter on the list is \"style\".",
+      "question_id": "8752c811"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "3249768e"
+    },
+    {
+      "hypothesis": "mindful.org\n- response: mindful.org",
+      "question_id": "1b9b7252"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "1568498a"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "6222b6eb"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "e8a79c70"
+    },
+    {
+      "hypothesis": "New York City | fact: speaker assistant -[recommends]-> By Chloe, a popular plant-based eatery with multiple locations throughout the city.",
+      "question_id": "d596882b"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "e3fc4d6e"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "51b23612"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "3e321797"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "e982271f"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "352ab8bd"
+    },
+    {
+      "hypothesis": "Memrise - uses mnemonics",
+      "question_id": "fca762bc"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "7a8d0b71"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "a40e080f"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "8b9d4367"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "5809eb10"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "41275add"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "4388e9dd"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "4baee567"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "561fabcd"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "b759caee"
+    },
+    {
+      "hypothesis": "\"LIV\"",
+      "question_id": "ac031881"
+    },
+    {
+      "hypothesis": "MusicTheap.net\n- candidate from turn 272: Tandem | fact: speaker assistant -[mentions]-> Tandem | source_role: assistant | source_quote: \"even make voice or video calls. 2. **Tandem**: Another well-known language exchange app",
+      "question_id": "28bcfaac"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "16c90bf4"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "c8f1aeed"
+    },
+    {
+      "hypothesis": "G G G G A G F\n- ai: G G G G A G F",
+      "question_id": "eaca4986"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "c7cf7dfd"
+    },
+    {
+      "hypothesis": "Patagonia",
+      "question_id": "e48988bc"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "1de5cff2"
+    },
+    {
+      "hypothesis": "1",
+      "question_id": "65240037"
+    },
+    {
+      "hypothesis": "I do not know.",
+      "question_id": "778164c6"
+    }
+  ],
+  "wrapper": {
+    "path": "/Users/moitra/surya/dev_project/context/PRAGMOS_evaluate_LongMemEval.py",
+    "sha256": "cbaebb3b0e20ac3d6523214d92a16feff6ff0e41aa9a7cdca74b34b0f6f5fe11",
+    "size_bytes": 31406
+  }
+}

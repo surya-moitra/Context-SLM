@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "dataset_name": "PRAGMOS Synthetic LoCoMo Development Set V1",
+  "purpose": "development_and_regression_testing_only",
+  "official_locomo_score": false,
+  "seed": 20261003,
+  "generator": "generate_PRAGMOS_synthetic_LoCoMo.py",
+  "generator_sha256": "e78719d4036c90f2b7f3c814e948f7d09606cf7e3226a523386e8a39d6085e82",
+  "dataset_file": "pragmos_synthetic_locomo_1986_v1.json",
+  "dataset_sha256": "c3314bc44defeb87eb1b97c6484689cffc76fd7db20f33142cfef384164f803a",
+  "official_profile_source": "https://github.com/snap-research/LoCoMo",
+  "official_profile_commit": "3eb6f2c585f5e1699204e3c3bdf7adc5c28cb376",
+  "official_profile_fields_used": [
+    "conversation count",
+    "sessions per conversation",
+    "turn count per conversation",
+    "QA category counts per conversation",
+    "public JSON schema"
+  ],
+  "official_content_fields_not_used_for_generation": [
+    "conversation turns",
+    "questions",
+    "answers",
+    "evidence text",
+    "speaker names",
+    "dates",
+    "observations",
+    "session summaries",
+    "event summaries"
+  ],
+  "official_question_reuse_check": {
+    "performed": true,
+    "official_data_sha256": "79fa87e90f04081343b8c8debecb80a9a6842b76a7aa537dc9fdf651ea698ff4",
+    "matched_question_count": 0
+  },
+  "validation": {
+    "conversation_count": 10,
+    "question_count": 1986,
+    "category_counts": {
+      "1": 282,
+      "2": 321,
+      "3": 96,
+      "4": 841,
+      "5": 446
+    },
+    "category_names": {
+      "1": "multi-hop",
+      "2": "temporal",
+      "3": "open-domain",
+      "4": "single-hop",
+      "5": "adversarial"
+    },
+    "family_counts": {
+      "adversarial-wrong-attribute": 145,
+      "adversarial-wrong-speaker": 301,
+      "advice-recall": 81,
+      "career-inference": 13,
+      "causal-recall": 85,
+      "collection-recall": 58,
+      "commonsense-gift-inference": 13,
+      "cross-session-collection-union": 36,
+      "cross-session-count-distinct": 38,
+      "cross-session-goal-union": 33,
+      "cross-session-list-union": 38,
+      "cross-session-place-union": 38,
+      "cross-session-recommendation-union": 32,
+      "cross-session-relative-date-join": 30,
+      "direct-activity": 88,
+      "direct-place": 69,
+      "emotion-recall": 84,
+      "explicit-date": 32,
+      "explicit-duration": 37,
+      "explicit-year": 33,
+      "genre-inference": 10,
+      "geographic-country-inference": 15,
+      "geographic-state-inference": 15,
+      "goal-recall": 61,
+      "long-history-list-union": 30,
+      "membership-recall": 143,
+      "multi-premise-behavioral-inference": 7,
+      "object-recall": 63,
+      "preference-inference": 14,
+      "relative-days-ago": 38,
+      "relative-last-week": 38,
+      "relative-next-month": 38,
+      "relative-weekday": 36,
+      "relative-yesterday": 39,
+      "speaker-set-intersection": 37,
+      "tool-inference": 9,
+      "visual-caption-single-hop": 109
+    },
+    "session_count_range": [
+      19,
+      32
+    ],
+    "conversation_turn_count_range": [
+      369,
+      689
+    ],
+    "cross_session_multi_hop_count": 282,
+    "visual_evidence_question_count": 961,
+    "exact_official_question_reuse_count": 0
+  },
+  "publication_note": "This synthetic set is for development and regression testing only. It is not an official LoCoMo split, must not be reported as an official result, and must be frozen before official evaluation."
+}

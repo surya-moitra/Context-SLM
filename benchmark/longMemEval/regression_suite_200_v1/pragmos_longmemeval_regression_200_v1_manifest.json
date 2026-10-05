@@ -1,0 +1,2531 @@
+{
+  "schema_version": 1,
+  "suite_name": "PRAGMOS LongMemEval Synthetic Regression Suite 200 V1",
+  "purpose": "cross_benchmark_core_regression_gate",
+  "official_benchmark_score": false,
+  "seed": 20261004,
+  "selector": "build_PRAGMOS_LongMemEval_regression_suite.py",
+  "selector_sha256": "224447c270a85fe7975126dbf7c796b25e3baf02ad706f579539aedc57a9bfc3",
+  "source_file": "benchmark/longMemEval/synthetic_v1/pragmos_synthetic_longmemeval_500_v1.json",
+  "source_sha256": "dd4a22eeeb1e518202a9cf41fbe70680913db03d26daf8525202009356e02b7e",
+  "output_file": "pragmos_longmemeval_regression_200_v1.json",
+  "output_sha256": "317695f45a10bd4f94ffe6cd7a43c869c4171b375f6765ac912b8032feaa3f64",
+  "selection_policy": {
+    "all_synthetic_abstentions": true,
+    "historical_failures_retained": true,
+    "prior_fix_validation_anchors_retained": true,
+    "all_positive_subfamilies_covered": true,
+    "question_type_targets": {
+      "single-session-user": 26,
+      "single-session-assistant": 18,
+      "single-session-preference": 10,
+      "knowledge-update": 38,
+      "temporal-reasoning": 50,
+      "multi-session": 58
+    }
+  },
+  "validation": {
+    "record_count": 200,
+    "question_type_counts": {
+      "knowledge-update": 38,
+      "multi-session": 58,
+      "single-session-assistant": 18,
+      "single-session-preference": 10,
+      "single-session-user": 26,
+      "temporal-reasoning": 50
+    },
+    "abstention_count": 30,
+    "positive_family_count": 62,
+    "family_counts": {
+      "activity-mismatch": 1,
+      "assistant-contact-detail": 3,
+      "assistant-multi-item": 3,
+      "assistant-ordinal-list": 3,
+      "assistant-process": 3,
+      "assistant-recommendation-name": 3,
+      "assistant-visual-attribute": 3,
+      "missing-attribute": 1,
+      "missing-related-place": 1,
+      "multi-argmax": 4,
+      "multi-argmin": 3,
+      "multi-average": 3,
+      "multi-count": 11,
+      "multi-count-distinct": 12,
+      "multi-difference": 2,
+      "multi-missing-measurement-abstention": 3,
+      "multi-missing-operand": 4,
+      "multi-near-entity-abstention": 3,
+      "multi-planned-not-completed-abstention": 2,
+      "multi-ratio": 3,
+      "multi-sum-duration": 3,
+      "multi-sum-money": 3,
+      "multi-total-distance": 2,
+      "near-entity-count": 1,
+      "preference-template-1": 1,
+      "preference-template-2": 1,
+      "preference-template-3": 1,
+      "preference-template-4": 1,
+      "preference-template-5": 2,
+      "preference-template-6": 1,
+      "preference-template-7": 1,
+      "preference-template-8": 2,
+      "relation-mismatch": 1,
+      "temporal-adjacent-day": 8,
+      "temporal-clock-duration": 7,
+      "temporal-date-difference": 7,
+      "temporal-event-order": 7,
+      "temporal-exact-date": 7,
+      "temporal-missing-endpoint": 2,
+      "temporal-relative-weeks": 8,
+      "temporal-undated-events": 2,
+      "temporal-vague-date": 2,
+      "underspecified-date": 1,
+      "update-current-favorite-running-route": 1,
+      "update-current-favorite-weekend-animal": 1,
+      "update-current-home-city": 1,
+      "update-current-job-title": 1,
+      "update-current-music-subscription": 1,
+      "update-current-preferred-morning-drink": 1,
+      "update-current-weekly-class": 1,
+      "update-current-work-laptop": 1,
+      "update-missing-attribute-abstention": 2,
+      "update-near-entity-abstention": 2,
+      "update-original-favorite-running-route": 2,
+      "update-original-favorite-weekend-animal": 2,
+      "update-original-home-city": 2,
+      "update-original-job-title": 2,
+      "update-original-music-subscription": 1,
+      "update-original-preferred-morning-drink": 2,
+      "update-original-weekly-class": 1,
+      "update-original-work-laptop": 2,
+      "update-previous-favorite-running-route": 2,
+      "update-previous-favorite-weekend-animal": 1,
+      "update-previous-home-city": 1,
+      "update-previous-job-title": 1,
+      "update-previous-music-subscription": 1,
+      "update-previous-preferred-morning-drink": 1,
+      "update-previous-weekly-class": 2,
+      "update-previous-work-laptop": 1,
+      "update-related-person-abstention": 2,
+      "user-date": 3,
+      "user-degree": 3,
+      "user-duration": 2,
+      "user-model": 3,
+      "user-person": 3,
+      "user-place": 2,
+      "user-quantity": 2,
+      "user-title": 2
+    },
+    "source_indices": [
+      6,
+      8,
+      9,
+      10,
+      11,
+      21,
+      23,
+      24,
+      27,
+      28,
+      29,
+      30,
+      32,
+      35,
+      38,
+      53,
+      55,
+      57,
+      58,
+      60,
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71,
+      75,
+      81,
+      84,
+      85,
+      90,
+      91,
+      98,
+      100,
+      101,
+      106,
+      110,
+      111,
+      112,
+      118,
+      120,
+      121,
+      123,
+      126,
+      127,
+      128,
+      129,
+      130,
+      131,
+      136,
+      137,
+      140,
+      141,
+      143,
+      147,
+      154,
+      155,
+      158,
+      160,
+      162,
+      164,
+      169,
+      170,
+      171,
+      173,
+      174,
+      180,
+      181,
+      190,
+      191,
+      192,
+      196,
+      197,
+      199,
+      200,
+      201,
+      207,
+      208,
+      210,
+      211,
+      216,
+      219,
+      220,
+      221,
+      223,
+      226,
+      227,
+      228,
+      229,
+      230,
+      231,
+      232,
+      235,
+      236,
+      238,
+      242,
+      248,
+      251,
+      252,
+      253,
+      256,
+      261,
+      263,
+      266,
+      269,
+      270,
+      280,
+      281,
+      282,
+      284,
+      285,
+      286,
+      292,
+      298,
+      300,
+      302,
+      306,
+      309,
+      311,
+      315,
+      319,
+      324,
+      326,
+      330,
+      331,
+      332,
+      337,
+      340,
+      342,
+      345,
+      347,
+      349,
+      351,
+      355,
+      357,
+      359,
+      360,
+      361,
+      362,
+      363,
+      364,
+      365,
+      368,
+      369,
+      370,
+      372,
+      375,
+      397,
+      403,
+      404,
+      405,
+      406,
+      407,
+      408,
+      409,
+      410,
+      411,
+      412,
+      413,
+      414,
+      415,
+      419,
+      422,
+      424,
+      425,
+      426,
+      427,
+      429,
+      430,
+      431,
+      432,
+      433,
+      434,
+      435,
+      436,
+      437,
+      438,
+      439,
+      440,
+      441,
+      444,
+      447,
+      448,
+      449,
+      450,
+      452,
+      455,
+      456,
+      458,
+      469,
+      477,
+      478,
+      481,
+      482,
+      487,
+      495,
+      496,
+      497
+    ]
+  },
+  "records": [
+    {
+      "subset_index": 0,
+      "source_index": 6,
+      "question_id": "synthetic_v1_0006",
+      "question_type": "single-session-user",
+      "regression_family": "user-person",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 1,
+      "source_index": 8,
+      "question_id": "synthetic_v1_0008",
+      "question_type": "single-session-user",
+      "regression_family": "user-degree",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 2,
+      "source_index": 9,
+      "question_id": "synthetic_v1_0009",
+      "question_type": "single-session-user",
+      "regression_family": "user-place",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 3,
+      "source_index": 10,
+      "question_id": "synthetic_v1_0010",
+      "question_type": "single-session-user",
+      "regression_family": "user-title",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 4,
+      "source_index": 11,
+      "question_id": "synthetic_v1_0011",
+      "question_type": "single-session-user",
+      "regression_family": "user-date",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 5,
+      "source_index": 21,
+      "question_id": "synthetic_v1_0021",
+      "question_type": "single-session-user",
+      "regression_family": "user-model",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 6,
+      "source_index": 23,
+      "question_id": "synthetic_v1_0023",
+      "question_type": "single-session-user",
+      "regression_family": "user-duration",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 7,
+      "source_index": 24,
+      "question_id": "synthetic_v1_0024",
+      "question_type": "single-session-user",
+      "regression_family": "user-degree",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 8,
+      "source_index": 27,
+      "question_id": "synthetic_v1_0027",
+      "question_type": "single-session-user",
+      "regression_family": "user-date",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 9,
+      "source_index": 28,
+      "question_id": "synthetic_v1_0028",
+      "question_type": "single-session-user",
+      "regression_family": "user-quantity",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 10,
+      "source_index": 29,
+      "question_id": "synthetic_v1_0029",
+      "question_type": "single-session-user",
+      "regression_family": "user-model",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 11,
+      "source_index": 30,
+      "question_id": "synthetic_v1_0030",
+      "question_type": "single-session-user",
+      "regression_family": "user-person",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 12,
+      "source_index": 32,
+      "question_id": "synthetic_v1_0032",
+      "question_type": "single-session-user",
+      "regression_family": "user-degree",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 13,
+      "source_index": 35,
+      "question_id": "synthetic_v1_0035",
+      "question_type": "single-session-user",
+      "regression_family": "user-date",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 14,
+      "source_index": 38,
+      "question_id": "synthetic_v1_0038",
+      "question_type": "single-session-user",
+      "regression_family": "user-person",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 15,
+      "source_index": 53,
+      "question_id": "synthetic_v1_0053",
+      "question_type": "single-session-user",
+      "regression_family": "user-model",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 16,
+      "source_index": 55,
+      "question_id": "synthetic_v1_0055",
+      "question_type": "single-session-user",
+      "regression_family": "user-duration",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 17,
+      "source_index": 57,
+      "question_id": "synthetic_v1_0057",
+      "question_type": "single-session-user",
+      "regression_family": "user-place",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 18,
+      "source_index": 58,
+      "question_id": "synthetic_v1_0058",
+      "question_type": "single-session-user",
+      "regression_family": "user-title",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 19,
+      "source_index": 60,
+      "question_id": "synthetic_v1_0060",
+      "question_type": "single-session-user",
+      "regression_family": "user-quantity",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 20,
+      "source_index": 64,
+      "question_id": "synthetic_v1_0064_abs",
+      "question_type": "single-session-user",
+      "regression_family": "activity-mismatch",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 21,
+      "source_index": 65,
+      "question_id": "synthetic_v1_0065_abs",
+      "question_type": "single-session-user",
+      "regression_family": "relation-mismatch",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 22,
+      "source_index": 66,
+      "question_id": "synthetic_v1_0066_abs",
+      "question_type": "single-session-user",
+      "regression_family": "near-entity-count",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 23,
+      "source_index": 67,
+      "question_id": "synthetic_v1_0067_abs",
+      "question_type": "single-session-user",
+      "regression_family": "missing-related-place",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 24,
+      "source_index": 68,
+      "question_id": "synthetic_v1_0068_abs",
+      "question_type": "single-session-user",
+      "regression_family": "missing-attribute",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 25,
+      "source_index": 69,
+      "question_id": "synthetic_v1_0069_abs",
+      "question_type": "single-session-user",
+      "regression_family": "underspecified-date",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 26,
+      "source_index": 70,
+      "question_id": "synthetic_v1_0070",
+      "question_type": "multi-session",
+      "regression_family": "multi-count",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 27,
+      "source_index": 71,
+      "question_id": "synthetic_v1_0071",
+      "question_type": "multi-session",
+      "regression_family": "multi-count-distinct",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 28,
+      "source_index": 75,
+      "question_id": "synthetic_v1_0075",
+      "question_type": "multi-session",
+      "regression_family": "multi-difference",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 29,
+      "source_index": 81,
+      "question_id": "synthetic_v1_0081",
+      "question_type": "multi-session",
+      "regression_family": "multi-count-distinct",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 30,
+      "source_index": 84,
+      "question_id": "synthetic_v1_0084",
+      "question_type": "multi-session",
+      "regression_family": "multi-average",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 31,
+      "source_index": 85,
+      "question_id": "synthetic_v1_0085",
+      "question_type": "multi-session",
+      "regression_family": "multi-difference",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 32,
+      "source_index": 90,
+      "question_id": "synthetic_v1_0090",
+      "question_type": "multi-session",
+      "regression_family": "multi-count",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 33,
+      "source_index": 91,
+      "question_id": "synthetic_v1_0091",
+      "question_type": "multi-session",
+      "regression_family": "multi-count-distinct",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 34,
+      "source_index": 98,
+      "question_id": "synthetic_v1_0098",
+      "question_type": "multi-session",
+      "regression_family": "multi-ratio",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 35,
+      "source_index": 100,
+      "question_id": "synthetic_v1_0100",
+      "question_type": "multi-session",
+      "regression_family": "multi-count",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 36,
+      "source_index": 101,
+      "question_id": "synthetic_v1_0101",
+      "question_type": "multi-session",
+      "regression_family": "multi-count-distinct",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 37,
+      "source_index": 106,
+      "question_id": "synthetic_v1_0106",
+      "question_type": "multi-session",
+      "regression_family": "multi-argmax",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 38,
+      "source_index": 110,
+      "question_id": "synthetic_v1_0110",
+      "question_type": "multi-session",
+      "regression_family": "multi-count",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 39,
+      "source_index": 111,
+      "question_id": "synthetic_v1_0111",
+      "question_type": "multi-session",
+      "regression_family": "multi-count-distinct",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 40,
+      "source_index": 112,
+      "question_id": "synthetic_v1_0112",
+      "question_type": "multi-session",
+      "regression_family": "multi-sum-money",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 41,
+      "source_index": 118,
+      "question_id": "synthetic_v1_0118",
+      "question_type": "multi-session",
+      "regression_family": "multi-ratio",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 42,
+      "source_index": 120,
+      "question_id": "synthetic_v1_0120",
+      "question_type": "multi-session",
+      "regression_family": "multi-count",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 43,
+      "source_index": 121,
+      "question_id": "synthetic_v1_0121",
+      "question_type": "multi-session",
+      "regression_family": "multi-count-distinct",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 44,
+      "source_index": 123,
+      "question_id": "synthetic_v1_0123",
+      "question_type": "multi-session",
+      "regression_family": "multi-sum-duration",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 45,
+      "source_index": 126,
+      "question_id": "synthetic_v1_0126_abs",
+      "question_type": "multi-session",
+      "regression_family": "multi-missing-operand",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 46,
+      "source_index": 127,
+      "question_id": "synthetic_v1_0127_abs",
+      "question_type": "multi-session",
+      "regression_family": "multi-near-entity-abstention",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 47,
+      "source_index": 128,
+      "question_id": "synthetic_v1_0128_abs",
+      "question_type": "multi-session",
+      "regression_family": "multi-planned-not-completed-abstention",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 48,
+      "source_index": 129,
+      "question_id": "synthetic_v1_0129_abs",
+      "question_type": "multi-session",
+      "regression_family": "multi-missing-measurement-abstention",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 49,
+      "source_index": 130,
+      "question_id": "synthetic_v1_0130_abs",
+      "question_type": "multi-session",
+      "regression_family": "multi-missing-operand",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 50,
+      "source_index": 131,
+      "question_id": "synthetic_v1_0131_abs",
+      "question_type": "multi-session",
+      "regression_family": "multi-near-entity-abstention",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 51,
+      "source_index": 136,
+      "question_id": "synthetic_v1_0136",
+      "question_type": "single-session-preference",
+      "regression_family": "preference-template-5",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 52,
+      "source_index": 137,
+      "question_id": "synthetic_v1_0137",
+      "question_type": "single-session-preference",
+      "regression_family": "preference-template-6",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 53,
+      "source_index": 140,
+      "question_id": "synthetic_v1_0140",
+      "question_type": "single-session-preference",
+      "regression_family": "preference-template-1",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 54,
+      "source_index": 141,
+      "question_id": "synthetic_v1_0141",
+      "question_type": "single-session-preference",
+      "regression_family": "preference-template-2",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 55,
+      "source_index": 143,
+      "question_id": "synthetic_v1_0143",
+      "question_type": "single-session-preference",
+      "regression_family": "preference-template-4",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 56,
+      "source_index": 147,
+      "question_id": "synthetic_v1_0147",
+      "question_type": "single-session-preference",
+      "regression_family": "preference-template-8",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 57,
+      "source_index": 154,
+      "question_id": "synthetic_v1_0154",
+      "question_type": "single-session-preference",
+      "regression_family": "preference-template-7",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 58,
+      "source_index": 155,
+      "question_id": "synthetic_v1_0155",
+      "question_type": "single-session-preference",
+      "regression_family": "preference-template-8",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 59,
+      "source_index": 158,
+      "question_id": "synthetic_v1_0158",
+      "question_type": "single-session-preference",
+      "regression_family": "preference-template-3",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 60,
+      "source_index": 160,
+      "question_id": "synthetic_v1_0160",
+      "question_type": "single-session-preference",
+      "regression_family": "preference-template-5",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 61,
+      "source_index": 162,
+      "question_id": "synthetic_v1_0162",
+      "question_type": "multi-session",
+      "regression_family": "multi-sum-money",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 62,
+      "source_index": 164,
+      "question_id": "synthetic_v1_0164",
+      "question_type": "multi-session",
+      "regression_family": "multi-average",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 63,
+      "source_index": 169,
+      "question_id": "synthetic_v1_0169",
+      "question_type": "multi-session",
+      "regression_family": "multi-argmin",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 64,
+      "source_index": 170,
+      "question_id": "synthetic_v1_0170",
+      "question_type": "multi-session",
+      "regression_family": "multi-count",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 65,
+      "source_index": 171,
+      "question_id": "synthetic_v1_0171",
+      "question_type": "multi-session",
+      "regression_family": "multi-count-distinct",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 66,
+      "source_index": 173,
+      "question_id": "synthetic_v1_0173",
+      "question_type": "multi-session",
+      "regression_family": "multi-sum-duration",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 67,
+      "source_index": 174,
+      "question_id": "synthetic_v1_0174",
+      "question_type": "multi-session",
+      "regression_family": "multi-average",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 68,
+      "source_index": 180,
+      "question_id": "synthetic_v1_0180",
+      "question_type": "multi-session",
+      "regression_family": "multi-count",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 69,
+      "source_index": 181,
+      "question_id": "synthetic_v1_0181",
+      "question_type": "multi-session",
+      "regression_family": "multi-count-distinct",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 70,
+      "source_index": 190,
+      "question_id": "synthetic_v1_0190",
+      "question_type": "multi-session",
+      "regression_family": "multi-count",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 71,
+      "source_index": 191,
+      "question_id": "synthetic_v1_0191",
+      "question_type": "multi-session",
+      "regression_family": "multi-count-distinct",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 72,
+      "source_index": 192,
+      "question_id": "synthetic_v1_0192",
+      "question_type": "multi-session",
+      "regression_family": "multi-sum-money",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 73,
+      "source_index": 196,
+      "question_id": "synthetic_v1_0196",
+      "question_type": "multi-session",
+      "regression_family": "multi-argmax",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 74,
+      "source_index": 197,
+      "question_id": "synthetic_v1_0197",
+      "question_type": "multi-session",
+      "regression_family": "multi-total-distance",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 75,
+      "source_index": 199,
+      "question_id": "synthetic_v1_0199",
+      "question_type": "multi-session",
+      "regression_family": "multi-argmin",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 76,
+      "source_index": 200,
+      "question_id": "synthetic_v1_0200",
+      "question_type": "multi-session",
+      "regression_family": "multi-count",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 77,
+      "source_index": 201,
+      "question_id": "synthetic_v1_0201",
+      "question_type": "multi-session",
+      "regression_family": "multi-count-distinct",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 78,
+      "source_index": 207,
+      "question_id": "synthetic_v1_0207",
+      "question_type": "multi-session",
+      "regression_family": "multi-total-distance",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 79,
+      "source_index": 208,
+      "question_id": "synthetic_v1_0208",
+      "question_type": "multi-session",
+      "regression_family": "multi-ratio",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 80,
+      "source_index": 210,
+      "question_id": "synthetic_v1_0210",
+      "question_type": "multi-session",
+      "regression_family": "multi-count",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 81,
+      "source_index": 211,
+      "question_id": "synthetic_v1_0211",
+      "question_type": "multi-session",
+      "regression_family": "multi-count-distinct",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 82,
+      "source_index": 216,
+      "question_id": "synthetic_v1_0216",
+      "question_type": "multi-session",
+      "regression_family": "multi-argmax",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 83,
+      "source_index": 219,
+      "question_id": "synthetic_v1_0219",
+      "question_type": "multi-session",
+      "regression_family": "multi-argmin",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 84,
+      "source_index": 220,
+      "question_id": "synthetic_v1_0220",
+      "question_type": "multi-session",
+      "regression_family": "multi-count",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 85,
+      "source_index": 221,
+      "question_id": "synthetic_v1_0221",
+      "question_type": "multi-session",
+      "regression_family": "multi-count-distinct",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 86,
+      "source_index": 223,
+      "question_id": "synthetic_v1_0223",
+      "question_type": "multi-session",
+      "regression_family": "multi-sum-duration",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 87,
+      "source_index": 226,
+      "question_id": "synthetic_v1_0226",
+      "question_type": "multi-session",
+      "regression_family": "multi-argmax",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_multi_session_failure"
+      ]
+    },
+    {
+      "subset_index": 88,
+      "source_index": 227,
+      "question_id": "synthetic_v1_0227_abs",
+      "question_type": "multi-session",
+      "regression_family": "multi-missing-measurement-abstention",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 89,
+      "source_index": 228,
+      "question_id": "synthetic_v1_0228_abs",
+      "question_type": "multi-session",
+      "regression_family": "multi-missing-operand",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 90,
+      "source_index": 229,
+      "question_id": "synthetic_v1_0229_abs",
+      "question_type": "multi-session",
+      "regression_family": "multi-near-entity-abstention",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 91,
+      "source_index": 230,
+      "question_id": "synthetic_v1_0230_abs",
+      "question_type": "multi-session",
+      "regression_family": "multi-planned-not-completed-abstention",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 92,
+      "source_index": 231,
+      "question_id": "synthetic_v1_0231_abs",
+      "question_type": "multi-session",
+      "regression_family": "multi-missing-measurement-abstention",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 93,
+      "source_index": 232,
+      "question_id": "synthetic_v1_0232_abs",
+      "question_type": "multi-session",
+      "regression_family": "multi-missing-operand",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 94,
+      "source_index": 235,
+      "question_id": "synthetic_v1_0235",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-event-order",
+      "abstention": false,
+      "selection_reasons": [
+        "prior_fix_validation_anchor"
+      ]
+    },
+    {
+      "subset_index": 95,
+      "source_index": 236,
+      "question_id": "synthetic_v1_0236",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-adjacent-day",
+      "abstention": false,
+      "selection_reasons": [
+        "prior_fix_validation_anchor"
+      ]
+    },
+    {
+      "subset_index": 96,
+      "source_index": 238,
+      "question_id": "synthetic_v1_0238",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-exact-date",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 97,
+      "source_index": 242,
+      "question_id": "synthetic_v1_0242",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-adjacent-day",
+      "abstention": false,
+      "selection_reasons": [
+        "prior_fix_validation_anchor"
+      ]
+    },
+    {
+      "subset_index": 98,
+      "source_index": 248,
+      "question_id": "synthetic_v1_0248",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-adjacent-day",
+      "abstention": false,
+      "selection_reasons": [
+        "prior_fix_validation_anchor"
+      ]
+    },
+    {
+      "subset_index": 99,
+      "source_index": 251,
+      "question_id": "synthetic_v1_0251",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-date-difference",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 100,
+      "source_index": 252,
+      "question_id": "synthetic_v1_0252",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-relative-weeks",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 101,
+      "source_index": 253,
+      "question_id": "synthetic_v1_0253",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-event-order",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 102,
+      "source_index": 256,
+      "question_id": "synthetic_v1_0256",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-exact-date",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 103,
+      "source_index": 261,
+      "question_id": "synthetic_v1_0261",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-clock-duration",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 104,
+      "source_index": 263,
+      "question_id": "synthetic_v1_0263",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-date-difference",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 105,
+      "source_index": 266,
+      "question_id": "synthetic_v1_0266",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-adjacent-day",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 106,
+      "source_index": 269,
+      "question_id": "synthetic_v1_0269",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-date-difference",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 107,
+      "source_index": 270,
+      "question_id": "synthetic_v1_0270",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-relative-weeks",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 108,
+      "source_index": 280,
+      "question_id": "synthetic_v1_0280",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-exact-date",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 109,
+      "source_index": 281,
+      "question_id": "synthetic_v1_0281",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-date-difference",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 110,
+      "source_index": 282,
+      "question_id": "synthetic_v1_0282",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-relative-weeks",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 111,
+      "source_index": 284,
+      "question_id": "synthetic_v1_0284",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-adjacent-day",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 112,
+      "source_index": 285,
+      "question_id": "synthetic_v1_0285",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-clock-duration",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 113,
+      "source_index": 286,
+      "question_id": "synthetic_v1_0286",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-exact-date",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 114,
+      "source_index": 292,
+      "question_id": "synthetic_v1_0292",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-exact-date",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 115,
+      "source_index": 298,
+      "question_id": "synthetic_v1_0298",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-exact-date",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 116,
+      "source_index": 300,
+      "question_id": "synthetic_v1_0300",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-relative-weeks",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 117,
+      "source_index": 302,
+      "question_id": "synthetic_v1_0302",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-adjacent-day",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 118,
+      "source_index": 306,
+      "question_id": "synthetic_v1_0306",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-relative-weeks",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 119,
+      "source_index": 309,
+      "question_id": "synthetic_v1_0309",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-clock-duration",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 120,
+      "source_index": 311,
+      "question_id": "synthetic_v1_0311",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-date-difference",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 121,
+      "source_index": 315,
+      "question_id": "synthetic_v1_0315",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-clock-duration",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 122,
+      "source_index": 319,
+      "question_id": "synthetic_v1_0319",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-event-order",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 123,
+      "source_index": 324,
+      "question_id": "synthetic_v1_0324",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-relative-weeks",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 124,
+      "source_index": 326,
+      "question_id": "synthetic_v1_0326",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-adjacent-day",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 125,
+      "source_index": 330,
+      "question_id": "synthetic_v1_0330",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-relative-weeks",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 126,
+      "source_index": 331,
+      "question_id": "synthetic_v1_0331",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-event-order",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 127,
+      "source_index": 332,
+      "question_id": "synthetic_v1_0332",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-adjacent-day",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 128,
+      "source_index": 337,
+      "question_id": "synthetic_v1_0337",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-event-order",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 129,
+      "source_index": 340,
+      "question_id": "synthetic_v1_0340",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-exact-date",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 130,
+      "source_index": 342,
+      "question_id": "synthetic_v1_0342",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-relative-weeks",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 131,
+      "source_index": 345,
+      "question_id": "synthetic_v1_0345",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-clock-duration",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 132,
+      "source_index": 347,
+      "question_id": "synthetic_v1_0347",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-date-difference",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 133,
+      "source_index": 349,
+      "question_id": "synthetic_v1_0349",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-event-order",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 134,
+      "source_index": 351,
+      "question_id": "synthetic_v1_0351",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-clock-duration",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 135,
+      "source_index": 355,
+      "question_id": "synthetic_v1_0355",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-event-order",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 136,
+      "source_index": 357,
+      "question_id": "synthetic_v1_0357",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-clock-duration",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 137,
+      "source_index": 359,
+      "question_id": "synthetic_v1_0359",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-date-difference",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 138,
+      "source_index": 360,
+      "question_id": "synthetic_v1_0360_abs",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-undated-events",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases",
+        "prior_fix_validation_anchor"
+      ]
+    },
+    {
+      "subset_index": 139,
+      "source_index": 361,
+      "question_id": "synthetic_v1_0361_abs",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-vague-date",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 140,
+      "source_index": 362,
+      "question_id": "synthetic_v1_0362_abs",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-missing-endpoint",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 141,
+      "source_index": 363,
+      "question_id": "synthetic_v1_0363_abs",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-undated-events",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 142,
+      "source_index": 364,
+      "question_id": "synthetic_v1_0364_abs",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-vague-date",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 143,
+      "source_index": 365,
+      "question_id": "synthetic_v1_0365_abs",
+      "question_type": "temporal-reasoning",
+      "regression_family": "temporal-missing-endpoint",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 144,
+      "source_index": 368,
+      "question_id": "synthetic_v1_0368",
+      "question_type": "knowledge-update",
+      "regression_family": "update-current-home-city",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 145,
+      "source_index": 369,
+      "question_id": "synthetic_v1_0369",
+      "question_type": "knowledge-update",
+      "regression_family": "update-current-work-laptop",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 146,
+      "source_index": 370,
+      "question_id": "synthetic_v1_0370",
+      "question_type": "knowledge-update",
+      "regression_family": "update-current-job-title",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 147,
+      "source_index": 372,
+      "question_id": "synthetic_v1_0372",
+      "question_type": "knowledge-update",
+      "regression_family": "update-current-music-subscription",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 148,
+      "source_index": 375,
+      "question_id": "synthetic_v1_0375",
+      "question_type": "knowledge-update",
+      "regression_family": "update-previous-preferred-morning-drink",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 149,
+      "source_index": 397,
+      "question_id": "synthetic_v1_0397",
+      "question_type": "knowledge-update",
+      "regression_family": "update-current-weekly-class",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 150,
+      "source_index": 403,
+      "question_id": "synthetic_v1_0403",
+      "question_type": "knowledge-update",
+      "regression_family": "update-previous-favorite-running-route",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 151,
+      "source_index": 404,
+      "question_id": "synthetic_v1_0404",
+      "question_type": "knowledge-update",
+      "regression_family": "update-previous-music-subscription",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure",
+        "prior_fix_validation_anchor"
+      ]
+    },
+    {
+      "subset_index": 152,
+      "source_index": 405,
+      "question_id": "synthetic_v1_0405",
+      "question_type": "knowledge-update",
+      "regression_family": "update-previous-weekly-class",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 153,
+      "source_index": 406,
+      "question_id": "synthetic_v1_0406",
+      "question_type": "knowledge-update",
+      "regression_family": "update-original-favorite-weekend-animal",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure",
+        "prior_fix_validation_anchor"
+      ]
+    },
+    {
+      "subset_index": 154,
+      "source_index": 407,
+      "question_id": "synthetic_v1_0407",
+      "question_type": "knowledge-update",
+      "regression_family": "update-original-preferred-morning-drink",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 155,
+      "source_index": 408,
+      "question_id": "synthetic_v1_0408",
+      "question_type": "knowledge-update",
+      "regression_family": "update-original-home-city",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 156,
+      "source_index": 409,
+      "question_id": "synthetic_v1_0409",
+      "question_type": "knowledge-update",
+      "regression_family": "update-original-work-laptop",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 157,
+      "source_index": 410,
+      "question_id": "synthetic_v1_0410",
+      "question_type": "knowledge-update",
+      "regression_family": "update-original-job-title",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 158,
+      "source_index": 411,
+      "question_id": "synthetic_v1_0411",
+      "question_type": "knowledge-update",
+      "regression_family": "update-original-favorite-running-route",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 159,
+      "source_index": 412,
+      "question_id": "synthetic_v1_0412",
+      "question_type": "knowledge-update",
+      "regression_family": "update-original-music-subscription",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 160,
+      "source_index": 413,
+      "question_id": "synthetic_v1_0413",
+      "question_type": "knowledge-update",
+      "regression_family": "update-original-weekly-class",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 161,
+      "source_index": 414,
+      "question_id": "synthetic_v1_0414",
+      "question_type": "knowledge-update",
+      "regression_family": "update-current-favorite-weekend-animal",
+      "abstention": false,
+      "selection_reasons": [
+        "prior_fix_validation_anchor"
+      ]
+    },
+    {
+      "subset_index": 162,
+      "source_index": 415,
+      "question_id": "synthetic_v1_0415",
+      "question_type": "knowledge-update",
+      "regression_family": "update-current-preferred-morning-drink",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 163,
+      "source_index": 419,
+      "question_id": "synthetic_v1_0419",
+      "question_type": "knowledge-update",
+      "regression_family": "update-current-favorite-running-route",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 164,
+      "source_index": 422,
+      "question_id": "synthetic_v1_0422",
+      "question_type": "knowledge-update",
+      "regression_family": "update-previous-favorite-weekend-animal",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 165,
+      "source_index": 424,
+      "question_id": "synthetic_v1_0424",
+      "question_type": "knowledge-update",
+      "regression_family": "update-previous-home-city",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 166,
+      "source_index": 425,
+      "question_id": "synthetic_v1_0425",
+      "question_type": "knowledge-update",
+      "regression_family": "update-previous-work-laptop",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 167,
+      "source_index": 426,
+      "question_id": "synthetic_v1_0426",
+      "question_type": "knowledge-update",
+      "regression_family": "update-previous-job-title",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 168,
+      "source_index": 427,
+      "question_id": "synthetic_v1_0427",
+      "question_type": "knowledge-update",
+      "regression_family": "update-previous-favorite-running-route",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 169,
+      "source_index": 429,
+      "question_id": "synthetic_v1_0429",
+      "question_type": "knowledge-update",
+      "regression_family": "update-previous-weekly-class",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 170,
+      "source_index": 430,
+      "question_id": "synthetic_v1_0430",
+      "question_type": "knowledge-update",
+      "regression_family": "update-original-favorite-weekend-animal",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 171,
+      "source_index": 431,
+      "question_id": "synthetic_v1_0431",
+      "question_type": "knowledge-update",
+      "regression_family": "update-original-preferred-morning-drink",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 172,
+      "source_index": 432,
+      "question_id": "synthetic_v1_0432",
+      "question_type": "knowledge-update",
+      "regression_family": "update-original-home-city",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 173,
+      "source_index": 433,
+      "question_id": "synthetic_v1_0433",
+      "question_type": "knowledge-update",
+      "regression_family": "update-original-work-laptop",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 174,
+      "source_index": 434,
+      "question_id": "synthetic_v1_0434",
+      "question_type": "knowledge-update",
+      "regression_family": "update-original-job-title",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 175,
+      "source_index": 435,
+      "question_id": "synthetic_v1_0435",
+      "question_type": "knowledge-update",
+      "regression_family": "update-original-favorite-running-route",
+      "abstention": false,
+      "selection_reasons": [
+        "historical_knowledge_update_failure"
+      ]
+    },
+    {
+      "subset_index": 176,
+      "source_index": 436,
+      "question_id": "synthetic_v1_0436_abs",
+      "question_type": "knowledge-update",
+      "regression_family": "update-missing-attribute-abstention",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 177,
+      "source_index": 437,
+      "question_id": "synthetic_v1_0437_abs",
+      "question_type": "knowledge-update",
+      "regression_family": "update-related-person-abstention",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases"
+      ]
+    },
+    {
+      "subset_index": 178,
+      "source_index": 438,
+      "question_id": "synthetic_v1_0438_abs",
+      "question_type": "knowledge-update",
+      "regression_family": "update-near-entity-abstention",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases",
+        "prior_fix_validation_anchor"
+      ]
+    },
+    {
+      "subset_index": 179,
+      "source_index": 439,
+      "question_id": "synthetic_v1_0439_abs",
+      "question_type": "knowledge-update",
+      "regression_family": "update-missing-attribute-abstention",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases",
+        "prior_fix_validation_anchor"
+      ]
+    },
+    {
+      "subset_index": 180,
+      "source_index": 440,
+      "question_id": "synthetic_v1_0440_abs",
+      "question_type": "knowledge-update",
+      "regression_family": "update-related-person-abstention",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases",
+        "prior_fix_validation_anchor"
+      ]
+    },
+    {
+      "subset_index": 181,
+      "source_index": 441,
+      "question_id": "synthetic_v1_0441_abs",
+      "question_type": "knowledge-update",
+      "regression_family": "update-near-entity-abstention",
+      "abstention": true,
+      "selection_reasons": [
+        "all_abstention_cases",
+        "prior_fix_validation_anchor"
+      ]
+    },
+    {
+      "subset_index": 182,
+      "source_index": 444,
+      "question_id": "synthetic_v1_0444",
+      "question_type": "single-session-assistant",
+      "regression_family": "assistant-ordinal-list",
+      "abstention": false,
+      "selection_reasons": [
+        "prior_fix_validation_anchor"
+      ]
+    },
+    {
+      "subset_index": 183,
+      "source_index": 447,
+      "question_id": "synthetic_v1_0447",
+      "question_type": "single-session-assistant",
+      "regression_family": "assistant-contact-detail",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 184,
+      "source_index": 448,
+      "question_id": "synthetic_v1_0448",
+      "question_type": "single-session-assistant",
+      "regression_family": "assistant-visual-attribute",
+      "abstention": false,
+      "selection_reasons": [
+        "prior_fix_validation_anchor"
+      ]
+    },
+    {
+      "subset_index": 185,
+      "source_index": 449,
+      "question_id": "synthetic_v1_0449",
+      "question_type": "single-session-assistant",
+      "regression_family": "assistant-multi-item",
+      "abstention": false,
+      "selection_reasons": [
+        "prior_fix_validation_anchor"
+      ]
+    },
+    {
+      "subset_index": 186,
+      "source_index": 450,
+      "question_id": "synthetic_v1_0450",
+      "question_type": "single-session-assistant",
+      "regression_family": "assistant-ordinal-list",
+      "abstention": false,
+      "selection_reasons": [
+        "prior_fix_validation_anchor"
+      ]
+    },
+    {
+      "subset_index": 187,
+      "source_index": 452,
+      "question_id": "synthetic_v1_0452",
+      "question_type": "single-session-assistant",
+      "regression_family": "assistant-process",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 188,
+      "source_index": 455,
+      "question_id": "synthetic_v1_0455",
+      "question_type": "single-session-assistant",
+      "regression_family": "assistant-multi-item",
+      "abstention": false,
+      "selection_reasons": [
+        "prior_fix_validation_anchor"
+      ]
+    },
+    {
+      "subset_index": 189,
+      "source_index": 456,
+      "question_id": "synthetic_v1_0456",
+      "question_type": "single-session-assistant",
+      "regression_family": "assistant-ordinal-list",
+      "abstention": false,
+      "selection_reasons": [
+        "prior_fix_validation_anchor"
+      ]
+    },
+    {
+      "subset_index": 190,
+      "source_index": 458,
+      "question_id": "synthetic_v1_0458",
+      "question_type": "single-session-assistant",
+      "regression_family": "assistant-process",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 191,
+      "source_index": 469,
+      "question_id": "synthetic_v1_0469",
+      "question_type": "single-session-assistant",
+      "regression_family": "assistant-recommendation-name",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 192,
+      "source_index": 477,
+      "question_id": "synthetic_v1_0477",
+      "question_type": "single-session-assistant",
+      "regression_family": "assistant-contact-detail",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 193,
+      "source_index": 478,
+      "question_id": "synthetic_v1_0478",
+      "question_type": "single-session-assistant",
+      "regression_family": "assistant-visual-attribute",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 194,
+      "source_index": 481,
+      "question_id": "synthetic_v1_0481",
+      "question_type": "single-session-assistant",
+      "regression_family": "assistant-recommendation-name",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 195,
+      "source_index": 482,
+      "question_id": "synthetic_v1_0482",
+      "question_type": "single-session-assistant",
+      "regression_family": "assistant-process",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 196,
+      "source_index": 487,
+      "question_id": "synthetic_v1_0487",
+      "question_type": "single-session-assistant",
+      "regression_family": "assistant-recommendation-name",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 197,
+      "source_index": 495,
+      "question_id": "synthetic_v1_0495",
+      "question_type": "single-session-assistant",
+      "regression_family": "assistant-contact-detail",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 198,
+      "source_index": 496,
+      "question_id": "synthetic_v1_0496",
+      "question_type": "single-session-assistant",
+      "regression_family": "assistant-visual-attribute",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    },
+    {
+      "subset_index": 199,
+      "source_index": 497,
+      "question_id": "synthetic_v1_0497",
+      "question_type": "single-session-assistant",
+      "regression_family": "assistant-multi-item",
+      "abstention": false,
+      "selection_reasons": [
+        "balanced_family_coverage"
+      ]
+    }
+  ]
+}

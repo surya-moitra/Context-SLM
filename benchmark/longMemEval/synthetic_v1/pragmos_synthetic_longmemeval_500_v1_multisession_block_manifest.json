@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "dataset_name": "PRAGMOS Synthetic LongMemEval V1 - Multi-session Block",
+  "purpose": "development_and_regression_testing_only",
+  "official_longmemeval_score": false,
+  "transformation": "stable_question_type_block",
+  "transformer": "reorder_PRAGMOS_synthetic_LongMemEval.py",
+  "transformer_sha256": "abad8b286d2af20e80b0ab4dbcb34a0267a5510e20918d3c32c17952363b9932",
+  "source_dataset_file": "benchmark/longMemEval/synthetic_v1/pragmos_synthetic_longmemeval_500_v1.json",
+  "source_dataset_sha256": "dd4a22eeeb1e518202a9cf41fbe70680913db03d26daf8525202009356e02b7e",
+  "source_record_set_sha256": "fdfb3146ed623e3e9e2d2160b3ea093cb4b1e846e06c2dd281941732dbae5af6",
+  "dataset_file": "pragmos_synthetic_longmemeval_500_v1_multisession_block.json",
+  "dataset_sha256": "cecd3304874fd88f7cb7089b8d5c905ad4a66ac94a277ebe0867808d4ec4544d",
+  "validation": {
+    "record_count": 500,
+    "content_unchanged": true,
+    "question_type_counts": {
+      "knowledge-update": 78,
+      "multi-session": 133,
+      "single-session-assistant": 56,
+      "single-session-preference": 30,
+      "single-session-user": 70,
+      "temporal-reasoning": 133
+    },
+    "record_set_sha256": "fdfb3146ed623e3e9e2d2160b3ea093cb4b1e846e06c2dd281941732dbae5af6",
+    "block": {
+      "question_type": "multi-session",
+      "count": 133,
+      "start_index_0_based": 70,
+      "end_index_inclusive_0_based": 202,
+      "end_index_exclusive_0_based": 203,
+      "start_position_1_based": 71,
+      "end_position_inclusive_1_based": 203
+    }
+  },
+  "publication_note": "This is an order-only view of the frozen synthetic V1 development set. It is not an official LongMemEval split or an independent held-out benchmark.",
+  "source_manifest_file": "benchmark/longMemEval/synthetic_v1/pragmos_synthetic_longmemeval_500_v1_manifest.json",
+  "source_manifest_sha256": "bf7deccd8ecee25aea9eb649e45ac9b4bccdbd575f6649c082dbdfdf10d35031"
+}

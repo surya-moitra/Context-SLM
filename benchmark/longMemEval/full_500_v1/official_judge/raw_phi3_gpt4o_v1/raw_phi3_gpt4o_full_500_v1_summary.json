@@ -1,0 +1,46 @@
+{
+  "abstention_accuracy": 0.9,
+  "abstention_count": 30,
+  "avg_judge_seconds": 8.584956338675227,
+  "by_question_type": {
+    "knowledge-update": {
+      "accuracy": 0.15384615384615385,
+      "count": 78
+    },
+    "multi-session": {
+      "accuracy": 0.11278195488721804,
+      "count": 133
+    },
+    "single-session-assistant": {
+      "accuracy": 0.08928571428571429,
+      "count": 56
+    },
+    "single-session-preference": {
+      "accuracy": 0.03333333333333333,
+      "count": 30
+    },
+    "single-session-user": {
+      "accuracy": 0.1,
+      "count": 70
+    },
+    "temporal-reasoning": {
+      "accuracy": 0.12781954887218044,
+      "count": 133
+    }
+  },
+  "checkpoint_repaired": false,
+  "complete": true,
+  "failure": null,
+  "manifest_fingerprint": "2aa62c6dc2937930d08462a474c6e3fad30bca688fdb35a4184fc02361060f10",
+  "metric_model": "gpt-4o-2024-08-06",
+  "metric_model_short": "gpt-4o",
+  "overall_accuracy": 0.114,
+  "processed": 500,
+  "results_path": "context/benchmark/longMemEval/full_500_v1/official_judge/raw_phi3_gpt4o_v1/raw_phi3_gpt4o_full_500_v1_results.jsonl",
+  "resume_enabled": true,
+  "resumed_from_count": 0,
+  "run_name": "raw_phi3_gpt4o_full_500_v1",
+  "target_record_count": 500,
+  "task_averaged_accuracy": 0.10284445087076666,
+  "total_judge_seconds": 4292.4781693376135
+}

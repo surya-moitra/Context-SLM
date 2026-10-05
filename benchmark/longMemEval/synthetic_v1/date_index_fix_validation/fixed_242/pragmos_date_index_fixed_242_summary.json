@@ -1,0 +1,212 @@
+{
+  "all_selected_evidence_represented_rate": 1,
+  "answer_session_any_hit_rate": 1,
+  "answer_session_coverage_metric_version": 2,
+  "answer_session_full_coverage_rate": 1,
+  "answer_session_retrieval_recall": 1.0,
+  "answer_session_retrieval_recall_definition": "Mean fraction of gold answer sessions represented in final retrieval evidence; gold session IDs are used for evaluation only, never for retrieval selection.",
+  "avg_candidate_extraction_seconds": 11.734775291988626,
+  "avg_contains_reference": 1.0,
+  "avg_context_build_seconds": 0.026062958990223706,
+  "avg_elapsed_seconds": 131.314503707923,
+  "avg_exact_match": 1.0,
+  "avg_generation_seconds": 0.0,
+  "avg_graph_materialization_seconds": 113.17462279100437,
+  "avg_graph_retrieval_seconds": 2.1276112920604646,
+  "avg_ingestion_seconds": 1.9713606250006706,
+  "avg_initial_retrieval_seconds": 1.74100504105445,
+  "avg_local_llm_calls_per_question": 13,
+  "avg_operation_seconds": 0.004979667020961642,
+  "avg_preference_synthesis_seconds": 1.0999967344105244e-05,
+  "avg_retrieval_seconds": 117.05847491614986,
+  "avg_selected_candidate_evidence_count": 19,
+  "avg_token_f1": 1.0,
+  "cache_activity_totals": {
+    "embedding_hits": 18,
+    "embedding_misses": 199,
+    "reranker_hits": 39,
+    "reranker_misses": 249
+  },
+  "candidate_extraction_error_count": 0,
+  "candidate_pool_answer_session_recall": 0.5,
+  "checkpoint_repaired": false,
+  "data_source": "benchmark/longMemEval/synthetic_v1/pragmos_synthetic_longmemeval_500_v1_multisession_block.json",
+  "dataset_indices": [
+    242
+  ],
+  "haystack_order": null,
+  "invocation_elapsed_seconds": 131.33158687502146,
+  "limit": 1,
+  "local_metric_note": "These are cheap local string metrics for smoke testing only. Use LongMemEval's official evaluator for publishable scores.",
+  "longmemeval_session_retrieval_metrics": {
+    "candidate_pool": {
+      "by_question_type": {
+        "temporal-reasoning": {
+          "metrics": {
+            "ndcg@1": 1.0,
+            "ndcg@10": 0.5,
+            "ndcg@5": 0.5,
+            "ndcg_any@1": 1.0,
+            "ndcg_any@10": 0.5,
+            "ndcg_any@5": 0.5,
+            "recall@1": 0.0,
+            "recall@10": 0.0,
+            "recall@5": 0.0,
+            "recall_all@1": 0.0,
+            "recall_all@10": 0.0,
+            "recall_all@5": 0.0,
+            "recall_any@1": 1.0,
+            "recall_any@10": 1.0,
+            "recall_any@5": 1.0
+          },
+          "question_count": 1
+        }
+      },
+      "excluded_by_reason": {},
+      "excluded_question_count": 0,
+      "metrics": {
+        "ndcg@1": 1.0,
+        "ndcg@10": 0.5,
+        "ndcg@5": 0.5,
+        "ndcg_any@1": 1.0,
+        "ndcg_any@10": 0.5,
+        "ndcg_any@5": 0.5,
+        "recall@1": 0.0,
+        "recall@10": 0.0,
+        "recall@5": 0.0,
+        "recall_all@1": 0.0,
+        "recall_all@10": 0.0,
+        "recall_all@5": 0.0,
+        "recall_any@1": 1.0,
+        "recall_any@10": 1.0,
+        "recall_any@5": 1.0
+      },
+      "question_count": 1
+    },
+    "eligibility_policy": "Questions whose question_id contains _abs, or which lack answer_session_ids, are excluded from retrieval metric aggregates.",
+    "final_evidence": {
+      "by_question_type": {
+        "temporal-reasoning": {
+          "metrics": {
+            "ndcg@1": 1.0,
+            "ndcg@10": 1.0,
+            "ndcg@5": 1.0,
+            "ndcg_any@1": 1.0,
+            "ndcg_any@10": 1.0,
+            "ndcg_any@5": 1.0,
+            "recall@1": 0.0,
+            "recall@10": 1.0,
+            "recall@5": 1.0,
+            "recall_all@1": 0.0,
+            "recall_all@10": 1.0,
+            "recall_all@5": 1.0,
+            "recall_any@1": 1.0,
+            "recall_any@10": 1.0,
+            "recall_any@5": 1.0
+          },
+          "question_count": 1
+        }
+      },
+      "excluded_by_reason": {},
+      "excluded_question_count": 0,
+      "metrics": {
+        "ndcg@1": 1.0,
+        "ndcg@10": 1.0,
+        "ndcg@5": 1.0,
+        "ndcg_any@1": 1.0,
+        "ndcg_any@10": 1.0,
+        "ndcg_any@5": 1.0,
+        "recall@1": 0.0,
+        "recall@10": 1.0,
+        "recall@5": 1.0,
+        "recall_all@1": 0.0,
+        "recall_all@10": 1.0,
+        "recall_all@5": 1.0,
+        "recall_any@1": 1.0,
+        "recall_any@10": 1.0,
+        "recall_any@5": 1.0
+      },
+      "question_count": 1
+    },
+    "formula_compatibility": "LongMemEval src/retrieval/eval_utils.py binary session relevance: recall@k aliases strict recall_all@k; ndcg@k aliases ndcg_any@k.",
+    "ks": [
+      1,
+      5,
+      10
+    ],
+    "label_usage": "answer_session_ids are accessed after retrieval for evaluation only and never influence ranking.",
+    "metric_version": 1
+  },
+  "manifest_fingerprint": "f1b36c66b7fb092d35d446de19baeb8f565229e8436d6f5fd2d5f319bcbe7239",
+  "manifest_path": "benchmark/longMemEval/synthetic_v1/date_index_fix_validation/fixed_242/pragmos_date_index_fixed_242_manifest.json",
+  "max_tokens": 64,
+  "mode": "pragmos_context",
+  "model_path": "../phi3-gguf/Phi-3-mini-4k-instruct-q4.gguf",
+  "n_ctx": 2048,
+  "n_gpu_layers": 40,
+  "newly_processed": 1,
+  "official_evaluation_command": "python /path/to/LongMemEval/src/evaluation/evaluate_qa.py gpt-4o benchmark/longMemEval/synthetic_v1/date_index_fix_validation/fixed_242/pragmos_date_index_fixed_242_predictions.jsonl benchmark/longMemEval/longmemeval_oracle.json",
+  "official_evaluation_note": "Predictions are compatible with LongMemEval's official QA evaluator. Official scoring requires longmemeval_oracle.json and an OPENAI_API_KEY for the GPT-4o judge.",
+  "official_prediction_format": {
+    "fields": [
+      "question_id",
+      "hypothesis"
+    ],
+    "jsonl": true
+  },
+  "offload_kqv": true,
+  "operation_completion_rate": 1,
+  "operation_question_count": 1,
+  "pragmos_ablations": [],
+  "pragmos_answer_context_tokens": 1300,
+  "pragmos_candidate_extraction_policy": "batched_extraction_from_all_selected_evidence_with_provenance",
+  "pragmos_chunk_overlap_words": 32,
+  "pragmos_chunk_words": 160,
+  "pragmos_component_policy": {
+    "candidate_extraction": "enabled",
+    "dense": "enabled",
+    "graph": "enabled",
+    "lexical": "enabled",
+    "operations": "enabled",
+    "preference_synthesis": "enabled",
+    "reranker": "enabled",
+    "session_neighbors": "enabled"
+  },
+  "pragmos_embedding_batch_size": 64,
+  "pragmos_embedding_cache_size": 20000,
+  "pragmos_graph_candidates": 4,
+  "pragmos_graph_depth": 2,
+  "pragmos_graph_evidence": 4,
+  "pragmos_graph_policy": "selective_materialization_from_hybrid_candidates",
+  "pragmos_max_retrieval_sessions": 12,
+  "pragmos_min_score": 0.2,
+  "pragmos_multisession_graph_candidates": 12,
+  "pragmos_operation_selection_policy": "strict_grounded_deterministic_for_multisession_count_average_extrema_with_llm_fallback",
+  "pragmos_preference_synthesis_policy": "explicit_user_constraints_with_provenance_and_updates",
+  "pragmos_reranker_cache_size": 20000,
+  "pragmos_retrieval_pool": 24,
+  "pragmos_session_neighbor_radius": 2,
+  "pragmos_session_neighbors": 4,
+  "pragmos_top_k": 6,
+  "predictions_path": "benchmark/longMemEval/synthetic_v1/date_index_fix_validation/fixed_242/pragmos_date_index_fixed_242_predictions.jsonl",
+  "preference_profile_coverage_rate": 0.0,
+  "preference_question_count": 0,
+  "processed": 1,
+  "question_ids": [
+    "synthetic_v1_0242"
+  ],
+  "question_type_filter": null,
+  "rerankers_used": [
+    "cross_encoder:cross-encoder/ms-marco-MiniLM-L6-v2"
+  ],
+  "resume_enabled": false,
+  "resumed_from_count": 0,
+  "safe_abstention_count": 0,
+  "start_index": 242,
+  "target_record_count": 1,
+  "temperature": 0.0,
+  "top_p": 1.0,
+  "total_elapsed_seconds": 131.314503707923,
+  "trace_path": "benchmark/longMemEval/synthetic_v1/date_index_fix_validation/fixed_242/pragmos_date_index_fixed_242_trace.jsonl",
+  "used_haystack_sessions": true
+}

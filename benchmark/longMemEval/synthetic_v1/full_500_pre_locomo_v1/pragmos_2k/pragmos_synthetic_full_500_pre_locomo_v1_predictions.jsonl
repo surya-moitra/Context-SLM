@@ -1,0 +1,500 @@
+{"question_id": "synthetic_v1_0000", "hypothesis": "Marine Biology"}
+{"question_id": "synthetic_v1_0001", "hypothesis": "Elm Street Library"}
+{"question_id": "synthetic_v1_0002", "hypothesis": "Fern Court, community theatre\n- [evidence]: \"I attended a production of A Garden of Small Moons with Emiko at Fern Court, our community theatre.\""}
+{"question_id": "synthetic_v1_0003", "hypothesis": "December 21"}
+{"question_id": "synthetic_v1_0004", "hypothesis": "9"}
+{"question_id": "synthetic_v1_0005", "hypothesis": "Cobalt Seven"}
+{"question_id": "synthetic_v1_0006", "hypothesis": "Rafael"}
+{"question_id": "synthetic_v1_0007", "hypothesis": "one hour each way"}
+{"question_id": "synthetic_v1_0008", "hypothesis": "Information Design degree through Aster Hall while working with Farah"}
+{"question_id": "synthetic_v1_0009", "hypothesis": "Maple Commons"}
+{"question_id": "synthetic_v1_0010", "hypothesis": "community theatre"}
+{"question_id": "synthetic_v1_0011", "hypothesis": "January 7"}
+{"question_id": "synthetic_v1_0012", "hypothesis": "11"}
+{"question_id": "synthetic_v1_0013", "hypothesis": "Cobalt Seven model"}
+{"question_id": "synthetic_v1_0014", "hypothesis": "Aarav"}
+{"question_id": "synthetic_v1_0015", "hypothesis": "90 minutes each way"}
+{"question_id": "synthetic_v1_0016", "hypothesis": "Information Design degree through Granite Center while working with Sofia"}
+{"question_id": "synthetic_v1_0017", "hypothesis": "Aster Hall"}
+{"question_id": "synthetic_v1_0018", "hypothesis": "The Last Tram Home at Aster Hall."}
+{"question_id": "synthetic_v1_0019", "hypothesis": "February 8"}
+{"question_id": "synthetic_v1_0020", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0021", "hypothesis": "Cobalt Seven model"}
+{"question_id": "synthetic_v1_0022", "hypothesis": "Farah"}
+{"question_id": "synthetic_v1_0023", "hypothesis": "90 minutes each way"}
+{"question_id": "synthetic_v1_0024", "hypothesis": "degree in Environmental Economics"}
+{"question_id": "synthetic_v1_0025", "hypothesis": "Maple Commons"}
+{"question_id": "synthetic_v1_0026", "hypothesis": "Granite Center (as a location) | fact: speaker user -[attended at]-> Granite Center (as a location)"}
+{"question_id": "synthetic_v1_0027", "hypothesis": "March 21"}
+{"question_id": "synthetic_v1_0028", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0029", "hypothesis": "Helio Plus model"}
+{"question_id": "synthetic_v1_0030", "hypothesis": "Sofia"}
+{"question_id": "synthetic_v1_0031", "hypothesis": "90 minutes each way"}
+{"question_id": "synthetic_v1_0032", "hypothesis": "degree in Information Design"}
+{"question_id": "synthetic_v1_0033", "hypothesis": "Granite Center"}
+{"question_id": "synthetic_v1_0034", "hypothesis": "Fern Court -[location of]-> production of Threads of the Monsoon"}
+{"question_id": "synthetic_v1_0035", "hypothesis": "April 17"}
+{"question_id": "synthetic_v1_0036", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0037", "hypothesis": "Aurora K2 model"}
+{"question_id": "synthetic_v1_0038", "hypothesis": "Maya"}
+{"question_id": "synthetic_v1_0039", "hypothesis": "90 minutes each way"}
+{"question_id": "synthetic_v1_0040", "hypothesis": "degree in Urban Planning"}
+{"question_id": "synthetic_v1_0041", "hypothesis": "Orchid Gallery"}
+{"question_id": "synthetic_v1_0042", "hypothesis": "community theatre"}
+{"question_id": "synthetic_v1_0043", "hypothesis": "April 24"}
+{"question_id": "synthetic_v1_0044", "hypothesis": "9"}
+{"question_id": "synthetic_v1_0045", "hypothesis": "Cobalt Seven model"}
+{"question_id": "synthetic_v1_0046", "hypothesis": "Priya"}
+{"question_id": "synthetic_v1_0047", "hypothesis": "45 minutes each way"}
+{"question_id": "synthetic_v1_0048", "hypothesis": "Marine Biology"}
+{"question_id": "synthetic_v1_0049", "hypothesis": "Harbor Annex"}
+{"question_id": "synthetic_v1_0050", "hypothesis": "Northwind Lab | fact: speaker user -[attended]-> production of Threads of the Monsoon | source_role: user | source_quote: \"I attended a production of Threads of the Monsoon with Maya at Northwind Lab, our community theatre.\""}
+{"question_id": "synthetic_v1_0051", "hypothesis": "May 4"}
+{"question_id": "synthetic_v1_0052", "hypothesis": "7"}
+{"question_id": "synthetic_v1_0053", "hypothesis": "Dune Pro model"}
+{"question_id": "synthetic_v1_0054", "hypothesis": "Nikhil"}
+{"question_id": "synthetic_v1_0055", "hypothesis": "one hour each way"}
+{"question_id": "synthetic_v1_0056", "hypothesis": "degree in Urban Planning"}
+{"question_id": "synthetic_v1_0057", "hypothesis": "Northwind Lab"}
+{"question_id": "synthetic_v1_0058", "hypothesis": "community theatre | fact: speaker user -[attended]-> Indigo Room, our community theatre."}
+{"question_id": "synthetic_v1_0059", "hypothesis": "May 31"}
+{"question_id": "synthetic_v1_0060", "hypothesis": "10"}
+{"question_id": "synthetic_v1_0061", "hypothesis": "Fjord Lite model"}
+{"question_id": "synthetic_v1_0062", "hypothesis": "Maya"}
+{"question_id": "synthetic_v1_0063", "hypothesis": "one hour each way"}
+{"question_id": "synthetic_v1_0064_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0065_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0066_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0067_abs", "hypothesis": "Cedar Market"}
+{"question_id": "synthetic_v1_0068_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0069_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0070", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0071", "hypothesis": "4"}
+{"question_id": "synthetic_v1_0072", "hypothesis": "$212"}
+{"question_id": "synthetic_v1_0073", "hypothesis": "125 minutes"}
+{"question_id": "synthetic_v1_0074", "hypothesis": "38 minutes"}
+{"question_id": "synthetic_v1_0075", "hypothesis": "12 minutes"}
+{"question_id": "synthetic_v1_0076", "hypothesis": "Driftwood Studio"}
+{"question_id": "synthetic_v1_0077", "hypothesis": "28 kilometers"}
+{"question_id": "synthetic_v1_0078", "hypothesis": "14:2"}
+{"question_id": "synthetic_v1_0079", "hypothesis": "Elm Street Library"}
+{"question_id": "synthetic_v1_0080", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0081", "hypothesis": "4"}
+{"question_id": "synthetic_v1_0082", "hypothesis": "$133"}
+{"question_id": "synthetic_v1_0083", "hypothesis": "180 minutes"}
+{"question_id": "synthetic_v1_0084", "hypothesis": "38 minutes"}
+{"question_id": "synthetic_v1_0085", "hypothesis": "10 minutes"}
+{"question_id": "synthetic_v1_0086", "hypothesis": "Elm Street Library"}
+{"question_id": "synthetic_v1_0087", "hypothesis": "24 kilometers"}
+{"question_id": "synthetic_v1_0088", "hypothesis": "7:3"}
+{"question_id": "synthetic_v1_0089", "hypothesis": "Juniper Pavilion"}
+{"question_id": "synthetic_v1_0090", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0091", "hypothesis": "4"}
+{"question_id": "synthetic_v1_0092", "hypothesis": "$211"}
+{"question_id": "synthetic_v1_0093", "hypothesis": "135 minutes"}
+{"question_id": "synthetic_v1_0094", "hypothesis": "42.3333 minutes"}
+{"question_id": "synthetic_v1_0095", "hypothesis": "18 minutes"}
+{"question_id": "synthetic_v1_0096", "hypothesis": "Cedar House"}
+{"question_id": "synthetic_v1_0097", "hypothesis": "31 kilometers"}
+{"question_id": "synthetic_v1_0098", "hypothesis": "11:4"}
+{"question_id": "synthetic_v1_0099", "hypothesis": "Granite Center"}
+{"question_id": "synthetic_v1_0100", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0101", "hypothesis": "4"}
+{"question_id": "synthetic_v1_0102", "hypothesis": "$220"}
+{"question_id": "synthetic_v1_0103", "hypothesis": "95 minutes"}
+{"question_id": "synthetic_v1_0104", "hypothesis": "53.6667 minutes"}
+{"question_id": "synthetic_v1_0105", "hypothesis": "22 minutes"}
+{"question_id": "synthetic_v1_0106", "hypothesis": "Kestrel Arts"}
+{"question_id": "synthetic_v1_0107", "hypothesis": "25 kilometers"}
+{"question_id": "synthetic_v1_0108", "hypothesis": "14:4"}
+{"question_id": "synthetic_v1_0109", "hypothesis": "Fern Court"}
+{"question_id": "synthetic_v1_0110", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0111", "hypothesis": "4"}
+{"question_id": "synthetic_v1_0112", "hypothesis": "$144"}
+{"question_id": "synthetic_v1_0113", "hypothesis": "210 minutes"}
+{"question_id": "synthetic_v1_0114", "hypothesis": "40.3333 minutes"}
+{"question_id": "synthetic_v1_0115", "hypothesis": "24 minutes"}
+{"question_id": "synthetic_v1_0116", "hypothesis": "Lantern Theatre"}
+{"question_id": "synthetic_v1_0117", "hypothesis": "34 kilometers"}
+{"question_id": "synthetic_v1_0118", "hypothesis": "13:5"}
+{"question_id": "synthetic_v1_0119", "hypothesis": "Orchid Gallery"}
+{"question_id": "synthetic_v1_0120", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0121", "hypothesis": "4"}
+{"question_id": "synthetic_v1_0122", "hypothesis": "$164"}
+{"question_id": "synthetic_v1_0123", "hypothesis": "160 minutes"}
+{"question_id": "synthetic_v1_0124", "hypothesis": "40 minutes"}
+{"question_id": "synthetic_v1_0125", "hypothesis": "11 minutes"}
+{"question_id": "synthetic_v1_0126_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0127_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0128_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0129_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0130_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0131_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0132", "hypothesis": "Recommend advanced color grading and keyboard workflows for DaVinci Resolve video editing resources."}
+{"question_id": "synthetic_v1_0133", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0134", "hypothesis": "A cultural event that includes opportunities for practicing Spanish and French conversation, avoiding events without language exchange."}
+{"question_id": "synthetic_v1_0135", "hypothesis": "Recommend low-impact swimming and mobility sessions that fit into thirty minutes for your Beacon Workshop plans with Sofia."}
+{"question_id": "synthetic_v1_0136", "hypothesis": "A vegetarian Korean restaurant with clearly labeled nut-free dishes at Maple Commons."}
+{"question_id": "synthetic_v1_0137", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0138", "hypothesis": "An offline meditation app with short unguided timers and no social feed."}
+{"question_id": "synthetic_v1_0139", "hypothesis": "A small conference about interpretable machine learning in healthcare."}
+{"question_id": "synthetic_v1_0140", "hypothesis": "Recommend DaVinci Resolve with a focus on advanced color grading and keyboard workflows."}
+{"question_id": "synthetic_v1_0141", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0142", "hypothesis": "A cultural event at Aster Hall that includes language exchange opportunities for practicing Spanish and French."}
+{"question_id": "synthetic_v1_0143", "hypothesis": "Recommend low-impact swimming and mobility sessions that fit into thirty minutes for your Fern Court plans with Farah."}
+{"question_id": "synthetic_v1_0144", "hypothesis": "A vegetarian Korean restaurant with clearly labeled nut-free dishes at Maple Commons."}
+{"question_id": "synthetic_v1_0145", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0146", "hypothesis": "An offline meditation app with short unguided timers and no social feed, avoiding subscription-only apps centered on group challenges."}
+{"question_id": "synthetic_v1_0147", "hypothesis": "A small conference about interpretable machine learning in healthcare."}
+{"question_id": "synthetic_v1_0148", "hypothesis": "Recommend advanced color grading and keyboard workflows for DaVinci Resolve video editing resources."}
+{"question_id": "synthetic_v1_0149", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0150", "hypothesis": "An event where you can practice Spanish and French through conversation, avoiding events without language exchange."}
+{"question_id": "synthetic_v1_0151", "hypothesis": "Recommend low-impact swimming and mobility sessions that fit into thirty minutes for your Lantern Theatre plans with Keira."}
+{"question_id": "synthetic_v1_0152", "hypothesis": "A vegetarian Korean restaurant with clearly labeled nut-free dishes at Maple Commons."}
+{"question_id": "synthetic_v1_0153", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0154", "hypothesis": "An offline meditation app with short unguided timers and no social feed."}
+{"question_id": "synthetic_v1_0155", "hypothesis": "A small conference about interpretable machine learning in healthcare."}
+{"question_id": "synthetic_v1_0156", "hypothesis": "Recommend advanced color grading and keyboard workflows for DaVinci Resolve video editing resources."}
+{"question_id": "synthetic_v1_0157", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0158", "hypothesis": "A cultural event at the Beacon Workshop that includes a language exchange for practicing Spanish and French."}
+{"question_id": "synthetic_v1_0159", "hypothesis": "Recommend a fitness routine that includes low-impact swimming and mobility sessions lasting no more than thirty minutes, avoiding high-impact running or workouts longer than an hour."}
+{"question_id": "synthetic_v1_0160", "hypothesis": "A vegetarian Korean restaurant with clearly labeled nut-free dishes."}
+{"question_id": "synthetic_v1_0161", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0162", "hypothesis": "$150"}
+{"question_id": "synthetic_v1_0163", "hypothesis": "150 minutes"}
+{"question_id": "synthetic_v1_0164", "hypothesis": "34.6667 minutes"}
+{"question_id": "synthetic_v1_0165", "hypothesis": "13 minutes"}
+{"question_id": "synthetic_v1_0166", "hypothesis": "Cedar House"}
+{"question_id": "synthetic_v1_0167", "hypothesis": "23 kilometers"}
+{"question_id": "synthetic_v1_0168", "hypothesis": "7:3"}
+{"question_id": "synthetic_v1_0169", "hypothesis": "Elm Street Library"}
+{"question_id": "synthetic_v1_0170", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0171", "hypothesis": "4"}
+{"question_id": "synthetic_v1_0172", "hypothesis": "$211"}
+{"question_id": "synthetic_v1_0173", "hypothesis": "190 minutes"}
+{"question_id": "synthetic_v1_0174", "hypothesis": "44 minutes"}
+{"question_id": "synthetic_v1_0175", "hypothesis": "24 minutes"}
+{"question_id": "synthetic_v1_0176", "hypothesis": "Orchid Gallery"}
+{"question_id": "synthetic_v1_0177", "hypothesis": "17 kilometers"}
+{"question_id": "synthetic_v1_0178", "hypothesis": "8:3"}
+{"question_id": "synthetic_v1_0179", "hypothesis": "Kestrel Arts"}
+{"question_id": "synthetic_v1_0180", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0181", "hypothesis": "4"}
+{"question_id": "synthetic_v1_0182", "hypothesis": "$98"}
+{"question_id": "synthetic_v1_0183", "hypothesis": "170 minutes"}
+{"question_id": "synthetic_v1_0184", "hypothesis": "40 minutes"}
+{"question_id": "synthetic_v1_0185", "hypothesis": "18 minutes"}
+{"question_id": "synthetic_v1_0186", "hypothesis": "Beacon Workshop"}
+{"question_id": "synthetic_v1_0187", "hypothesis": "25 kilometers"}
+{"question_id": "synthetic_v1_0188", "hypothesis": "10:5"}
+{"question_id": "synthetic_v1_0189", "hypothesis": "Juniper Pavilion"}
+{"question_id": "synthetic_v1_0190", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0191", "hypothesis": "4"}
+{"question_id": "synthetic_v1_0192", "hypothesis": "$198"}
+{"question_id": "synthetic_v1_0193", "hypothesis": "135 minutes"}
+{"question_id": "synthetic_v1_0194", "hypothesis": "47.6667 minutes"}
+{"question_id": "synthetic_v1_0195", "hypothesis": "22 minutes"}
+{"question_id": "synthetic_v1_0196", "hypothesis": "Granite Center"}
+{"question_id": "synthetic_v1_0197", "hypothesis": "29 kilometers"}
+{"question_id": "synthetic_v1_0198", "hypothesis": "14:3"}
+{"question_id": "synthetic_v1_0199", "hypothesis": "Indigo Room"}
+{"question_id": "synthetic_v1_0200", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0201", "hypothesis": "4"}
+{"question_id": "synthetic_v1_0202", "hypothesis": "$154"}
+{"question_id": "synthetic_v1_0203", "hypothesis": "190 minutes"}
+{"question_id": "synthetic_v1_0204", "hypothesis": "31.6667 minutes"}
+{"question_id": "synthetic_v1_0205", "hypothesis": "25 minutes"}
+{"question_id": "synthetic_v1_0206", "hypothesis": "Driftwood Studio"}
+{"question_id": "synthetic_v1_0207", "hypothesis": "35 kilometers"}
+{"question_id": "synthetic_v1_0208", "hypothesis": "12:3"}
+{"question_id": "synthetic_v1_0209", "hypothesis": "Driftwood Studio"}
+{"question_id": "synthetic_v1_0210", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0211", "hypothesis": "4"}
+{"question_id": "synthetic_v1_0212", "hypothesis": "$191"}
+{"question_id": "synthetic_v1_0213", "hypothesis": "135 minutes"}
+{"question_id": "synthetic_v1_0214", "hypothesis": "41 minutes"}
+{"question_id": "synthetic_v1_0215", "hypothesis": "10 minutes"}
+{"question_id": "synthetic_v1_0216", "hypothesis": "Indigo Room"}
+{"question_id": "synthetic_v1_0217", "hypothesis": "25 kilometers"}
+{"question_id": "synthetic_v1_0218", "hypothesis": "12:4"}
+{"question_id": "synthetic_v1_0219", "hypothesis": "Pioneer Hall"}
+{"question_id": "synthetic_v1_0220", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0221", "hypothesis": "4"}
+{"question_id": "synthetic_v1_0222", "hypothesis": "$160"}
+{"question_id": "synthetic_v1_0223", "hypothesis": "145 minutes"}
+{"question_id": "synthetic_v1_0224", "hypothesis": "39 minutes"}
+{"question_id": "synthetic_v1_0225", "hypothesis": "12 minutes"}
+{"question_id": "synthetic_v1_0226", "hypothesis": "Elm Street Library"}
+{"question_id": "synthetic_v1_0227_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0228_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0229_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0230_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0231_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0232_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0233", "hypothesis": "21 days"}
+{"question_id": "synthetic_v1_0234", "hypothesis": "7"}
+{"question_id": "synthetic_v1_0235", "hypothesis": "First, painted the hallway; then, visited the orchid show; finally, helped prepare the nursery."}
+{"question_id": "synthetic_v1_0236", "hypothesis": "started the bread workshop"}
+{"question_id": "synthetic_v1_0237", "hypothesis": "5 hours"}
+{"question_id": "synthetic_v1_0238", "hypothesis": "December 5"}
+{"question_id": "synthetic_v1_0239", "hypothesis": "5 days"}
+{"question_id": "synthetic_v1_0240", "hypothesis": "6"}
+{"question_id": "synthetic_v1_0241", "hypothesis": "First, ordered the custom notebook; then, visited the orchid show; finally, repaired the garden gate."}
+{"question_id": "synthetic_v1_0242", "hypothesis": "visited the sculpture garden"}
+{"question_id": "synthetic_v1_0243", "hypothesis": "2 hours"}
+{"question_id": "synthetic_v1_0244", "hypothesis": "January 2"}
+{"question_id": "synthetic_v1_0245", "hypothesis": "10 days"}
+{"question_id": "synthetic_v1_0246", "hypothesis": "4"}
+{"question_id": "synthetic_v1_0247", "hypothesis": "First, painted the hallway; then, visited the orchid show; finally, helped prepare the nursery."}
+{"question_id": "synthetic_v1_0248", "hypothesis": "joined the choir rehearsal"}
+{"question_id": "synthetic_v1_0249", "hypothesis": "5 hours"}
+{"question_id": "synthetic_v1_0250", "hypothesis": "January 17"}
+{"question_id": "synthetic_v1_0251", "hypothesis": "8 days"}
+{"question_id": "synthetic_v1_0252", "hypothesis": "4"}
+{"question_id": "synthetic_v1_0253", "hypothesis": "First, painted the hallway; then, ordered the custom notebook; finally, repaired the garden gate."}
+{"question_id": "synthetic_v1_0254", "hypothesis": "started the bread workshop"}
+{"question_id": "synthetic_v1_0255", "hypothesis": "2 hours"}
+{"question_id": "synthetic_v1_0256", "hypothesis": "February 2"}
+{"question_id": "synthetic_v1_0257", "hypothesis": "16 days"}
+{"question_id": "synthetic_v1_0258", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0259", "hypothesis": "First, visited the orchid show; then, helped prepare the nursery; finally, repaired the garden gate."}
+{"question_id": "synthetic_v1_0260", "hypothesis": "joined the choir rehearsal"}
+{"question_id": "synthetic_v1_0261", "hypothesis": "3 hours"}
+{"question_id": "synthetic_v1_0262", "hypothesis": "February 23"}
+{"question_id": "synthetic_v1_0263", "hypothesis": "7 days"}
+{"question_id": "synthetic_v1_0264", "hypothesis": "4"}
+{"question_id": "synthetic_v1_0265", "hypothesis": "First, ordered the custom notebook; then, helped prepare the nursery; finally, painted the hallway."}
+{"question_id": "synthetic_v1_0266", "hypothesis": "visited the sculpture garden"}
+{"question_id": "synthetic_v1_0267", "hypothesis": "2 hours"}
+{"question_id": "synthetic_v1_0268", "hypothesis": "March 19"}
+{"question_id": "synthetic_v1_0269", "hypothesis": "16 days"}
+{"question_id": "synthetic_v1_0270", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0271", "hypothesis": "First, repaired the garden gate; then, ordered the custom notebook; finally, painted the hallway."}
+{"question_id": "synthetic_v1_0272", "hypothesis": "joined the choir rehearsal"}
+{"question_id": "synthetic_v1_0273", "hypothesis": "3 hours"}
+{"question_id": "synthetic_v1_0274", "hypothesis": "April 10"}
+{"question_id": "synthetic_v1_0275", "hypothesis": "10 days"}
+{"question_id": "synthetic_v1_0276", "hypothesis": "6"}
+{"question_id": "synthetic_v1_0277", "hypothesis": "First, visited the orchid show; then, helped prepare the nursery; finally, painted the hallway."}
+{"question_id": "synthetic_v1_0278", "hypothesis": "joined the choir rehearsal"}
+{"question_id": "synthetic_v1_0279", "hypothesis": "5 hours"}
+{"question_id": "synthetic_v1_0280", "hypothesis": "April 24"}
+{"question_id": "synthetic_v1_0281", "hypothesis": "10 days"}
+{"question_id": "synthetic_v1_0282", "hypothesis": "6"}
+{"question_id": "synthetic_v1_0283", "hypothesis": "First, repaired the garden gate; then, painted the hallway; finally, visited the orchid show."}
+{"question_id": "synthetic_v1_0284", "hypothesis": "joined the choir rehearsal"}
+{"question_id": "synthetic_v1_0285", "hypothesis": "5 hours"}
+{"question_id": "synthetic_v1_0286", "hypothesis": "April 20"}
+{"question_id": "synthetic_v1_0287", "hypothesis": "8 days"}
+{"question_id": "synthetic_v1_0288", "hypothesis": "6"}
+{"question_id": "synthetic_v1_0289", "hypothesis": "First, visited the orchid show; then, painted the hallway; finally, ordered the custom notebook."}
+{"question_id": "synthetic_v1_0290", "hypothesis": "started the bread workshop"}
+{"question_id": "synthetic_v1_0291", "hypothesis": "5 hours"}
+{"question_id": "synthetic_v1_0292", "hypothesis": "May 12"}
+{"question_id": "synthetic_v1_0293", "hypothesis": "16 days"}
+{"question_id": "synthetic_v1_0294", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0295", "hypothesis": "First, painted the hallway; then, helped prepare the nursery; finally, visited the orchid show."}
+{"question_id": "synthetic_v1_0296", "hypothesis": "started the bread workshop"}
+{"question_id": "synthetic_v1_0297", "hypothesis": "3 hours"}
+{"question_id": "synthetic_v1_0298", "hypothesis": "June 7"}
+{"question_id": "synthetic_v1_0299", "hypothesis": "15 days"}
+{"question_id": "synthetic_v1_0300", "hypothesis": "5"}
+{"question_id": "synthetic_v1_0301", "hypothesis": "First, ordered the custom notebook; then, helped prepare the nursery; finally, visited the orchid show."}
+{"question_id": "synthetic_v1_0302", "hypothesis": "visited the sculpture garden"}
+{"question_id": "synthetic_v1_0303", "hypothesis": "2 hours"}
+{"question_id": "synthetic_v1_0304", "hypothesis": "June 24"}
+{"question_id": "synthetic_v1_0305", "hypothesis": "19 days"}
+{"question_id": "synthetic_v1_0306", "hypothesis": "2"}
+{"question_id": "synthetic_v1_0307", "hypothesis": "First, visited the orchid show; then, painted the hallway; finally, repaired the garden gate."}
+{"question_id": "synthetic_v1_0308", "hypothesis": "started the bread workshop"}
+{"question_id": "synthetic_v1_0309", "hypothesis": "5 hours"}
+{"question_id": "synthetic_v1_0310", "hypothesis": "July 10"}
+{"question_id": "synthetic_v1_0311", "hypothesis": "21 days"}
+{"question_id": "synthetic_v1_0312", "hypothesis": "6"}
+{"question_id": "synthetic_v1_0313", "hypothesis": "First, visited the orchid show; then, repaired the garden gate; finally, painted the hallway."}
+{"question_id": "synthetic_v1_0314", "hypothesis": "joined the choir rehearsal"}
+{"question_id": "synthetic_v1_0315", "hypothesis": "4 hours"}
+{"question_id": "synthetic_v1_0316", "hypothesis": "August 7"}
+{"question_id": "synthetic_v1_0317", "hypothesis": "4 days"}
+{"question_id": "synthetic_v1_0318", "hypothesis": "5"}
+{"question_id": "synthetic_v1_0319", "hypothesis": "First, visited the orchid show; then, painted the hallway; finally, ordered the custom notebook."}
+{"question_id": "synthetic_v1_0320", "hypothesis": "visited the sculpture garden"}
+{"question_id": "synthetic_v1_0321", "hypothesis": "5 hours"}
+{"question_id": "synthetic_v1_0322", "hypothesis": "August 31"}
+{"question_id": "synthetic_v1_0323", "hypothesis": "21 days"}
+{"question_id": "synthetic_v1_0324", "hypothesis": "5"}
+{"question_id": "synthetic_v1_0325", "hypothesis": "First, visited the orchid show; then, helped prepare the nursery; finally, painted the hallway."}
+{"question_id": "synthetic_v1_0326", "hypothesis": "joined the choir rehearsal"}
+{"question_id": "synthetic_v1_0327", "hypothesis": "3 hours"}
+{"question_id": "synthetic_v1_0328", "hypothesis": "August 28"}
+{"question_id": "synthetic_v1_0329", "hypothesis": "18 days"}
+{"question_id": "synthetic_v1_0330", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0331", "hypothesis": "First, ordered the custom notebook; then, repaired the garden gate; finally, visited the orchid show."}
+{"question_id": "synthetic_v1_0332", "hypothesis": "started the bread workshop"}
+{"question_id": "synthetic_v1_0333", "hypothesis": "2 hours"}
+{"question_id": "synthetic_v1_0334", "hypothesis": "October 7"}
+{"question_id": "synthetic_v1_0335", "hypothesis": "11 days"}
+{"question_id": "synthetic_v1_0336", "hypothesis": "2"}
+{"question_id": "synthetic_v1_0337", "hypothesis": "First, ordered the custom notebook; then, helped prepare the nursery; finally, repaired the garden gate."}
+{"question_id": "synthetic_v1_0338", "hypothesis": "joined the choir rehearsal"}
+{"question_id": "synthetic_v1_0339", "hypothesis": "4 hours"}
+{"question_id": "synthetic_v1_0340", "hypothesis": "September 28"}
+{"question_id": "synthetic_v1_0341", "hypothesis": "11 days"}
+{"question_id": "synthetic_v1_0342", "hypothesis": "6"}
+{"question_id": "synthetic_v1_0343", "hypothesis": "First, repaired the garden gate; then, helped prepare the nursery; finally, ordered the custom notebook."}
+{"question_id": "synthetic_v1_0344", "hypothesis": "visited the sculpture garden"}
+{"question_id": "synthetic_v1_0345", "hypothesis": "2 hours"}
+{"question_id": "synthetic_v1_0346", "hypothesis": "October 21"}
+{"question_id": "synthetic_v1_0347", "hypothesis": "21 days"}
+{"question_id": "synthetic_v1_0348", "hypothesis": "3"}
+{"question_id": "synthetic_v1_0349", "hypothesis": "First, visited the orchid show; then, repaired the garden gate; finally, painted the hallway."}
+{"question_id": "synthetic_v1_0350", "hypothesis": "started the bread workshop"}
+{"question_id": "synthetic_v1_0351", "hypothesis": "5 hours"}
+{"question_id": "synthetic_v1_0352", "hypothesis": "November 26"}
+{"question_id": "synthetic_v1_0353", "hypothesis": "16 days"}
+{"question_id": "synthetic_v1_0354", "hypothesis": "5"}
+{"question_id": "synthetic_v1_0355", "hypothesis": "First, ordered the custom notebook; then, repaired the garden gate; finally, visited the orchid show."}
+{"question_id": "synthetic_v1_0356", "hypothesis": "joined the choir rehearsal"}
+{"question_id": "synthetic_v1_0357", "hypothesis": "4 hours"}
+{"question_id": "synthetic_v1_0358", "hypothesis": "December 6"}
+{"question_id": "synthetic_v1_0359", "hypothesis": "10 days"}
+{"question_id": "synthetic_v1_0360_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0361_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0362_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0363_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0364_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0365_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0366", "hypothesis": "parrots"}
+{"question_id": "synthetic_v1_0367", "hypothesis": "cocoa"}
+{"question_id": "synthetic_v1_0368", "hypothesis": "Kochi"}
+{"question_id": "synthetic_v1_0369", "hypothesis": "Grove X4"}
+{"question_id": "synthetic_v1_0370", "hypothesis": "Research Manager"}
+{"question_id": "synthetic_v1_0371", "hypothesis": "Harbor Path"}
+{"question_id": "synthetic_v1_0372", "hypothesis": "EchoShelf"}
+{"question_id": "synthetic_v1_0373", "hypothesis": "watercolor"}
+{"question_id": "synthetic_v1_0374", "hypothesis": "dogs"}
+{"question_id": "synthetic_v1_0375", "hypothesis": "masala chai"}
+{"question_id": "synthetic_v1_0376", "hypothesis": "Mysuru"}
+{"question_id": "synthetic_v1_0377", "hypothesis": "Fjord Lite"}
+{"question_id": "synthetic_v1_0378", "hypothesis": "Analytics Lead"}
+{"question_id": "synthetic_v1_0379", "hypothesis": "Garden Trail"}
+{"question_id": "synthetic_v1_0380", "hypothesis": "WaveRoom"}
+{"question_id": "synthetic_v1_0381", "hypothesis": "salsa"}
+{"question_id": "synthetic_v1_0382", "hypothesis": "cats"}
+{"question_id": "synthetic_v1_0383", "hypothesis": "filter coffee"}
+{"question_id": "synthetic_v1_0384", "hypothesis": "Pune"}
+{"question_id": "synthetic_v1_0385", "hypothesis": "Aurora K2"}
+{"question_id": "synthetic_v1_0386", "hypothesis": "Data Analyst"}
+{"question_id": "synthetic_v1_0387", "hypothesis": "Canal Loop"}
+{"question_id": "synthetic_v1_0388", "hypothesis": "TuneBox"}
+{"question_id": "synthetic_v1_0389", "hypothesis": "pottery"}
+{"question_id": "synthetic_v1_0390", "hypothesis": "parrots"}
+{"question_id": "synthetic_v1_0391", "hypothesis": "cocoa"}
+{"question_id": "synthetic_v1_0392", "hypothesis": "Kochi"}
+{"question_id": "synthetic_v1_0393", "hypothesis": "Grove X4"}
+{"question_id": "synthetic_v1_0394", "hypothesis": "Research Manager"}
+{"question_id": "synthetic_v1_0395", "hypothesis": "Harbor Path"}
+{"question_id": "synthetic_v1_0396", "hypothesis": "EchoShelf"}
+{"question_id": "synthetic_v1_0397", "hypothesis": "watercolor"}
+{"question_id": "synthetic_v1_0398", "hypothesis": "dogs"}
+{"question_id": "synthetic_v1_0399", "hypothesis": "masala chai"}
+{"question_id": "synthetic_v1_0400", "hypothesis": "Mysuru"}
+{"question_id": "synthetic_v1_0401", "hypothesis": "Fjord Lite"}
+{"question_id": "synthetic_v1_0402", "hypothesis": "Analytics Lead"}
+{"question_id": "synthetic_v1_0403", "hypothesis": "Garden Trail"}
+{"question_id": "synthetic_v1_0404", "hypothesis": "WaveRoom"}
+{"question_id": "synthetic_v1_0405", "hypothesis": "salsa"}
+{"question_id": "synthetic_v1_0406", "hypothesis": "cats"}
+{"question_id": "synthetic_v1_0407", "hypothesis": "filter coffee"}
+{"question_id": "synthetic_v1_0408", "hypothesis": "Pune"}
+{"question_id": "synthetic_v1_0409", "hypothesis": "Aurora K2"}
+{"question_id": "synthetic_v1_0410", "hypothesis": "Data Analyst"}
+{"question_id": "synthetic_v1_0411", "hypothesis": "Canal Loop"}
+{"question_id": "synthetic_v1_0412", "hypothesis": "TuneBox"}
+{"question_id": "synthetic_v1_0413", "hypothesis": "pottery"}
+{"question_id": "synthetic_v1_0414", "hypothesis": "parrots"}
+{"question_id": "synthetic_v1_0415", "hypothesis": "cocoa"}
+{"question_id": "synthetic_v1_0416", "hypothesis": "Kochi"}
+{"question_id": "synthetic_v1_0417", "hypothesis": "Grove X4"}
+{"question_id": "synthetic_v1_0418", "hypothesis": "Research Manager"}
+{"question_id": "synthetic_v1_0419", "hypothesis": "Harbor Path"}
+{"question_id": "synthetic_v1_0420", "hypothesis": "EchoShelf"}
+{"question_id": "synthetic_v1_0421", "hypothesis": "watercolor"}
+{"question_id": "synthetic_v1_0422", "hypothesis": "dogs"}
+{"question_id": "synthetic_v1_0423", "hypothesis": "masala chai"}
+{"question_id": "synthetic_v1_0424", "hypothesis": "Mysuru"}
+{"question_id": "synthetic_v1_0425", "hypothesis": "Fjord Lite"}
+{"question_id": "synthetic_v1_0426", "hypothesis": "Analytics Lead"}
+{"question_id": "synthetic_v1_0427", "hypothesis": "Garden Trail"}
+{"question_id": "synthetic_v1_0428", "hypothesis": "WaveRoom"}
+{"question_id": "synthetic_v1_0429", "hypothesis": "salsa"}
+{"question_id": "synthetic_v1_0430", "hypothesis": "cats"}
+{"question_id": "synthetic_v1_0431", "hypothesis": "filter coffee"}
+{"question_id": "synthetic_v1_0432", "hypothesis": "Pune"}
+{"question_id": "synthetic_v1_0433", "hypothesis": "Aurora K2"}
+{"question_id": "synthetic_v1_0434", "hypothesis": "Data Analyst"}
+{"question_id": "synthetic_v1_0435", "hypothesis": "Canal Loop"}
+{"question_id": "synthetic_v1_0436_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0437_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0438_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0439_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0440_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0441_abs", "hypothesis": "I do not know."}
+{"question_id": "synthetic_v1_0442", "hypothesis": "Research Manager"}
+{"question_id": "synthetic_v1_0443", "hypothesis": "Harbor Path"}
+{"question_id": "synthetic_v1_0444", "hypothesis": "digital pattern designer"}
+{"question_id": "synthetic_v1_0445", "hypothesis": "Juniper Pavilion"}
+{"question_id": "synthetic_v1_0446", "hypothesis": "vacuum distillation"}
+{"question_id": "synthetic_v1_0447", "hypothesis": "555-289-3789"}
+{"question_id": "synthetic_v1_0448", "hypothesis": "forest green"}
+{"question_id": "synthetic_v1_0449", "hypothesis": "publish an open street-level dataset; map neighborhood heat islands; compare tree canopy coverage"}
+{"question_id": "synthetic_v1_0450", "hypothesis": "podcast transcript reviewer"}
+{"question_id": "synthetic_v1_0451", "hypothesis": "Pioneer Hall"}
+{"question_id": "synthetic_v1_0452", "hypothesis": "thermal lamination"}
+{"question_id": "synthetic_v1_0453", "hypothesis": "555-770-5429"}
+{"question_id": "synthetic_v1_0454", "hypothesis": "ivory"}
+{"question_id": "synthetic_v1_0455", "hypothesis": "compare tree canopy coverage; map neighborhood heat islands; publish an open street-level dataset"}
+{"question_id": "synthetic_v1_0456", "hypothesis": "podcast transcript reviewer"}
+{"question_id": "synthetic_v1_0457", "hypothesis": "Granite Center"}
+{"question_id": "synthetic_v1_0458", "hypothesis": "Cold fermentation"}
+{"question_id": "synthetic_v1_0459", "hypothesis": "555-859-5790"}
+{"question_id": "synthetic_v1_0460", "hypothesis": "marigold yellow"}
+{"question_id": "synthetic_v1_0461", "hypothesis": "interview residents about shade access; measure evening surface temperatures; map neighborhood heat islands"}
+{"question_id": "synthetic_v1_0462", "hypothesis": "online language tutor"}
+{"question_id": "synthetic_v1_0463", "hypothesis": "Elm Street Library"}
+{"question_id": "synthetic_v1_0464", "hypothesis": "solvent extraction"}
+{"question_id": "synthetic_v1_0465", "hypothesis": "555-412-7496"}
+{"question_id": "synthetic_v1_0466", "hypothesis": "marigold yellow"}
+{"question_id": "synthetic_v1_0467", "hypothesis": "measure evening surface temperatures; compare tree canopy coverage; publish an open street-level dataset"}
+{"question_id": "synthetic_v1_0468", "hypothesis": "online language tutor"}
+{"question_id": "synthetic_v1_0469", "hypothesis": "Cedar House"}
+{"question_id": "synthetic_v1_0470", "hypothesis": "thermal lamination"}
+{"question_id": "synthetic_v1_0471", "hypothesis": "555-669-1112"}
+{"question_id": "synthetic_v1_0472", "hypothesis": "cobalt blue"}
+{"question_id": "synthetic_v1_0473", "hypothesis": "measure evening surface temperatures; publish an open street-level dataset; compare tree canopy coverage"}
+{"question_id": "synthetic_v1_0474", "hypothesis": "podcast transcript reviewer"}
+{"question_id": "synthetic_v1_0475", "hypothesis": "Granite Center"}
+{"question_id": "synthetic_v1_0476", "hypothesis": "Cold fermentation"}
+{"question_id": "synthetic_v1_0477", "hypothesis": "555-563-3738"}
+{"question_id": "synthetic_v1_0478", "hypothesis": "ivory"}
+{"question_id": "synthetic_v1_0479", "hypothesis": "compare tree canopy coverage; publish an open street-level dataset; measure evening surface temperatures"}
+{"question_id": "synthetic_v1_0480", "hypothesis": "genealogy assistant"}
+{"question_id": "synthetic_v1_0481", "hypothesis": "Beacon Workshop"}
+{"question_id": "synthetic_v1_0482", "hypothesis": "Thermal lamination"}
+{"question_id": "synthetic_v1_0483", "hypothesis": "555-477-9650"}
+{"question_id": "synthetic_v1_0484", "hypothesis": "plum purple"}
+{"question_id": "synthetic_v1_0485", "hypothesis": "compare tree canopy coverage; interview residents about shade access; measure evening surface temperatures"}
+{"question_id": "synthetic_v1_0486", "hypothesis": "online language tutor"}
+{"question_id": "synthetic_v1_0487", "hypothesis": "Granite Center"}
+{"question_id": "synthetic_v1_0488", "hypothesis": "vacuum distillation"}
+{"question_id": "synthetic_v1_0489", "hypothesis": "555-229-6263"}
+{"question_id": "synthetic_v1_0490", "hypothesis": "teal"}
+{"question_id": "synthetic_v1_0491", "hypothesis": "compare tree canopy coverage; map neighborhood heat islands; publish an open street-level dataset"}
+{"question_id": "synthetic_v1_0492", "hypothesis": "digital pattern designer"}
+{"question_id": "synthetic_v1_0493", "hypothesis": "Harbor Annex"}
+{"question_id": "synthetic_v1_0494", "hypothesis": "Vacuum distillation"}
+{"question_id": "synthetic_v1_0495", "hypothesis": "555-262-5321"}
+{"question_id": "synthetic_v1_0496", "hypothesis": "plum purple"}
+{"question_id": "synthetic_v1_0497", "hypothesis": "interview residents about shade access; publish an open street-level dataset; compare tree canopy coverage"}
+{"question_id": "synthetic_v1_0498", "hypothesis": "digital pattern designer"}
+{"question_id": "synthetic_v1_0499", "hypothesis": "Maple Commons"}
