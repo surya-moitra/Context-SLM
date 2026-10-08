@@ -1,0 +1,2 @@
+# Official-compatible LoCoMo token-F1 uses NLTK's PorterStemmer.
+nltk>=3.8,<4

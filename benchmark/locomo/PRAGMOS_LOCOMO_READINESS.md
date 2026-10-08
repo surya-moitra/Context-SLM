@@ -1,5 +1,38 @@
 # PRAGMOS LoCoMo Readiness Assessment
 
+## Adapter status
+
+`PRAGMOS_benchmark_LoCoMo.py` now provides the benchmark-facing adapter. It
+validates LoCoMo-shaped JSON, preserves both named peers as factual speakers,
+normalizes session dates, indexes captions as typed child evidence, isolates
+each question on a fork of a once-indexed conversation, supports resumable raw
+Phi-3 and PRAGMOS runs, and emits official-compatible category scores plus
+dialog/session retrieval metrics. The adapter does not use gold answers or
+evidence IDs during inference.
+
+Actor-bound grounding is enforced for named-peer questions. Raw source quotes
+remain unchanged, while speaker, role, timestamp, evidence type, and parent
+dialog provenance are supplied in a separate evidence envelope. Direct factual
+answers require the requested actor and fact anchors in the same evidence unit;
+multi-hop retrieval may retain bridge evidence, but answer-bearing facts remain
+bound to the requested actor. Retrieval deduplication uses provenance identity
+rather than quote text, so identical statements by different speakers remain
+distinct.
+
+Install the scorer dependency in the active project environment with:
+
+```bash
+python -m pip install -r requirements-locomo.txt
+```
+
+Validate a LoCoMo-shaped file without loading either local model:
+
+```bash
+python PRAGMOS_benchmark_LoCoMo.py \
+  --data-file benchmark/locomo/synthetic_v1/pragmos_synthetic_locomo_1986_v1.json \
+  --validate-only
+```
+
 ## Official protocol facts
 
 The assessment uses the public LoCoMo release at commit
@@ -42,41 +75,45 @@ question-string reuse against the pinned official file.
   SHA-256 hashes. Synthetic V1 becomes immutable when its first PRAGMOS run
   starts.
 
-## Pre-freeze blockers
+## Implemented adapter guarantees
 
-These are benchmark-adapter requirements, not evidence that the context graph
-itself should be redesigned.
+These are benchmark-adapter guarantees rather than benchmark-specific changes
+to the context graph.
 
 The existing LongMemEval runner is not a LoCoMo adapter and must not be pointed
 at the LoCoMo-shaped JSON directly.
 
-1. **Peer-speaker ingestion**: both speakers are factual subjects. Do not map
-   one participant to the assistant-memory role. Preserve the named `speaker`
-   while treating both as admissible factual evidence.
-2. **Speaker-aware evidence text**: hard query anchors must see the source
-   speaker even when the turn uses `I`. Render or score evidence as
-   `<speaker>: <text>` while retaining the raw quote separately.
-3. **Caption ingestion**: append the released `blip_caption` as explicitly typed
-   visual evidence with the same dialog ID. The images themselves are absent.
-4. **Category-specific prompting and scoring**: reproduce the pinned evaluator,
-   especially the category-2 date instruction, category-1 comma-aware F1, and
-   category-5 refusal rule.
-5. **Canonical adversarial refusal**: use `No information available` for a
-   confirmed LoCoMo category-5 abstention. `I do not know` is semantically sound
-   but receives zero in the official implementation.
-6. **Conversation isolation and reuse**: ingest each conversation once, answer
-   all of its questions from the same immutable index, and clear state before
-   the next conversation. Cache construction must not use QA evidence labels.
+1. **Peer-speaker ingestion**: both speakers remain named factual subjects and
+   are treated as admissible user evidence.
+2. **Speaker-aware evidence envelopes**: hard query anchors can use source
+   speaker metadata even when the raw quote uses `I`; raw quotes remain intact.
+3. **Caption ingestion**: released `blip_caption` values become typed visual
+   evidence tied to the parent dialog ID. The absent images are not simulated.
+4. **Category-specific prompting and scoring**: the adapter reproduces the
+   pinned category-2 date instruction, category-1 comma-aware F1, and category-5
+   refusal rule.
+5. **Canonical adversarial refusal**: confirmed LoCoMo abstentions use
+   `No information available`, matching the official implementation.
+6. **Conversation isolation and reuse**: each conversation is indexed once,
+   each question runs on an isolated fork, and no QA answer or evidence label is
+   used during inference.
 
-## Expected PRAGMOS failure areas
+## Implemented generalization and remaining risks
 
-### High risk: complete multi-hop answers
+### Implemented: complete multi-session collection and set operations
 
-The current retrieval defaults return too few items for questions whose gold
-answer combines up to 19 evidence dialogs. Existing arithmetic covers counts,
-sums, averages, and temporal joins, but LoCoMo also requires set union,
-intersection, per-speaker grouping, and complete list recall. A correct partial
-list still loses category-1 F1.
+PRAGMOS now plans `COLLECT_DISTINCT`, `SET_UNION`, and `SET_INTERSECTION`
+operations from generic list/plural wording. Retrieval expands adaptively while
+new actor-bound evidence, sessions, or values continue to appear, up to a
+reported ceiling. Results preserve first-seen or chronological order, retain
+per-item provenance, support per-speaker grouping, and report whether retrieval
+actually saturated. Open-world queries return the supported partial set instead
+of claiming completeness.
+
+The deterministic operation layer was checked against every generated
+collection, intersection, and distinct-count question using only each
+question's cited evidence, including 19-turn lists. This is a component check,
+not an end-to-end benchmark result; retrieval recall remains a reportable risk.
 
 ### High risk: adversarial near matches
 
@@ -86,12 +123,19 @@ must operate on named peer speakers. Without the adapter requirements above,
 the model will either abstain on valid named-speaker questions or answer invalid
 ones from the other speaker's turn.
 
-### Medium-high risk: relative temporal arithmetic
+### Implemented: source-relative temporal resolution
 
-PRAGMOS handles several temporal joins and date-indexed retrieval patterns, but
-LoCoMo heavily uses `last week`, `last Friday`, `yesterday`, `N days ago`,
-durations, and approximate dates relative to the session timestamp. Retrieval
-can succeed while answer computation still fails.
+Temporal expressions now carry value, granularity, interval, direction, source
+timestamp, and event status. The resolver covers explicit day/month/year
+expressions, `last week`, `next month`, weekdays, yesterday/tomorrow, stated
+durations, and `N`-unit offsets without inventing day precision. Provenance-
+backed relative event chains can compose across sessions, and planned events are
+kept distinct from completed events. Deterministic answers require a unique
+event/date binding; ambiguous cases remain on the existing fallback path.
+
+All generated temporal families passed the same gold-evidence component audit,
+including four-turn cross-session chains. End-to-end quality still depends on
+retrieving every link in the chain.
 
 ### Medium risk: image-caption evidence
 
@@ -99,13 +143,20 @@ Ignoring captions makes some questions impossible. Treating captions as normal
 untyped text can also contaminate speaker attribution. Caption evidence needs a
 clear marker and the parent turn's provenance.
 
-### Structurally model-limited: open-domain inference
+### Implemented routing, model-limited conclusion: open-domain inference
 
-Category 3 asks for likely careers, geographic mappings, holidays, suitable
-gifts, preferences, and counterfactual judgments. PRAGMOS can retrieve the
-premises but cannot guarantee that Phi-3 knows or reasons to the expected
-answer. Report this category separately; do not disguise base-model knowledge
-as a memory-layer failure or add benchmark-specific answer tables.
+PRAGMOS now detects generic premise-based inference language independently of
+LoCoMo category IDs. It retrieves actor-bound evidence across sessions,
+compacts exact factual sentences with provenance under the final token budget,
+and delegates only the conclusion to the base SLM. Inferred answer attributes
+are not required to occur verbatim in premise text, so evidence such as a city
+can support a country inference without weakening speaker or project scope.
+
+All 96 synthetic open-domain questions route through this path and produce
+actor-bound premises in a gold-evidence component audit. The final conclusion
+remains model-limited: report category 3 separately, and do not disguise base-
+model knowledge as a memory-layer failure or add benchmark-specific answer
+tables.
 
 ### Lower risk: direct single-hop recall
 

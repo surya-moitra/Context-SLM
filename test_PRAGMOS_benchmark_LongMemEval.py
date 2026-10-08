@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 from PRAGMOS_benchmark_LongMemEval import (
     ASSISTANT_MEMORY_INTENT,
+    EVIDENCE_SYNTHESIS_INTENT,
     PREFERENCE_RECOMMENDATION_INTENT,
     aggregate_longmemeval_retrieval_metrics,
     assess_state_attribute_mismatch,
@@ -16,10 +17,12 @@ from PRAGMOS_benchmark_LongMemEval import (
     build_query_profile,
     build_preference_profile,
     build_pragmos_answer_suffix,
+    build_evidence_synthesis_premises,
     canonicalize_generated_scalar_answer,
     deduplicate_operation_facts,
     determine_safe_abstention,
     evidence_rows_without_candidate_extraction,
+    evidence_synthesis_scope_profile,
     execute_operation_plan,
     extract_candidates_from_selected_evidence,
     extract_measurement_facts,
@@ -36,14 +39,19 @@ from PRAGMOS_benchmark_LongMemEval import (
     parse_selected_evidence_triples,
     prepare_run_checkpoint,
     format_answer_slot_candidates,
+    format_evidence_synthesis_context,
     format_preference_profile,
     counter_delta,
     pragmos_ablation_set,
     prioritize_memories_for_query_intent,
     rerank_answer_slot_candidates,
     retrieve_temporal_adjacent_date_memories,
+    retrieve_collection_memories_until_saturated,
+    retrieve_evidence_synthesis_memories,
     resolve_deterministic_ordinal_list_answer,
     resolve_deterministic_state_history_answer,
+    resolve_temporal_event_chains,
+    resolve_temporal_expression,
     resolve_typed_answer_slot,
     select_answer_slot_candidates,
     select_session_diverse_memories,
@@ -63,12 +71,13 @@ def extraction(
     turn_id="turn-1",
     session_id="session-1",
     timestamp="2026-01-01T10:00:00Z",
+    speaker=None,
 ):
     return {
         "source_turn_id": turn_id,
         "source_session_id": session_id,
         "source_role": role,
-        "source_speaker": role,
+        "source_speaker": speaker or role,
         "source_timestamp": timestamp,
         "source_quote": quote,
         "triples": triples,
@@ -551,6 +560,204 @@ class QueryRoutingRegressionTests(unittest.TestCase):
             )["intent"],
             ASSISTANT_MEMORY_INTENT,
         )
+
+    def test_intent_router_detects_generic_evidence_synthesis_only(self):
+        inference_questions = [
+            "What career might suit Rohan based on the Emerald Atlas project?",
+            "What gift could support Asha's new running habit?",
+            "Which genre would Rohan likely enjoy?",
+            "Would Asha probably prefer a national park or an indoor arcade?",
+            "Which country did Asha visit for the Amber Atlas project?",
+            "What can be inferred from Asha's actions?",
+        ]
+        for question in inference_questions:
+            with self.subTest(question=question):
+                intent = infer_query_intent(question)
+                self.assertEqual(intent["intent"], EVIDENCE_SYNTHESIS_INTENT)
+                self.assertTrue(intent["requires_session_diversity"])
+
+        self.assertEqual(
+            infer_query_intent("What city did Asha visit?")["intent"],
+            "user_memory",
+        )
+        self.assertEqual(
+            infer_query_intent(
+                "Could you recommend a restaurant based on my preferences?"
+            )["intent"],
+            PREFERENCE_RECOMMENDATION_INTENT,
+        )
+
+    def test_synthesis_scope_does_not_require_the_inferred_attribute(self):
+        question = "Which country did Asha visit for the Amber Atlas project?"
+        base = build_query_profile(
+            question,
+            known_speakers=["Asha", "Rohan"],
+        )
+
+        scope = evidence_synthesis_scope_profile(base)
+
+        self.assertIn(
+            "country",
+            [group["text"] for group in base["required_anchor_groups"]],
+        )
+        self.assertNotIn(
+            "country",
+            [group["text"] for group in scope["required_anchor_groups"]],
+        )
+        self.assertIn(
+            "Amber Atlas",
+            [group["text"] for group in scope["required_anchor_groups"]],
+        )
+        self.assertTrue(scope["allow_distributed_actor_evidence"])
+
+    def test_synthesis_retrieval_is_actor_bound_and_session_diverse(self):
+        question = (
+            "Based on Asha's actions during the Silver Atlas project, would "
+            "Asha likely support another community event?"
+        )
+        base = build_query_profile(
+            question,
+            known_speakers=["Asha", "Rohan"],
+        )
+        profile = evidence_synthesis_scope_profile(base)
+        rows = []
+        for index in range(5):
+            rows.append(
+                {
+                    **memory(
+                        f"During the Silver Atlas project, I completed service task {index + 1}.",
+                        f"a{index + 1}",
+                        session_id=f"s{index + 1}",
+                    ),
+                    "speaker": "Asha",
+                    "source_speaker": "Asha",
+                }
+            )
+        rows.extend(
+            [
+                {
+                    **memory(
+                        "During the Silver Atlas project, I skipped the event.",
+                        "r1",
+                        session_id="wrong-speaker",
+                    ),
+                    "speaker": "Rohan",
+                    "source_speaker": "Rohan",
+                },
+                {
+                    **memory(
+                        "I reorganized my kitchen shelves.",
+                        "a-noise",
+                        session_id="noise",
+                    ),
+                    "speaker": "Asha",
+                    "source_speaker": "Asha",
+                },
+            ]
+        )
+
+        class RetrievalContext:
+            def retrieve_relevant_memories(self, _query, top_k, **_kwargs):
+                return rows[:top_k]
+
+        selected, diagnostics = retrieve_evidence_synthesis_memories(
+            RetrievalContext(),
+            question,
+            profile,
+            retrieval_top_k=12,
+            limit=5,
+            max_sessions=5,
+        )
+
+        self.assertEqual(len(selected), 5)
+        self.assertEqual(diagnostics["covered_session_count"], 5)
+        self.assertTrue(
+            all(item["source_speaker"] == "Asha" for item in selected)
+        )
+        self.assertTrue(
+            all("Silver Atlas" in item["source_quote"] for item in selected)
+        )
+
+    def test_synthesis_premises_are_exact_deduplicated_and_provenanced(self):
+        question = "What career might suit Asha based on the Emerald Atlas project?"
+        profile = evidence_synthesis_scope_profile(
+            build_query_profile(
+                question,
+                known_speakers=["Asha", "Rohan"],
+            )
+        )
+        quote = (
+            "For the Emerald Atlas project, I enjoyed teaching children about "
+            "plants and protecting habitats."
+        )
+        rows = [
+            extraction(
+                quote,
+                [],
+                turn_id="a1",
+                session_id="s1",
+                speaker="Asha",
+            ),
+            extraction(
+                quote,
+                [],
+                turn_id="a2",
+                session_id="s2",
+                speaker="Asha",
+            ),
+            extraction(
+                "For the Emerald Atlas project, I managed a ticket booth.",
+                [],
+                turn_id="r1",
+                session_id="s3",
+                speaker="Rohan",
+            ),
+        ]
+
+        premises = build_evidence_synthesis_premises(
+            rows,
+            question,
+            profile,
+            limit=4,
+        )
+
+        self.assertEqual(len(premises), 1)
+        self.assertEqual(premises[0]["premise_text"], quote)
+        self.assertEqual(premises[0]["source_quote"], quote)
+        self.assertEqual(len(premises[0]["provenance"]), 2)
+
+    def test_synthesis_context_obeys_budget_and_suffix_delegates_inference(self):
+        context = FakeCandidateExtractionContext()
+        premises = [
+            {
+                "premise_id": f"P{index}",
+                "premise_text": f"I completed community service task {index}.",
+                "source_turn_id": f"t{index}",
+                "source_session_id": f"s{index}",
+                "source_speaker": "Asha",
+                "source_timestamp": "2027-01-01T10:00:00",
+                "evidence_type": "dialogue",
+            }
+            for index in range(1, 8)
+        ]
+
+        rendered, included = format_evidence_synthesis_context(
+            context,
+            premises,
+            token_budget=125,
+        )
+        suffix = build_pragmos_answer_suffix(
+            "Would Asha likely support another community event?",
+            "current",
+            query_profile={"required_anchor_groups": []},
+            query_intent={"intent": EVIDENCE_SYNTHESIS_INTENT},
+        )
+
+        self.assertLessEqual(context.count_tokens(rendered), 125)
+        self.assertGreater(len(included), 0)
+        self.assertLess(len(included), len(premises))
+        self.assertIn("ordinary background knowledge", suffix)
+        self.assertIn("Infer the concise answer", suffix)
 
     def test_role_routing_reorders_only_assistant_memory_queries(self):
         rows = [
@@ -2393,6 +2600,12 @@ class MultiSessionOperationTests(unittest.TestCase):
                 "source_turn_id": "t2",
                 "source_quote": "I worked on my Orion capsule kit again.",
             },
+            {
+                "grounded_identity": "capsule kit",
+                "entity": "capsule kit",
+                "source_turn_id": "t2",
+                "source_quote": "I worked on my Orion capsule kit again.",
+            },
         ]
 
         counted_events = deduplicate_operation_facts(facts, "count")
@@ -2963,6 +3176,68 @@ class MultiSessionOperationTests(unittest.TestCase):
         self.assertIsNone(vague_value)
         self.assertIsNone(ambiguous_value)
 
+    def test_exact_date_abstains_when_evidence_has_only_month_precision(self):
+        question = "On what exact date did I volunteer at the shelter dinner?"
+        plan = infer_multi_session_operation(
+            question,
+            "single-session-user",
+            "2025/08/10 (Sun) 22:54",
+        )
+        result = execute_operation_plan(
+            None,
+            question,
+            plan,
+            [
+                extraction(
+                    "I volunteered at the shelter fundraising dinner sometime in March.",
+                    [],
+                    timestamp="2025/07/15 (Tue) 20:54",
+                )
+            ],
+            build_query_profile(question),
+        )
+
+        self.assertEqual(plan["requested_temporal_granularity"], "day")
+        self.assertEqual(result["status"], "insufficient_evidence")
+        self.assertIsNone(result["answer"])
+        self.assertEqual(
+            result["candidate_facts"]["precision_check"],
+            {
+                "requested_granularity": "day",
+                "available_granularity": "month",
+                "satisfied": False,
+            },
+        )
+
+    def test_generic_when_date_behavior_remains_source_relative(self):
+        question = (
+            "When did I attend Emiko's neighborhood fundraising dinner at "
+            "Harbor Annex?"
+        )
+        plan = infer_multi_session_operation(
+            question,
+            "single-session-user",
+            "2025/02/17 (Mon) 22:22",
+        )
+        result = execute_operation_plan(
+            None,
+            question,
+            plan,
+            [
+                extraction(
+                    "I attended Emiko's neighborhood fundraising dinner at "
+                    "Harbor Annex on January 7.",
+                    [],
+                    timestamp="2025/01/07 (Tue) 19:00",
+                )
+            ],
+            build_query_profile(question),
+        )
+
+        self.assertIsNone(plan["requested_temporal_granularity"])
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["answer"], "7 January 2025")
+
     def test_coverage_requires_exact_declared_count(self):
         coverage = validate_operation_fact_coverage(
             [
@@ -3117,6 +3392,49 @@ class MultiSessionOperationTests(unittest.TestCase):
         self.assertEqual(result["answer"], "4")
         self.assertEqual(len(result["facts"]), 4)
 
+    def test_count_distinct_collapses_aliases_before_global_identity_dedup(self):
+        question = (
+            "How many distinct model kits have I worked on with Hana for the "
+            "show at Indigo Room?"
+        )
+        rows = []
+        for index, model in enumerate(
+            ["Tiger tank kit", "Tiger tank kit", "Falcon glider kit"],
+            start=1,
+        ):
+            subtype = "tank kit" if model.startswith("Tiger") else "glider kit"
+            quote = (
+                "With Hana for the model show at Indigo Room, I worked on my "
+                f"{model} today."
+            )
+            rows.append(
+                extraction(
+                    quote,
+                    [
+                        ["speaker user", "worked on", model],
+                        [model, "item type", subtype],
+                    ],
+                    turn_id=f"turn-{index}",
+                    session_id=f"session-{index}",
+                )
+            )
+        plan = infer_multi_session_operation(question, "multi-session")
+
+        result = execute_operation_plan(
+            SelectAllOperationContext(),
+            question,
+            plan,
+            rows,
+            build_query_profile(question),
+        )
+
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["answer"], "2")
+        self.assertEqual(
+            {fact["canonical_identity"] for fact in result["facts"]},
+            {"tiger tank kit", "falcon glider kit"},
+        )
+
     def test_extrema_ignore_measurements_that_do_not_map_to_explicit_operands(self):
         question = (
             "Which of these venues have I visited most this year: Aster Hall, "
@@ -3213,6 +3531,301 @@ class MultiSessionOperationTests(unittest.TestCase):
 
         self.assertFalse(abstain)
         self.assertIsNone(reason)
+
+    def test_collection_planner_is_generic_and_preserves_singular_lookup(self):
+        collect = infer_multi_session_operation(
+            "Which activities did Asha add across all sessions?",
+            "multi-session",
+        )
+        intersection = infer_multi_session_operation(
+            "Which activities do Asha and Rohan both enjoy?",
+            "multi-session",
+        )
+        singular = infer_multi_session_operation(
+            "What is Asha's favorite place?",
+            "multi-session",
+        )
+
+        self.assertEqual(collect["operation"], "set_union")
+        self.assertEqual(intersection["operation"], "set_intersection")
+        self.assertEqual(singular["operation"], "none")
+
+    def test_collection_union_returns_all_actor_bound_items_with_provenance(self):
+        question = "Which activities did Asha add across all sessions?"
+        rows = [
+            extraction(
+                "For the Atlas plan, I added ceramics to my activities.",
+                [],
+                turn_id="a1",
+                session_id="s1",
+                timestamp="2027-01-05T10:00:00",
+                speaker="Asha",
+            ),
+            extraction(
+                "For the Atlas plan, I added birdwatching to my activities.",
+                [],
+                turn_id="a2",
+                session_id="s2",
+                timestamp="2027-01-12T10:00:00",
+                speaker="Asha",
+            ),
+            extraction(
+                "For the Atlas plan, I added ceramics to my activities.",
+                [],
+                turn_id="a3",
+                session_id="s3",
+                timestamp="2027-01-19T10:00:00",
+                speaker="Asha",
+            ),
+            extraction(
+                "For the Atlas plan, I added kayaking to my activities.",
+                [],
+                turn_id="r1",
+                session_id="s4",
+                timestamp="2027-01-26T10:00:00",
+                speaker="Rohan",
+            ),
+        ]
+        plan = infer_multi_session_operation(question, "multi-session")
+        profile = build_query_profile(question, known_speakers=["Asha", "Rohan"])
+
+        result = execute_operation_plan(None, question, plan, rows, profile)
+
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["answer"], "ceramics, birdwatching")
+        self.assertEqual(len(result["facts"]), 2)
+        self.assertEqual(len(result["facts"][0]["provenance"]), 2)
+        self.assertTrue(
+            all(fact["source_speaker"] == "Asha" for fact in result["facts"])
+        )
+
+    def test_collection_intersection_requires_each_requested_speaker(self):
+        question = "Which activities do Asha and Rohan both enjoy?"
+        rows = [
+            extraction(
+                "One activity I especially enjoy is bread baking.",
+                [],
+                turn_id="a1",
+                session_id="s1",
+                speaker="Asha",
+            ),
+            extraction(
+                "One activity I especially enjoy is bread baking.",
+                [],
+                turn_id="r1",
+                session_id="s2",
+                speaker="Rohan",
+            ),
+            extraction(
+                "One activity I especially enjoy is kayaking.",
+                [],
+                turn_id="a2",
+                session_id="s3",
+                speaker="Asha",
+            ),
+        ]
+        plan = infer_multi_session_operation(question, "multi-session")
+        profile = build_query_profile(question, known_speakers=["Asha", "Rohan"])
+
+        result = execute_operation_plan(None, question, plan, rows, profile)
+
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["answer"], "bread baking")
+        self.assertEqual(
+            set(result["facts"][0]["speakers"]),
+            {"Asha", "Rohan"},
+        )
+
+    def test_collection_retrieval_expands_until_long_list_is_complete(self):
+        question = "Which activities did Asha add across all sessions?"
+        memories = []
+        for index in range(19):
+            memories.append(
+                {
+                    **memory(
+                        f"I added activity {index + 1} to my activities.",
+                        f"t{index + 1}",
+                        session_id=f"s{index + 1}",
+                    ),
+                    "source_speaker": "Asha",
+                    "speaker": "Asha",
+                }
+            )
+
+        class ExpandingContext:
+            vector_memory = memories
+
+            def retrieve_relevant_memories(self, _query, top_k, **_kwargs):
+                return self.vector_memory[:top_k]
+
+        plan = infer_multi_session_operation(question, "multi-session")
+        profile = build_query_profile(question, known_speakers=["Asha", "Rohan"])
+
+        retrieved, diagnostics = retrieve_collection_memories_until_saturated(
+            ExpandingContext(),
+            question,
+            plan,
+            profile,
+            initial_top_k=4,
+            max_top_k=24,
+        )
+
+        self.assertEqual(len(retrieved), 19)
+        self.assertEqual(diagnostics["status"], "corpus_exhausted")
+        self.assertTrue(diagnostics["saturated"])
+        self.assertEqual(diagnostics["discovered_item_count"], 19)
+
+    def test_count_distinct_binds_named_actor_from_speaker_metadata(self):
+        question = (
+            "How many different workshops did Asha attend for the Copper "
+            "Atlas plan?"
+        )
+        rows = [
+            extraction(
+                "I attended workshop Copper as part of the Copper Atlas plan series.",
+                [],
+                turn_id="a1",
+                session_id="s1",
+                speaker="Asha",
+            ),
+            extraction(
+                "I attended workshop Emerald as part of the Copper Atlas plan series.",
+                [],
+                turn_id="a2",
+                session_id="s2",
+                speaker="Asha",
+            ),
+            extraction(
+                "I attended workshop Indigo as part of the Copper Atlas plan series.",
+                [],
+                turn_id="a3",
+                session_id="s3",
+                speaker="Asha",
+            ),
+            extraction(
+                "I attended workshop Silver as part of the Copper Atlas plan series.",
+                [],
+                turn_id="r1",
+                session_id="s4",
+                speaker="Rohan",
+            ),
+        ]
+        plan = infer_multi_session_operation(question, "multi-session")
+        profile = build_query_profile(question, known_speakers=["Asha", "Rohan"])
+
+        result = execute_operation_plan(None, question, plan, rows, profile)
+
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["answer"], "3")
+        self.assertEqual(
+            {fact["source_speaker"] for fact in result["facts"]},
+            {"Asha"},
+        )
+
+    def test_source_relative_temporal_expressions_keep_their_granularity(self):
+        last_week = resolve_temporal_expression(
+            "I completed the review last week.",
+            "2027-05-20T10:00:00",
+        )
+        next_month = resolve_temporal_expression(
+            "I plan to launch it next month.",
+            "2027-02-13T10:00:00",
+        )
+        day_first = resolve_temporal_expression(
+            "I completed it on 3 January 2027.",
+            "2027-01-04T10:00:00",
+        )
+
+        self.assertEqual(last_week["granularity"], "week")
+        self.assertEqual(last_week["interval_start"], "2027-05-10")
+        self.assertEqual(last_week["interval_end"], "2027-05-16")
+        self.assertEqual(next_month["granularity"], "month")
+        self.assertEqual(next_month["display"], "March 2027")
+        self.assertEqual(next_month["event_status"], "planned")
+        self.assertEqual(day_first["value"], "2027-01-03")
+
+    def test_temporal_chain_composes_cross_session_offsets_with_provenance(self):
+        rows = [
+            extraction(
+                "Today I attended the kickoff meeting for the Silver Bridge project.",
+                [],
+                turn_id="t1",
+                session_id="s1",
+                timestamp="2027-04-26T10:00:00",
+                speaker="Asha",
+            ),
+            extraction(
+                "The planning checkpoint for the Silver Bridge project happened one day after its kickoff meeting.",
+                [],
+                turn_id="t2",
+                session_id="s2",
+                timestamp="2027-05-01T10:00:00",
+                speaker="Asha",
+            ),
+            extraction(
+                "The field check for the Silver Bridge project happened two days after its planning checkpoint.",
+                [],
+                turn_id="t3",
+                session_id="s3",
+                timestamp="2027-05-08T10:00:00",
+                speaker="Asha",
+            ),
+            extraction(
+                "The archive review for the Silver Bridge project took place one day after its field check.",
+                [],
+                turn_id="t4",
+                session_id="s4",
+                timestamp="2027-05-15T10:00:00",
+                speaker="Asha",
+            ),
+        ]
+        question = (
+            "When did Asha complete the archive review for the Silver Bridge "
+            "project?"
+        )
+        plan = infer_multi_session_operation(question, "temporal-reasoning")
+        profile = build_query_profile(question, known_speakers=["Asha", "Rohan"])
+
+        result = execute_operation_plan(None, question, plan, rows, profile)
+        chain_events = resolve_temporal_event_chains(rows)
+
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["answer"], "30 April 2027")
+        review = next(
+            event for event in chain_events if "archive" in event["clause"].lower()
+        )
+        self.assertEqual(len(review["provenance_chain"]), 4)
+
+    def test_stated_duration_is_actor_bound_and_deterministic(self):
+        question = (
+            "How long has Asha maintained the Indigo Atlas seasonal project "
+            "archive?"
+        )
+        rows = [
+            extraction(
+                "I have maintained the Indigo Atlas seasonal project archive for 6 years.",
+                [],
+                turn_id="a1",
+                session_id="s1",
+                speaker="Asha",
+            ),
+            extraction(
+                "I have maintained the Indigo Atlas seasonal project archive for 3 years.",
+                [],
+                turn_id="r1",
+                session_id="s2",
+                speaker="Rohan",
+            ),
+        ]
+        plan = infer_multi_session_operation(question, "temporal-reasoning")
+        profile = build_query_profile(question, known_speakers=["Asha", "Rohan"])
+
+        result = execute_operation_plan(None, question, plan, rows, profile)
+
+        self.assertEqual(plan["operation"], "temporal_stated_duration")
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["answer"], "6 years")
+        self.assertEqual(result["facts"]["selected_events"][0]["source_speaker"], "Asha")
 
 
 class StateHistoryResolutionTests(unittest.TestCase):
