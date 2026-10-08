@@ -1,0 +1,315 @@
+{
+  "schema_version": 1,
+  "dataset_name": "PRAGMOS Synthetic LoCoMo Regression Suite 600 V1",
+  "purpose": "coverage_balanced_development_regression_only",
+  "official_locomo_score": false,
+  "selection_seed": 20261008,
+  "builder": "build_PRAGMOS_synthetic_LoCoMo_regression.py",
+  "builder_sha256": "b6573302c5b2209d06d900d07476bd981e0fb97f2cba5282788f7a4f6b0dfddb",
+  "source_file": "benchmark/locomo/synthetic_v1/pragmos_synthetic_locomo_1986_v1.json",
+  "source_sha256": "c3314bc44defeb87eb1b97c6484689cffc76fd7db20f33142cfef384164f803a",
+  "source_question_count": 1986,
+  "source_category_counts": {
+    "1": 282,
+    "2": 321,
+    "3": 96,
+    "4": 841,
+    "5": 446
+  },
+  "source_family_counts": {
+    "adversarial-wrong-attribute": 145,
+    "adversarial-wrong-speaker": 301,
+    "advice-recall": 81,
+    "career-inference": 13,
+    "causal-recall": 85,
+    "collection-recall": 58,
+    "commonsense-gift-inference": 13,
+    "cross-session-collection-union": 36,
+    "cross-session-count-distinct": 38,
+    "cross-session-goal-union": 33,
+    "cross-session-list-union": 38,
+    "cross-session-place-union": 38,
+    "cross-session-recommendation-union": 32,
+    "cross-session-relative-date-join": 30,
+    "direct-activity": 88,
+    "direct-place": 69,
+    "emotion-recall": 84,
+    "explicit-date": 32,
+    "explicit-duration": 37,
+    "explicit-year": 33,
+    "genre-inference": 10,
+    "geographic-country-inference": 15,
+    "geographic-state-inference": 15,
+    "goal-recall": 61,
+    "long-history-list-union": 30,
+    "membership-recall": 143,
+    "multi-premise-behavioral-inference": 7,
+    "object-recall": 63,
+    "preference-inference": 14,
+    "relative-days-ago": 38,
+    "relative-last-week": 38,
+    "relative-next-month": 38,
+    "relative-weekday": 36,
+    "relative-yesterday": 39,
+    "speaker-set-intersection": 37,
+    "tool-inference": 9,
+    "visual-caption-single-hop": 109
+  },
+  "dataset_file": "pragmos_synthetic_locomo_regression_600_v1.json",
+  "dataset_sha256": "63253f82d30ebdcd75881bbb1e6fc7b7b70c400020db56ff5b7a11d90774b196",
+  "selection_policy": {
+    "kind": "coverage_balanced_stratified_subset",
+    "family_targets": {
+      "cross-session-collection-union": 10,
+      "cross-session-count-distinct": 10,
+      "cross-session-goal-union": 10,
+      "cross-session-list-union": 10,
+      "cross-session-place-union": 10,
+      "cross-session-recommendation-union": 10,
+      "long-history-list-union": 10,
+      "speaker-set-intersection": 10,
+      "cross-session-relative-date-join": 12,
+      "explicit-date": 11,
+      "explicit-duration": 11,
+      "explicit-year": 11,
+      "relative-days-ago": 11,
+      "relative-last-week": 11,
+      "relative-next-month": 11,
+      "relative-weekday": 11,
+      "relative-yesterday": 11,
+      "career-inference": 10,
+      "commonsense-gift-inference": 11,
+      "genre-inference": 10,
+      "geographic-country-inference": 11,
+      "geographic-state-inference": 11,
+      "multi-premise-behavioral-inference": 7,
+      "preference-inference": 11,
+      "tool-inference": 9,
+      "advice-recall": 22,
+      "causal-recall": 22,
+      "collection-recall": 22,
+      "direct-activity": 22,
+      "direct-place": 22,
+      "emotion-recall": 22,
+      "goal-recall": 22,
+      "membership-recall": 22,
+      "object-recall": 22,
+      "visual-caption-single-hop": 22,
+      "adversarial-wrong-attribute": 60,
+      "adversarial-wrong-speaker": 60
+    },
+    "conversation_policy": "retain all complete conversations and spread each family across available speaker pairs before deterministic remainder sampling",
+    "complexity_policy": "preserve minimum and maximum evidence-turn complexity for variable-length families"
+  },
+  "validation": {
+    "conversation_count": 10,
+    "question_count": 600,
+    "category_counts": {
+      "1": 80,
+      "2": 100,
+      "3": 80,
+      "4": 220,
+      "5": 120
+    },
+    "category_names": {
+      "1": "multi-hop",
+      "2": "temporal",
+      "3": "open-domain",
+      "4": "single-hop",
+      "5": "adversarial"
+    },
+    "family_counts": {
+      "adversarial-wrong-attribute": 60,
+      "adversarial-wrong-speaker": 60,
+      "advice-recall": 22,
+      "career-inference": 10,
+      "causal-recall": 22,
+      "collection-recall": 22,
+      "commonsense-gift-inference": 11,
+      "cross-session-collection-union": 10,
+      "cross-session-count-distinct": 10,
+      "cross-session-goal-union": 10,
+      "cross-session-list-union": 10,
+      "cross-session-place-union": 10,
+      "cross-session-recommendation-union": 10,
+      "cross-session-relative-date-join": 12,
+      "direct-activity": 22,
+      "direct-place": 22,
+      "emotion-recall": 22,
+      "explicit-date": 11,
+      "explicit-duration": 11,
+      "explicit-year": 11,
+      "genre-inference": 10,
+      "geographic-country-inference": 11,
+      "geographic-state-inference": 11,
+      "goal-recall": 22,
+      "long-history-list-union": 10,
+      "membership-recall": 22,
+      "multi-premise-behavioral-inference": 7,
+      "object-recall": 22,
+      "preference-inference": 11,
+      "relative-days-ago": 11,
+      "relative-last-week": 11,
+      "relative-next-month": 11,
+      "relative-weekday": 11,
+      "relative-yesterday": 11,
+      "speaker-set-intersection": 10,
+      "tool-inference": 9,
+      "visual-caption-single-hop": 22
+    },
+    "evidence_complexity": {
+      "adversarial-wrong-attribute": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "adversarial-wrong-speaker": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "advice-recall": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "career-inference": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 2
+      },
+      "causal-recall": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "collection-recall": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "commonsense-gift-inference": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 2
+      },
+      "cross-session-collection-union": {
+        "min_evidence_turns": 3,
+        "max_evidence_turns": 3
+      },
+      "cross-session-count-distinct": {
+        "min_evidence_turns": 3,
+        "max_evidence_turns": 3
+      },
+      "cross-session-goal-union": {
+        "min_evidence_turns": 2,
+        "max_evidence_turns": 2
+      },
+      "cross-session-list-union": {
+        "min_evidence_turns": 3,
+        "max_evidence_turns": 3
+      },
+      "cross-session-place-union": {
+        "min_evidence_turns": 4,
+        "max_evidence_turns": 4
+      },
+      "cross-session-recommendation-union": {
+        "min_evidence_turns": 3,
+        "max_evidence_turns": 3
+      },
+      "cross-session-relative-date-join": {
+        "min_evidence_turns": 2,
+        "max_evidence_turns": 4
+      },
+      "direct-activity": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "direct-place": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "emotion-recall": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "explicit-date": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "explicit-duration": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "explicit-year": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "genre-inference": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "geographic-country-inference": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 2
+      },
+      "geographic-state-inference": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 2
+      },
+      "goal-recall": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "long-history-list-union": {
+        "min_evidence_turns": 8,
+        "max_evidence_turns": 19
+      },
+      "membership-recall": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "multi-premise-behavioral-inference": {
+        "min_evidence_turns": 4,
+        "max_evidence_turns": 17
+      },
+      "object-recall": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "preference-inference": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "relative-days-ago": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "relative-last-week": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "relative-next-month": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "relative-weekday": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "relative-yesterday": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      },
+      "speaker-set-intersection": {
+        "min_evidence_turns": 2,
+        "max_evidence_turns": 2
+      },
+      "tool-inference": {
+        "min_evidence_turns": 2,
+        "max_evidence_turns": 2
+      },
+      "visual-caption-single-hop": {
+        "min_evidence_turns": 1,
+        "max_evidence_turns": 1
+      }
+    },
+    "all_source_conversations_retained": true,
+    "question_content_unchanged": true
+  },
+  "aggregation_note": "The unweighted mean is a regression signal, not an estimate of official LoCoMo prevalence. Report category and family metrics separately.",
+  "publication_note": "This suite is synthetic and must not be reported as an official LoCoMo result. Use untouched official data for publication claims."
+}
