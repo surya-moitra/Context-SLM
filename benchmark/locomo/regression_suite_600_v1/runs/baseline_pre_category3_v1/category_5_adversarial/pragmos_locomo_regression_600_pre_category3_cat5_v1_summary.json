@@ -1,0 +1,45 @@
+{
+  "avg_elapsed_seconds": 33.098403237174836,
+  "avg_official_locomo_f1": 0.9583333333333334,
+  "by_category": {
+    "5": {
+      "count": 120,
+      "mean_official_locomo_f1": 0.9583333333333334,
+      "name": "adversarial"
+    }
+  },
+  "checkpoint_repaired": false,
+  "dataset_validation": {
+    "caption_turn_count": 771,
+    "category_counts": {
+      "1": 80,
+      "2": 100,
+      "3": 80,
+      "4": 220,
+      "5": 120
+    },
+    "question_count": 600,
+    "sample_count": 10,
+    "turn_count": 5882
+  },
+  "dialog_retrieval": {
+    "applicable_count": 0
+  },
+  "gold_isolation_policy": "Gold answer/evidence accessed only after each prediction",
+  "invocation_elapsed_seconds": 3996.439266250003,
+  "manifest_fingerprint": "59432e57cc25cc8428853afe4072f565a3ccee103942b5bb7ba08e2479676920",
+  "manifest_path": "benchmark/locomo/regression_suite_600_v1/runs/baseline_pre_category3_v1/category_5_adversarial/pragmos_locomo_regression_600_pre_category3_cat5_v1_manifest.json",
+  "mode": "pragmos_context",
+  "newly_processed": 120,
+  "official_eval_path": "benchmark/locomo/regression_suite_600_v1/runs/baseline_pre_category3_v1/category_5_adversarial/pragmos_locomo_regression_600_pre_category3_cat5_v1_official_eval.json",
+  "predictions_path": "benchmark/locomo/regression_suite_600_v1/runs/baseline_pre_category3_v1/category_5_adversarial/pragmos_locomo_regression_600_pre_category3_cat5_v1_predictions.jsonl",
+  "processed": 120,
+  "resume_enabled": true,
+  "resumed_from_count": 0,
+  "scoring_policy": "Local implementation of the pinned LoCoMo category 1-5 QA scorer",
+  "session_retrieval": {
+    "applicable_count": 0
+  },
+  "target_record_count": 120,
+  "trace_path": "benchmark/locomo/regression_suite_600_v1/runs/baseline_pre_category3_v1/category_5_adversarial/pragmos_locomo_regression_600_pre_category3_cat5_v1_trace.jsonl"
+}

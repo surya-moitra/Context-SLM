@@ -1,0 +1,59 @@
+{
+  "avg_elapsed_seconds": 116.29023602035086,
+  "avg_official_locomo_f1": 0.925,
+  "by_category": {
+    "1": {
+      "count": 80,
+      "mean_official_locomo_f1": 0.925,
+      "name": "multi-hop"
+    }
+  },
+  "checkpoint_repaired": false,
+  "dataset_validation": {
+    "caption_turn_count": 771,
+    "category_counts": {
+      "1": 80,
+      "2": 100,
+      "3": 80,
+      "4": 220,
+      "5": 120
+    },
+    "question_count": 600,
+    "sample_count": 10,
+    "turn_count": 5882
+  },
+  "dialog_retrieval": {
+    "applicable_count": 80,
+    "complete_evidence_coverage_rate": 1.0,
+    "mean_ndcg_at_1": 0.975,
+    "mean_ndcg_at_10": 0.992173430128827,
+    "mean_ndcg_at_5": 0.9897460268808705,
+    "mean_recall_at_1": 0.3270153965079468,
+    "mean_recall_at_10": 0.9636198741703773,
+    "mean_recall_at_5": 0.919736073448825
+  },
+  "gold_isolation_policy": "Gold answer/evidence accessed only after each prediction",
+  "invocation_elapsed_seconds": 9324.693641042002,
+  "manifest_fingerprint": "75112156aa6c13ec21b8bea7069d96a20bfe4ab682d831a0a5f3a91f7338f765",
+  "manifest_path": "benchmark/locomo/regression_suite_600_v1/runs/baseline_pre_category3_v1/category_1_multi_hop/pragmos_locomo_regression_600_pre_category3_cat1_v1_manifest.json",
+  "mode": "pragmos_context",
+  "newly_processed": 80,
+  "official_eval_path": "benchmark/locomo/regression_suite_600_v1/runs/baseline_pre_category3_v1/category_1_multi_hop/pragmos_locomo_regression_600_pre_category3_cat1_v1_official_eval.json",
+  "predictions_path": "benchmark/locomo/regression_suite_600_v1/runs/baseline_pre_category3_v1/category_1_multi_hop/pragmos_locomo_regression_600_pre_category3_cat1_v1_predictions.jsonl",
+  "processed": 80,
+  "resume_enabled": true,
+  "resumed_from_count": 0,
+  "scoring_policy": "Local implementation of the pinned LoCoMo category 1-5 QA scorer",
+  "session_retrieval": {
+    "applicable_count": 80,
+    "complete_evidence_coverage_rate": 1.0,
+    "mean_ndcg_at_1": 0.9875,
+    "mean_ndcg_at_10": 0.9966603577559724,
+    "mean_ndcg_at_5": 0.9966603577559724,
+    "mean_recall_at_1": 0.33142511873016905,
+    "mean_recall_at_10": 0.9725845206350238,
+    "mean_recall_at_5": 0.9383755936508452
+  },
+  "target_record_count": 80,
+  "trace_path": "benchmark/locomo/regression_suite_600_v1/runs/baseline_pre_category3_v1/category_1_multi_hop/pragmos_locomo_regression_600_pre_category3_cat1_v1_trace.jsonl"
+}

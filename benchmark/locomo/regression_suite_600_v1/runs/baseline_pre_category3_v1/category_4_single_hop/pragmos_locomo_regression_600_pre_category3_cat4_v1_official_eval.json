@@ -1,0 +1,4127 @@
+[
+  {
+    "answer": "a maple-wood chess set",
+    "category": 4,
+    "evidence": [
+      "D5:1"
+    ],
+    "prediction": "maple-wood chess set",
+    "prediction_context": [
+      "D5:1",
+      "D18:3",
+      "D19:5",
+      "D12:1",
+      "D6:3",
+      "D11:1",
+      "D6:5",
+      "D12:3"
+    ],
+    "question_id": "synthetic_locomo_01_c4_0015"
+  },
+  {
+    "answer": "a silver fountain pen",
+    "category": 4,
+    "evidence": [
+      "D10:1"
+    ],
+    "prediction": "silver fountain pen",
+    "prediction_context": [
+      "D5:5",
+      "D16:1",
+      "D18:3",
+      "D5:7",
+      "D10:3",
+      "D10:1"
+    ],
+    "question_id": "synthetic_locomo_01_c4_0017"
+  },
+  {
+    "answer": "handmade bookmarks",
+    "category": 4,
+    "evidence": [
+      "D15:1"
+    ],
+    "prediction": "handmade bookmarks",
+    "prediction_context": [
+      "D15:1",
+      "D3:1",
+      "D4:5",
+      "D9:5",
+      "D9:1",
+      "D9:3",
+      "D4:7",
+      "D10:5",
+      "D3:3"
+    ],
+    "question_id": "synthetic_locomo_01_c4_0019"
+  },
+  {
+    "answer": "a maple-wood chess set",
+    "category": 4,
+    "evidence": [
+      "D18:3"
+    ],
+    "prediction": "maple-wood chess set",
+    "prediction_context": [
+      "D18:3",
+      "D13:7",
+      "D19:5",
+      "D1:1",
+      "D8:18"
+    ],
+    "question_id": "synthetic_locomo_01_c4_0025"
+  },
+  {
+    "answer": "hopeful",
+    "category": 4,
+    "evidence": [
+      "D11:3"
+    ],
+    "prediction": "Rohan felt hopeful.",
+    "prediction_context": [
+      "D11:3",
+      "D17:1",
+      "D4:3",
+      "D11:1",
+      "D5:1",
+      "D5:3",
+      "D6:7",
+      "D12:5",
+      "D4:1"
+    ],
+    "question_id": "synthetic_locomo_01_c4_0026"
+  },
+  {
+    "answer": "a forest-green rain jacket",
+    "category": 4,
+    "evidence": [
+      "D7:3"
+    ],
+    "prediction": "a clear photo showing a forest-green rain jacket",
+    "prediction_context": [
+      "D7:3",
+      "D1:5",
+      "D19:1",
+      "D18:3",
+      "D7:15"
+    ],
+    "question_id": "synthetic_locomo_01_c4_0033"
+  },
+  {
+    "answer": "a maple-wood chess set",
+    "category": 4,
+    "evidence": [
+      "D12:3"
+    ],
+    "prediction": "maple-wood chess set",
+    "prediction_context": [
+      "D12:3",
+      "D18:3",
+      "D19:5",
+      "D19:3",
+      "D5:3",
+      "D11:1",
+      "D6:5",
+      "D5:1"
+    ],
+    "question_id": "synthetic_locomo_01_c4_0035"
+  },
+  {
+    "answer": "confirm the venue before inviting guests",
+    "category": 4,
+    "evidence": [
+      "D10:3"
+    ],
+    "prediction": "Confirm the venue before inviting guests.",
+    "prediction_context": [
+      "D10:3",
+      "D3:3",
+      "D10:1",
+      "D11:5",
+      "D5:5",
+      "D4:5",
+      "D3:1",
+      "D11:7",
+      "D9:1",
+      "D5:3"
+    ],
+    "question_id": "synthetic_locomo_01_c4_0038"
+  },
+  {
+    "answer": "Juniper Community Hall",
+    "category": 4,
+    "evidence": [
+      "D1:5"
+    ],
+    "prediction": "Juniper Community Hall",
+    "prediction_context": [
+      "D1:5",
+      "D19:1",
+      "D8:5",
+      "D13:5",
+      "D14:7",
+      "D8:7",
+      "D13:3",
+      "D6:1"
+    ],
+    "question_id": "synthetic_locomo_01_c4_0043"
+  },
+  {
+    "answer": "a maple-wood chess set",
+    "category": 4,
+    "evidence": [
+      "D6:5"
+    ],
+    "prediction": "maple-wood chess set",
+    "prediction_context": [
+      "D6:5",
+      "D15:5",
+      "D19:5",
+      "D12:1",
+      "D6:3",
+      "D11:1",
+      "D5:1",
+      "D12:3"
+    ],
+    "question_id": "synthetic_locomo_01_c4_0045"
+  },
+  {
+    "answer": "publish a neighborhood guide",
+    "category": 4,
+    "evidence": [
+      "D11:5"
+    ],
+    "prediction": "neighborhood guide",
+    "prediction_context": [
+      "D11:5",
+      "D16:1",
+      "D17:3",
+      "D18:7",
+      "D4:5",
+      "D4:3",
+      "D6:5"
+    ],
+    "question_id": "synthetic_locomo_01_c4_0047"
+  },
+  {
+    "answer": "team Violet",
+    "category": 4,
+    "evidence": [
+      "D9:5"
+    ],
+    "prediction": "team Violet",
+    "prediction_context": [
+      "D9:5",
+      "D14:1",
+      "D16:7",
+      "D2:5",
+      "D9:7",
+      "D8:1",
+      "D2:3",
+      "D3:5"
+    ],
+    "question_id": "synthetic_locomo_01_c4_0050"
+  },
+  {
+    "answer": "Juniper Community Hall",
+    "category": 4,
+    "evidence": [
+      "D14:7"
+    ],
+    "prediction": "Juniper Community Hall",
+    "prediction_context": [
+      "D14:7",
+      "D1:5",
+      "D19:1",
+      "D13:5",
+      "D8:5",
+      "D13:3",
+      "D8:7",
+      "D6:1"
+    ],
+    "question_id": "synthetic_locomo_01_c4_0053"
+  },
+  {
+    "answer": "relieved",
+    "category": 4,
+    "evidence": [
+      "D12:5"
+    ],
+    "prediction": "Rohan felt relieved after the Juniper Lantern autumn program.",
+    "prediction_context": [
+      "D12:5",
+      "D17:1",
+      "D18:5",
+      "D5:5",
+      "D6:5",
+      "D5:3",
+      "D6:7",
+      "D4:1"
+    ],
+    "question_id": "synthetic_locomo_01_c4_0056"
+  },
+  {
+    "answer": "birdwatching",
+    "category": 4,
+    "evidence": [
+      "D15:7"
+    ],
+    "prediction": "birdwatching",
+    "prediction_context": [
+      "D15:7",
+      "D2:7",
+      "D1:3",
+      "D8:7",
+      "D15:5",
+      "D14:5",
+      "D8:5",
+      "D13:1"
+    ],
+    "question_id": "synthetic_locomo_01_c4_0062"
+  },
+  {
+    "answer": "the volunteer team was understaffed",
+    "category": 4,
+    "evidence": [
+      "D1:7"
+    ],
+    "prediction": "volunteer team was understaffed",
+    "prediction_context": [
+      "D1:7",
+      "D19:3",
+      "D18:1",
+      "D13:7",
+      "D6:3",
+      "D13:5",
+      "D7:5"
+    ],
+    "question_id": "synthetic_locomo_01_c4_0064"
+  },
+  {
+    "answer": "finish twelve practice sessions",
+    "category": 4,
+    "evidence": [
+      "D18:7"
+    ],
+    "prediction": "twelve practice sessions",
+    "prediction_context": [
+      "D18:7",
+      "D17:3",
+      "D13:7",
+      "D16:1",
+      "D4:3",
+      "D11:5"
+    ],
+    "question_id": "synthetic_locomo_01_c4_0067"
+  },
+  {
+    "answer": "painted pebbles",
+    "category": 4,
+    "evidence": [
+      "D4:7"
+    ],
+    "prediction": "painted pebbles",
+    "prediction_context": [
+      "D4:7",
+      "D15:1",
+      "D16:5",
+      "D16:3",
+      "D4:5",
+      "D9:3",
+      "D3:3",
+      "D10:5"
+    ],
+    "question_id": "synthetic_locomo_01_c4_0069"
+  },
+  {
+    "answer": "raise funds for new art supplies",
+    "category": 4,
+    "evidence": [
+      "D19:1"
+    ],
+    "prediction": "new art supplies",
+    "prediction_context": [
+      "D19:1",
+      "D13:1",
+      "D1:3",
+      "D7:1",
+      "D19:3",
+      "D7:3",
+      "D9:1"
+    ],
+    "question_id": "synthetic_locomo_02_c4_0007"
+  },
+  {
+    "answer": "practice slowly before increasing speed",
+    "category": 4,
+    "evidence": [
+      "D12:1"
+    ],
+    "prediction": "practice slowly for the Silver Atlas evening series",
+    "prediction_context": [
+      "D12:1",
+      "D19:3",
+      "D17:1",
+      "D19:1",
+      "D19:2",
+      "D6:1",
+      "D13:3",
+      "D16:1"
+    ],
+    "question_id": "synthetic_locomo_02_c4_0008"
+  },
+  {
+    "answer": "Maple Street Studio",
+    "category": 4,
+    "evidence": [
+      "D3:1"
+    ],
+    "prediction": "Maple Street Studio",
+    "prediction_context": [
+      "D3:1",
+      "D4:5",
+      "D10:3",
+      "D10:1",
+      "D16:5",
+      "D16:3",
+      "D9:1"
+    ],
+    "question_id": "synthetic_locomo_02_c4_0013"
+  },
+  {
+    "answer": "the train service was suspended",
+    "category": 4,
+    "evidence": [
+      "D15:1"
+    ],
+    "prediction": "Train service suspended",
+    "prediction_context": [
+      "D15:1",
+      "D2:1",
+      "D3:3",
+      "D3:1",
+      "D9:2",
+      "D16:5",
+      "D9:3",
+      "D6:1"
+    ],
+    "question_id": "synthetic_locomo_02_c4_0014"
+  },
+  {
+    "answer": "a portable watercolor kit",
+    "category": 4,
+    "evidence": [
+      "D8:1"
+    ],
+    "prediction": "portable watercolor kit",
+    "prediction_context": [
+      "D14:1",
+      "D15:1",
+      "D2:1",
+      "D14:3",
+      "D17:5",
+      "D15:3",
+      "D8:1",
+      "D2:3",
+      "D17:3"
+    ],
+    "question_id": "synthetic_locomo_02_c4_0015"
+  },
+  {
+    "answer": "Maple Street Studio",
+    "category": 4,
+    "evidence": [
+      "D16:3"
+    ],
+    "prediction": "Maple Street Studio",
+    "prediction_context": [
+      "D16:3",
+      "D4:5",
+      "D3:1",
+      "D10:3",
+      "D2:3",
+      "D9:1"
+    ],
+    "question_id": "synthetic_locomo_02_c4_0023"
+  },
+  {
+    "answer": "proud",
+    "category": 4,
+    "evidence": [
+      "D14:3"
+    ],
+    "prediction": "felt proud",
+    "prediction_context": [
+      "D1:1",
+      "D4:3",
+      "D7:3",
+      "D8:1",
+      "D14:3",
+      "D7:1",
+      "D8:3",
+      "D9:3"
+    ],
+    "question_id": "synthetic_locomo_02_c4_0026"
+  },
+  {
+    "answer": "team Amber",
+    "category": 4,
+    "evidence": [
+      "D5:3"
+    ],
+    "prediction": "team Amber",
+    "prediction_context": [
+      "D5:3",
+      "D17:1",
+      "D18:3",
+      "D4:3",
+      "D5:5",
+      "D11:1",
+      "D11:3"
+    ],
+    "question_id": "synthetic_locomo_02_c4_0030"
+  },
+  {
+    "answer": "watercolor painting",
+    "category": 4,
+    "evidence": [
+      "D17:5"
+    ],
+    "prediction": "Elena began watercolor painting for the Cobalt Garden evening series.",
+    "prediction_context": [
+      "D17:5",
+      "D17:3",
+      "D11:7",
+      "D11:3",
+      "D10:3",
+      "D11:5",
+      "D16:1",
+      "D4:3",
+      "D10:1"
+    ],
+    "question_id": "synthetic_locomo_02_c4_0032"
+  },
+  {
+    "answer": "a hand-thrown ceramic bowl",
+    "category": 4,
+    "evidence": [
+      "D10:3"
+    ],
+    "prediction": "hand-thrown ceramic bowl",
+    "prediction_context": [
+      "D10:3",
+      "D4:5",
+      "D3:1",
+      "D5:5",
+      "D1:3"
+    ],
+    "question_id": "synthetic_locomo_02_c4_0033"
+  },
+  {
+    "answer": "a portable watercolor kit",
+    "category": 4,
+    "evidence": [
+      "D15:3"
+    ],
+    "prediction": "portable watercolor kit",
+    "prediction_context": [
+      "D15:3",
+      "D1:3",
+      "D8:3",
+      "D15:1",
+      "D2:1",
+      "D14:1",
+      "D8:1",
+      "D2:3"
+    ],
+    "question_id": "synthetic_locomo_02_c4_0035"
+  },
+  {
+    "answer": "vintage buttons",
+    "category": 4,
+    "evidence": [
+      "D6:3"
+    ],
+    "prediction": "Marcus collected vintage buttons during the Willow Garden evening series.",
+    "prediction_context": [
+      "D6:3",
+      "D5:1",
+      "D5:5",
+      "D18:3",
+      "D12:2",
+      "D12:3",
+      "D18:1"
+    ],
+    "question_id": "synthetic_locomo_02_c4_0039"
+  },
+  {
+    "answer": "team Amber",
+    "category": 4,
+    "evidence": [
+      "D18:3"
+    ],
+    "prediction": "team Amber",
+    "prediction_context": [
+      "D18:3",
+      "D17:1",
+      "D11:3",
+      "D5:5",
+      "D18:2",
+      "D11:1",
+      "D5:3"
+    ],
+    "question_id": "synthetic_locomo_02_c4_0040"
+  },
+  {
+    "answer": "the room needed repairs",
+    "category": 4,
+    "evidence": [
+      "D11:1"
+    ],
+    "prediction": "The Emerald Atlas neighborhood plan was postponed because the room needed repairs.",
+    "prediction_context": [
+      "D11:1",
+      "D29:3",
+      "D23:1",
+      "D27:8",
+      "D23:3",
+      "D9:5",
+      "D17:1",
+      "D27:9"
+    ],
+    "question_id": "synthetic_locomo_03_c4_0004"
+  },
+  {
+    "answer": "calm and accomplished",
+    "category": 4,
+    "evidence": [
+      "D3:1"
+    ],
+    "prediction": "calm and accomplished",
+    "prediction_context": [
+      "D3:1",
+      "D9:1",
+      "D13:9",
+      "D15:1",
+      "D21:5",
+      "D21:3",
+      "D1:5",
+      "D15:3"
+    ],
+    "question_id": "synthetic_locomo_03_c4_0006"
+  },
+  {
+    "answer": "a cobalt travel journal",
+    "category": 4,
+    "evidence": [
+      "D7:3"
+    ],
+    "prediction": "cobalt travel journal",
+    "prediction_context": [
+      "D7:3",
+      "D13:3",
+      "D7:1",
+      "D31:7",
+      "D5:7",
+      "D31:9",
+      "D5:9"
+    ],
+    "question_id": "synthetic_locomo_03_c4_0009"
+  },
+  {
+    "answer": "Northwind Museum",
+    "category": 4,
+    "evidence": [
+      "D5:1"
+    ],
+    "prediction": "Northwind Museum",
+    "prediction_context": [
+      "D5:1",
+      "D23:5",
+      "D23:3",
+      "D3:5",
+      "D11:3",
+      "D3:7",
+      "D31:1",
+      "D29:5"
+    ],
+    "question_id": "synthetic_locomo_03_c4_0013"
+  },
+  {
+    "answer": "painted pebbles",
+    "category": 4,
+    "evidence": [
+      "D13:3"
+    ],
+    "prediction": "painted pebbles",
+    "prediction_context": [
+      "D13:3",
+      "D17:11",
+      "D13:1",
+      "D25:5",
+      "D5:9",
+      "D25:7",
+      "D19:7",
+      "D11:11"
+    ],
+    "question_id": "synthetic_locomo_03_c4_0019"
+  },
+  {
+    "answer": "recipe cards",
+    "category": 4,
+    "evidence": [
+      "D19:7"
+    ],
+    "prediction": "recipe cards during the Willow Compass neighborhood plan",
+    "prediction_context": [
+      "D19:7",
+      "D13:3",
+      "D17:11",
+      "D19:5",
+      "D25:5",
+      "D5:9",
+      "D25:7",
+      "D11:11"
+    ],
+    "question_id": "synthetic_locomo_03_c4_0029"
+  },
+  {
+    "answer": "botanical postcards",
+    "category": 4,
+    "evidence": [
+      "D25:7"
+    ],
+    "prediction": "Botanical postcards",
+    "prediction_context": [
+      "D25:7",
+      "D17:11",
+      "D13:3",
+      "D25:5",
+      "D11:9",
+      "D5:9",
+      "D19:7",
+      "D11:11"
+    ],
+    "question_id": "synthetic_locomo_03_c4_0039"
+  },
+  {
+    "answer": "Northwind Museum",
+    "category": 4,
+    "evidence": [
+      "D23:5"
+    ],
+    "prediction": "Northwind Museum",
+    "prediction_context": [
+      "D23:5",
+      "D5:1",
+      "D11:5",
+      "D11:2",
+      "D11:3",
+      "D29:5",
+      "D31:1",
+      "D15:9"
+    ],
+    "question_id": "synthetic_locomo_03_c4_0043"
+  },
+  {
+    "answer": "a silver fountain pen",
+    "category": 4,
+    "evidence": [
+      "D15:5"
+    ],
+    "prediction": "silver fountain pen",
+    "prediction_context": [
+      "D15:5",
+      "D21:5",
+      "D29:3",
+      "D15:7",
+      "D9:5",
+      "D23:1",
+      "D29:1",
+      "D9:3",
+      "D1:7"
+    ],
+    "question_id": "synthetic_locomo_03_c4_0045"
+  },
+  {
+    "answer": "finish twelve practice sessions",
+    "category": 4,
+    "evidence": [
+      "D7:7"
+    ],
+    "prediction": "twelve practice sessions",
+    "prediction_context": [
+      "D7:7",
+      "D15:1",
+      "D1:3",
+      "D19:11",
+      "D19:9",
+      "D27:3",
+      "D25:11"
+    ],
+    "question_id": "synthetic_locomo_03_c4_0047"
+  },
+  {
+    "answer": "confirm the venue before inviting guests",
+    "category": 4,
+    "evidence": [
+      "D19:9"
+    ],
+    "prediction": "Diego's neighbor advised him to confirm the venue before inviting guests for the Silver Harbor neighborhood plan.",
+    "prediction_context": [
+      "D19:9",
+      "D25:9",
+      "D7:5",
+      "D13:7",
+      "D19:8",
+      "D1:1",
+      "D5:11",
+      "D13:5"
+    ],
+    "question_id": "synthetic_locomo_03_c4_0048"
+  },
+  {
+    "answer": "the volunteer team was understaffed",
+    "category": 4,
+    "evidence": [
+      "D9:5"
+    ],
+    "prediction": "volunteer team understaffed",
+    "prediction_context": [
+      "D9:5",
+      "D11:1",
+      "D29:3",
+      "D23:1",
+      "D23:2",
+      "D23:3",
+      "D3:5",
+      "D17:1"
+    ],
+    "question_id": "synthetic_locomo_03_c4_0054"
+  },
+  {
+    "answer": "bread baking",
+    "category": 4,
+    "evidence": [
+      "D23:7"
+    ],
+    "prediction": "Diego -[began bread baking]-> Cobalt Meadow neighborhood plan",
+    "prediction_context": [
+      "D23:7",
+      "D5:5",
+      "D3:9",
+      "D17:5",
+      "D31:3",
+      "D5:3",
+      "D23:9"
+    ],
+    "question_id": "synthetic_locomo_03_c4_0062"
+  },
+  {
+    "answer": "heavy rain closed the trail",
+    "category": 4,
+    "evidence": [
+      "D15:7"
+    ],
+    "prediction": "Emerald Meadow neighborhood plan | fact: postponed due to heavy rain closing the trail.",
+    "prediction_context": [
+      "D15:7",
+      "D29:3",
+      "D3:7",
+      "D17:3",
+      "D9:5",
+      "D21:7",
+      "D17:1",
+      "D3:5"
+    ],
+    "question_id": "synthetic_locomo_03_c4_0064"
+  },
+  {
+    "answer": "record each expense in a shared ledger",
+    "category": 4,
+    "evidence": [
+      "D31:11"
+    ],
+    "prediction": "Record each expense in a shared ledger for the Silver Meadow neighborhood plan.",
+    "prediction_context": [
+      "D31:11",
+      "D25:9",
+      "D7:5",
+      "D19:11",
+      "D13:7",
+      "D13:5",
+      "D5:11",
+      "D19:9"
+    ],
+    "question_id": "synthetic_locomo_03_c4_0068"
+  },
+  {
+    "answer": "team Copper",
+    "category": 4,
+    "evidence": [
+      "D17:9"
+    ],
+    "prediction": "team Copper",
+    "prediction_context": [
+      "D17:9",
+      "D25:5",
+      "D11:9",
+      "D17:11",
+      "D11:7",
+      "D5:7",
+      "D19:5",
+      "D13:1"
+    ],
+    "question_id": "synthetic_locomo_03_c4_0071"
+  },
+  {
+    "answer": "finish twelve practice sessions",
+    "category": 4,
+    "evidence": [
+      "D25:11"
+    ],
+    "prediction": "Finish twelve practice sessions",
+    "prediction_context": [
+      "D25:11",
+      "D1:3",
+      "D15:1",
+      "D19:11",
+      "D7:6",
+      "D27:3",
+      "D7:7"
+    ],
+    "question_id": "synthetic_locomo_03_c4_0077"
+  },
+  {
+    "answer": "botanical postcards",
+    "category": 4,
+    "evidence": [
+      "D17:11"
+    ],
+    "prediction": "botanical postcards",
+    "prediction_context": [
+      "D17:11",
+      "D13:3",
+      "D17:9",
+      "D25:5",
+      "D5:9",
+      "D25:7",
+      "D19:7",
+      "D11:11"
+    ],
+    "question_id": "synthetic_locomo_03_c4_0079"
+  },
+  {
+    "answer": "Northwind Museum",
+    "category": 4,
+    "evidence": [
+      "D15:9"
+    ],
+    "prediction": "Northwind Museum",
+    "prediction_context": [
+      "D15:9",
+      "D23:5",
+      "D5:1",
+      "D31:3",
+      "D23:3",
+      "D11:3",
+      "D29:5",
+      "D31:1"
+    ],
+    "question_id": "synthetic_locomo_03_c4_0083"
+  },
+  {
+    "answer": "a solar camping lantern",
+    "category": 4,
+    "evidence": [
+      "D29:1"
+    ],
+    "prediction": "solar camping lantern",
+    "prediction_context": [
+      "D29:1",
+      "D9:11",
+      "D12:1",
+      "D12:5",
+      "D26:13",
+      "D21:11",
+      "D7:7",
+      "D12:3",
+      "D26:11"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0005"
+  },
+  {
+    "answer": "a solar camping lantern",
+    "category": 4,
+    "evidence": [
+      "D12:3"
+    ],
+    "prediction": "Felix bought a solar camping lantern for the Indigo Bridge pilot program.",
+    "prediction_context": [
+      "D12:3",
+      "D9:11",
+      "D29:3",
+      "D26:10",
+      "D19:8",
+      "D19:9",
+      "D29:1",
+      "D21:11",
+      "D26:11"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0015"
+  },
+  {
+    "answer": "hopeful",
+    "category": 4,
+    "evidence": [
+      "D24:3"
+    ],
+    "prediction": "hopeful",
+    "prediction_context": [
+      "D2:9",
+      "D24:3",
+      "D7:3",
+      "D7:7",
+      "D4:9",
+      "D7:5",
+      "D14:9",
+      "D19:7"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0016"
+  },
+  {
+    "answer": "organize a community exhibition",
+    "category": 4,
+    "evidence": [
+      "D19:5"
+    ],
+    "prediction": "Organize a community exhibition.",
+    "prediction_context": [
+      "D19:5",
+      "D24:1",
+      "D2:7",
+      "D9:7",
+      "D2:5",
+      "D4:7",
+      "D14:7"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0027"
+  },
+  {
+    "answer": "vintage buttons",
+    "category": 4,
+    "evidence": [
+      "D14:3"
+    ],
+    "prediction": "Vintage buttons",
+    "prediction_context": [
+      "D14:3",
+      "D16:3",
+      "D26:1",
+      "D16:1",
+      "D26:2",
+      "D21:3",
+      "D11:3",
+      "D4:3",
+      "D26:3"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0029"
+  },
+  {
+    "answer": "a solar camping lantern",
+    "category": 4,
+    "evidence": [
+      "D7:7"
+    ],
+    "prediction": "solar camping lantern",
+    "prediction_context": [
+      "D7:7",
+      "D9:11",
+      "D19:7",
+      "D19:11",
+      "D26:10",
+      "D26:11",
+      "D21:11",
+      "D29:1",
+      "D19:9"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0035"
+  },
+  {
+    "answer": "complete the route before sunset",
+    "category": 4,
+    "evidence": [
+      "D2:7"
+    ],
+    "prediction": "complete route before sunset",
+    "prediction_context": [
+      "D2:7",
+      "D9:7",
+      "D14:5",
+      "D19:7",
+      "D21:7",
+      "D4:7",
+      "D14:7",
+      "D19:5"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0037"
+  },
+  {
+    "answer": "a hand-thrown ceramic bowl",
+    "category": 4,
+    "evidence": [
+      "D29:9"
+    ],
+    "prediction": "a clear photo showing a hand-thrown ceramic bowl",
+    "prediction_context": [
+      "D29:9",
+      "D10:3",
+      "D29:8",
+      "D19:16",
+      "D29:11",
+      "D19:17",
+      "D10:1"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0041"
+  },
+  {
+    "answer": "trail running",
+    "category": 4,
+    "evidence": [
+      "D24:11"
+    ],
+    "prediction": "Priyanka -[engages in]-> trail running",
+    "prediction_context": [
+      "D24:11",
+      "D2:17",
+      "D17:5",
+      "D14:16",
+      "D29:7",
+      "D22:1",
+      "D14:17"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0052"
+  },
+  {
+    "answer": "the venue lost power",
+    "category": 4,
+    "evidence": [
+      "D19:11"
+    ],
+    "prediction": "Priyanka postponed the Emerald Lantern pilot program because the venue lost power.",
+    "prediction_context": [
+      "D19:11",
+      "D17:1",
+      "D9:13",
+      "D24:7",
+      "D7:11",
+      "D26:13",
+      "D7:9"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0054"
+  },
+  {
+    "answer": "a solar camping lantern",
+    "category": 4,
+    "evidence": [
+      "D2:11"
+    ],
+    "prediction": "solar camping lantern",
+    "prediction_context": [
+      "D2:11",
+      "D9:11",
+      "D19:11",
+      "D26:10",
+      "D19:9",
+      "D26:11",
+      "D29:1",
+      "D21:11"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0055"
+  },
+  {
+    "answer": "team Copper",
+    "category": 4,
+    "evidence": [
+      "D4:1"
+    ],
+    "prediction": "team Copper",
+    "prediction_context": [
+      "D4:1",
+      "D2:1",
+      "D9:1",
+      "D21:3",
+      "D28:3",
+      "D21:1",
+      "D28:1",
+      "D11:1"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0060"
+  },
+  {
+    "answer": "complete the route before sunset",
+    "category": 4,
+    "evidence": [
+      "D9:7"
+    ],
+    "prediction": "complete route before sunset",
+    "prediction_context": [
+      "D9:7",
+      "D2:7",
+      "D21:5",
+      "D14:6",
+      "D14:7",
+      "D4:7",
+      "D21:7",
+      "D19:5"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0067"
+  },
+  {
+    "answer": "vintage buttons",
+    "category": 4,
+    "evidence": [
+      "D4:3"
+    ],
+    "prediction": "vintage buttons",
+    "prediction_context": [
+      "D4:3",
+      "D16:3",
+      "D16:1",
+      "D21:5",
+      "D14:2",
+      "D21:3",
+      "D14:3",
+      "D26:3",
+      "D11:3"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0069"
+  },
+  {
+    "answer": "team Emerald",
+    "category": 4,
+    "evidence": [
+      "D7:15"
+    ],
+    "prediction": "team Emerald",
+    "prediction_context": [
+      "D7:15",
+      "D17:7",
+      "D24:13",
+      "D22:2",
+      "D17:6",
+      "D22:3",
+      "D5:5",
+      "D12:11"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0071"
+  },
+  {
+    "answer": "confident",
+    "category": 4,
+    "evidence": [
+      "D9:9"
+    ],
+    "prediction": "felt confident.",
+    "prediction_context": [
+      "D9:9",
+      "D2:9",
+      "D7:7",
+      "D19:9",
+      "D14:9",
+      "D4:9",
+      "D7:5",
+      "D19:7"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0076"
+  },
+  {
+    "answer": "a hand-thrown ceramic bowl",
+    "category": 4,
+    "evidence": [
+      "D19:17"
+    ],
+    "prediction": "a clear photo showing a hand-thrown ceramic bowl prepared for the Amber Studio pilot program",
+    "prediction_context": [
+      "D19:17",
+      "D10:3",
+      "D29:11",
+      "D29:8",
+      "D19:16",
+      "D10:1",
+      "D29:9"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0081"
+  },
+  {
+    "answer": "Orchid Learning Center",
+    "category": 4,
+    "evidence": [
+      "D14:15"
+    ],
+    "prediction": "Orchid Learning Center",
+    "prediction_context": [
+      "D14:15",
+      "D24:9",
+      "D26:13",
+      "D26:14",
+      "D24:8",
+      "D26:15",
+      "D5:1",
+      "D19:13",
+      "D7:11"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0083"
+  },
+  {
+    "answer": "organize a community exhibition",
+    "category": 4,
+    "evidence": [
+      "D4:7"
+    ],
+    "prediction": "Organize a community exhibition.",
+    "prediction_context": [
+      "D4:7",
+      "D24:1",
+      "D2:7",
+      "D21:9",
+      "D14:6",
+      "D14:7",
+      "D19:5",
+      "D21:7"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0087"
+  },
+  {
+    "answer": "break the work into weekly milestones",
+    "category": 4,
+    "evidence": [
+      "D16:5"
+    ],
+    "prediction": "Priyanka was advised to break the work into weekly milestones for the Silver Studio pilot program.",
+    "prediction_context": [
+      "D16:5",
+      "D2:5",
+      "D9:5",
+      "D16:4",
+      "D19:3",
+      "D28:5",
+      "D26:5"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0088"
+  },
+  {
+    "answer": "calm and accomplished",
+    "category": 4,
+    "evidence": [
+      "D4:9"
+    ],
+    "prediction": "Priyanka felt calm and accomplished.",
+    "prediction_context": [
+      "D4:9",
+      "D9:9",
+      "D2:9",
+      "D7:7",
+      "D19:9",
+      "D14:9",
+      "D7:5",
+      "D19:7"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0096"
+  },
+  {
+    "answer": "team Emerald",
+    "category": 4,
+    "evidence": [
+      "D14:19"
+    ],
+    "prediction": "team Emerald",
+    "prediction_context": [
+      "D14:19",
+      "D5:7",
+      "D14:21",
+      "D15:2",
+      "D26:17",
+      "D26:19",
+      "D5:5",
+      "D17:7",
+      "D22:3",
+      "D15:1"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0101"
+  },
+  {
+    "answer": "the instructor became ill",
+    "category": 4,
+    "evidence": [
+      "D21:13"
+    ],
+    "prediction": "Priyanka -[postponed]-> Emerald Atlas public showcase | source_role: user | source_quote: \"I postponed the Emerald Atlas public showcase because the instructor became ill.\"",
+    "prediction_context": [
+      "D21:13",
+      "D2:21",
+      "D14:22",
+      "D21:15",
+      "D2:22",
+      "D17:1",
+      "D9:13",
+      "D19:20"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0104"
+  },
+  {
+    "answer": "raise funds for new art supplies",
+    "category": 4,
+    "evidence": [
+      "D28:7"
+    ],
+    "prediction": "Maple Atlas public showcase | fact: Felix -[goal]-> Maple Atlas public showcase | source_role: user | source_quote: \"My goal for the Maple Atlas public showcase is to raise funds for new art supplies.\"",
+    "prediction_context": [
+      "D28:7",
+      "D4:11",
+      "D24:1",
+      "D4:15",
+      "D28:10",
+      "D4:13",
+      "D28:9",
+      "D4:7",
+      "D19:5"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0107"
+  },
+  {
+    "answer": "vintage buttons",
+    "category": 4,
+    "evidence": [
+      "D23:3"
+    ],
+    "prediction": "vintage buttons",
+    "prediction_context": [
+      "D23:3",
+      "D23:5",
+      "D18:4",
+      "D18:1",
+      "D8:1",
+      "D13:2",
+      "D8:2",
+      "D18:2",
+      "D8:4"
+    ],
+    "question_id": "synthetic_locomo_04_c4_0109"
+  },
+  {
+    "answer": "a maple-wood chess set",
+    "category": 4,
+    "evidence": [
+      "D13:1"
+    ],
+    "prediction": "maple-wood chess set",
+    "prediction_context": [
+      "D13:1",
+      "D22:17",
+      "D13:3",
+      "D3:9",
+      "D13:5",
+      "D18:1"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0001"
+  },
+  {
+    "answer": "calligraphy",
+    "category": 4,
+    "evidence": [
+      "D25:1"
+    ],
+    "prediction": "calligraphy",
+    "prediction_context": [
+      "D25:1",
+      "D3:12",
+      "D20:9",
+      "D5:21",
+      "D25:6",
+      "D25:5",
+      "D1:1"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0002"
+  },
+  {
+    "answer": "Pioneer Theatre",
+    "category": 4,
+    "evidence": [
+      "D8:1"
+    ],
+    "prediction": "Pioneer Theatre",
+    "prediction_context": [
+      "D8:1",
+      "D27:9",
+      "D20:3",
+      "D20:1",
+      "D3:7",
+      "D3:5",
+      "D10:11",
+      "D29:15"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0003"
+  },
+  {
+    "answer": "calligraphy",
+    "category": 4,
+    "evidence": [
+      "D8:3"
+    ],
+    "prediction": "calligraphy",
+    "prediction_context": [
+      "D3:12",
+      "D3:13",
+      "D8:9",
+      "D1:3",
+      "D1:5",
+      "D1:4",
+      "D8:3",
+      "D8:8",
+      "D20:12"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0012"
+  },
+  {
+    "answer": "team Indigo",
+    "category": 4,
+    "evidence": [
+      "D8:5"
+    ],
+    "prediction": "team Indigo",
+    "prediction_context": [
+      "D8:5",
+      "D20:7",
+      "D27:13",
+      "D10:17",
+      "D8:7",
+      "D25:3",
+      "D15:11",
+      "D10:15"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0021"
+  },
+  {
+    "answer": "calligraphy",
+    "category": 4,
+    "evidence": [
+      "D20:5"
+    ],
+    "prediction": "Omar -[seasonal project]-> calligraphy",
+    "prediction_context": [
+      "D20:5",
+      "D3:12",
+      "D15:15",
+      "D20:13",
+      "D20:12",
+      "D28:4",
+      "D25:1"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0022"
+  },
+  {
+    "answer": "the delivery arrived late",
+    "category": 4,
+    "evidence": [
+      "D15:5"
+    ],
+    "prediction": "The delivery arrived late.",
+    "prediction_context": [
+      "D15:5",
+      "D20:1",
+      "D3:5",
+      "D3:1",
+      "D15:3",
+      "D10:9",
+      "D29:13",
+      "D22:11",
+      "D3:3"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0024"
+  },
+  {
+    "answer": "finish twelve practice sessions",
+    "category": 4,
+    "evidence": [
+      "D22:5"
+    ],
+    "prediction": "To finish twelve practice sessions.",
+    "prediction_context": [
+      "D22:5",
+      "D27:1",
+      "D5:7",
+      "D12:7",
+      "D5:5",
+      "D7:7",
+      "D17:7"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0027"
+  },
+  {
+    "answer": "confirm the venue before inviting guests",
+    "category": 4,
+    "evidence": [
+      "D5:5"
+    ],
+    "prediction": "Omar -[advised]-> neighbor to confirm the venue before inviting guests for the Silver Compass seasonal project.",
+    "prediction_context": [
+      "D5:5",
+      "D28:2",
+      "D22:20",
+      "D22:21",
+      "D18:3",
+      "D28:4",
+      "D10:1",
+      "D22:22",
+      "D18:5"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0028"
+  },
+  {
+    "answer": "botanical postcards",
+    "category": 4,
+    "evidence": [
+      "D17:3"
+    ],
+    "prediction": "botanical postcards",
+    "prediction_context": [
+      "D17:3",
+      "D5:3",
+      "D29:1",
+      "D5:1",
+      "D17:1",
+      "D14:3",
+      "D24:3",
+      "D7:3",
+      "D29:3"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0029"
+  },
+  {
+    "answer": "a silver fountain pen",
+    "category": 4,
+    "evidence": [
+      "D15:7"
+    ],
+    "prediction": "a clear photo showing a silver fountain pen",
+    "prediction_context": [
+      "D15:7",
+      "D22:22",
+      "D27:15",
+      "D27:17",
+      "D22:23",
+      "D5:15"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0033"
+  },
+  {
+    "answer": "the room needed repairs",
+    "category": 4,
+    "evidence": [
+      "D27:7"
+    ],
+    "prediction": "The room needed repairs.",
+    "prediction_context": [
+      "D27:7",
+      "D5:13",
+      "D20:1",
+      "D10:7",
+      "D29:13",
+      "D10:9",
+      "D17:13"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0034"
+  },
+  {
+    "answer": "an ivory recipe binder",
+    "category": 4,
+    "evidence": [
+      "D10:7"
+    ],
+    "prediction": "ivory recipe binder",
+    "prediction_context": [
+      "D10:7",
+      "D12:11",
+      "D5:11",
+      "D22:7",
+      "D22:11",
+      "D29:11",
+      "D22:9",
+      "D15:3"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0035"
+  },
+  {
+    "answer": "hopeful",
+    "category": 4,
+    "evidence": [
+      "D22:7"
+    ],
+    "prediction": "hopeful",
+    "prediction_context": [
+      "D15:1",
+      "D10:7",
+      "D12:9",
+      "D5:9",
+      "D5:7",
+      "D22:7",
+      "D29:9",
+      "D10:5"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0036"
+  },
+  {
+    "answer": "a forest-green rain jacket",
+    "category": 4,
+    "evidence": [
+      "D12:3"
+    ],
+    "prediction": "a clear photo showing a forest-green rain jacket",
+    "prediction_context": [
+      "D12:3",
+      "D12:1",
+      "D2:1",
+      "D12:5",
+      "D12:2",
+      "D22:1",
+      "D2:3"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0049"
+  },
+  {
+    "answer": "team Indigo",
+    "category": 4,
+    "evidence": [
+      "D15:11"
+    ],
+    "prediction": "team Indigo",
+    "prediction_context": [
+      "D15:11",
+      "D20:7",
+      "D27:13",
+      "D10:17",
+      "D8:7",
+      "D8:5",
+      "D10:15",
+      "D25:3"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0051"
+  },
+  {
+    "answer": "Pioneer Theatre",
+    "category": 4,
+    "evidence": [
+      "D10:11"
+    ],
+    "prediction": "Pioneer Theatre",
+    "prediction_context": [
+      "D10:11",
+      "D27:9",
+      "D22:11",
+      "D17:13",
+      "D3:7",
+      "D22:13",
+      "D3:5",
+      "D8:1",
+      "D17:15"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0053"
+  },
+  {
+    "answer": "an ivory recipe binder",
+    "category": 4,
+    "evidence": [
+      "D5:11"
+    ],
+    "prediction": "ivory recipe binder",
+    "prediction_context": [
+      "D5:11",
+      "D12:11",
+      "D3:3",
+      "D10:9",
+      "D3:1",
+      "D10:7",
+      "D15:11",
+      "D24:11"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0055"
+  },
+  {
+    "answer": "confirm the venue before inviting guests",
+    "category": 4,
+    "evidence": [
+      "D12:5"
+    ],
+    "prediction": "Omar -[advised]-> neighbor to confirm the venue before inviting guests for the Silver Lantern seasonal project.",
+    "prediction_context": [
+      "D12:5",
+      "D5:5",
+      "D28:2",
+      "D28:5",
+      "D10:3",
+      "D10:1",
+      "D28:4",
+      "D22:11"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0058"
+  },
+  {
+    "answer": "Pioneer Theatre",
+    "category": 4,
+    "evidence": [
+      "D22:13"
+    ],
+    "prediction": "Pioneer Theatre",
+    "prediction_context": [
+      "D22:13",
+      "D27:9",
+      "D20:3",
+      "D10:13",
+      "D17:13",
+      "D10:11",
+      "D29:15",
+      "D17:15"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0063"
+  },
+  {
+    "answer": "publish a neighborhood guide",
+    "category": 4,
+    "evidence": [
+      "D12:7"
+    ],
+    "prediction": "To publish a neighborhood guide.",
+    "prediction_context": [
+      "D12:7",
+      "D5:7",
+      "D27:1",
+      "D24:5",
+      "D17:7",
+      "D24:7",
+      "D22:5"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0067"
+  },
+  {
+    "answer": "write down one observation after every session",
+    "category": 4,
+    "evidence": [
+      "D24:5"
+    ],
+    "prediction": "Write down one observation after every session for the Silver Meadow seasonal project.",
+    "prediction_context": [
+      "D24:5",
+      "D5:5",
+      "D28:2",
+      "D28:5",
+      "D7:3",
+      "D7:5",
+      "D2:5",
+      "D17:5",
+      "D28:4"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0068"
+  },
+  {
+    "answer": "botanical postcards",
+    "category": 4,
+    "evidence": [
+      "D7:3"
+    ],
+    "prediction": "Lila collected botanical postcards during the Willow Meadow seasonal project.",
+    "prediction_context": [
+      "D7:3",
+      "D19:3",
+      "D19:1",
+      "D24:5",
+      "D24:1",
+      "D17:3",
+      "D24:3",
+      "D14:3",
+      "D29:3"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0069"
+  },
+  {
+    "answer": "calligraphy",
+    "category": 4,
+    "evidence": [
+      "D22:15"
+    ],
+    "prediction": "Omar began calligraphy for the Cobalt Orchard seasonal project.",
+    "prediction_context": [
+      "D22:15",
+      "D3:12",
+      "D3:13",
+      "D3:11",
+      "D3:9",
+      "D25:1",
+      "D15:9",
+      "D3:7",
+      "D8:3"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0072"
+  },
+  {
+    "answer": "a silver fountain pen",
+    "category": 4,
+    "evidence": [
+      "D5:15"
+    ],
+    "prediction": "silver fountain pen",
+    "prediction_context": [
+      "D5:15",
+      "D22:22",
+      "D27:15",
+      "D27:17",
+      "D22:23",
+      "D15:7"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0073"
+  },
+  {
+    "answer": "an ivory recipe binder",
+    "category": 4,
+    "evidence": [
+      "D29:11"
+    ],
+    "prediction": "ivory recipe binder",
+    "prediction_context": [
+      "D10:7",
+      "D12:11",
+      "D5:11",
+      "D12:9",
+      "D22:11",
+      "D29:11",
+      "D24:11",
+      "D22:9"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0075"
+  },
+  {
+    "answer": "handmade bookmarks",
+    "category": 4,
+    "evidence": [
+      "D19:3"
+    ],
+    "prediction": "handmade bookmarks",
+    "prediction_context": [
+      "D19:3",
+      "D19:1",
+      "D7:5",
+      "D17:1",
+      "D14:3",
+      "D17:3",
+      "D7:3",
+      "D24:3",
+      "D29:3"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0079"
+  },
+  {
+    "answer": "calligraphy",
+    "category": 4,
+    "evidence": [
+      "D5:17"
+    ],
+    "prediction": "calligraphy",
+    "prediction_context": [
+      "D5:17",
+      "D3:12",
+      "D20:5",
+      "D3:13",
+      "D25:1",
+      "D3:7",
+      "D15:9"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0082"
+  },
+  {
+    "answer": "Pioneer Theatre",
+    "category": 4,
+    "evidence": [
+      "D17:15"
+    ],
+    "prediction": "Pioneer Theatre",
+    "prediction_context": [
+      "D17:15",
+      "D29:13",
+      "D17:17",
+      "D17:13",
+      "D22:15",
+      "D29:15",
+      "D3:5",
+      "D10:11",
+      "D22:13",
+      "D8:1"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0083"
+  },
+  {
+    "answer": "team Emerald",
+    "category": 4,
+    "evidence": [
+      "D14:1"
+    ],
+    "prediction": "team Emerald",
+    "prediction_context": [
+      "D14:1",
+      "D26:1",
+      "D5:1",
+      "D2:3",
+      "D14:3",
+      "D29:1",
+      "D24:1",
+      "D2:1"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0090"
+  },
+  {
+    "answer": "Pioneer Theatre",
+    "category": 4,
+    "evidence": [
+      "D29:15"
+    ],
+    "prediction": "Pioneer Theatre",
+    "prediction_context": [
+      "D29:15",
+      "D27:9",
+      "D17:17",
+      "D3:7",
+      "D10:13",
+      "D17:15",
+      "D3:5",
+      "D10:11",
+      "D8:1"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0093"
+  },
+  {
+    "answer": "a cobalt travel journal",
+    "category": 4,
+    "evidence": [
+      "D19:7"
+    ],
+    "prediction": "a workshop photo from the Maple Compass seasonal project",
+    "prediction_context": [
+      "D21:5",
+      "D29:7",
+      "D10:3",
+      "D22:17",
+      "D19:7"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0097"
+  },
+  {
+    "answer": "the delivery arrived late",
+    "category": 4,
+    "evidence": [
+      "D24:13"
+    ],
+    "prediction": "The Emerald Atlas skills exchange was postponed by Omar because the delivery arrived late.",
+    "prediction_context": [
+      "D24:13",
+      "D19:9",
+      "D20:1",
+      "D24:15",
+      "D19:8",
+      "D15:5",
+      "D29:13",
+      "D10:9"
+    ],
+    "question_id": "synthetic_locomo_05_c4_0104"
+  },
+  {
+    "answer": "Riverside Workshop",
+    "category": 4,
+    "evidence": [
+      "D12:1"
+    ],
+    "prediction": "Riverside Workshop",
+    "prediction_context": [
+      "D12:1",
+      "D12:9",
+      "D26:5",
+      "D26:1",
+      "D12:3",
+      "D12:5",
+      "D26:9"
+    ],
+    "question_id": "synthetic_locomo_06_c4_0003"
+  },
+  {
+    "answer": "the venue lost power",
+    "category": 4,
+    "evidence": [
+      "D24:1"
+    ],
+    "prediction": "Hana postponed the Emerald Atlas spring program because the venue lost power.",
+    "prediction_context": [
+      "D24:1",
+      "D10:3",
+      "D10:7",
+      "D24:7",
+      "D24:3",
+      "D10:5",
+      "D24:5",
+      "D10:1"
+    ],
+    "question_id": "synthetic_locomo_06_c4_0004"
+  },
+  {
+    "answer": "an orange field recorder",
+    "category": 4,
+    "evidence": [
+      "D22:1"
+    ],
+    "prediction": "orange field recorder",
+    "prediction_context": [
+      "D22:1",
+      "D8:3",
+      "D22:5",
+      "D8:6",
+      "D22:2",
+      "D8:5",
+      "D22:3",
+      "D8:1"
+    ],
+    "question_id": "synthetic_locomo_06_c4_0015"
+  },
+  {
+    "answer": "relieved",
+    "category": 4,
+    "evidence": [
+      "D6:1"
+    ],
+    "prediction": "relieved",
+    "prediction_context": [
+      "D6:1",
+      "D20:5",
+      "D20:2",
+      "D20:4",
+      "D20:3",
+      "D20:1",
+      "D6:3",
+      "D6:5"
+    ],
+    "question_id": "synthetic_locomo_06_c4_0016"
+  },
+  {
+    "answer": "team Indigo",
+    "category": 4,
+    "evidence": [
+      "D26:3"
+    ],
+    "prediction": "team Indigo",
+    "prediction_context": [
+      "D26:3",
+      "D12:3",
+      "D26:7",
+      "D26:1",
+      "D26:5",
+      "D12:11",
+      "D26:11",
+      "D12:7"
+    ],
+    "question_id": "synthetic_locomo_06_c4_0020"
+  },
+  {
+    "answer": "salsa dancing",
+    "category": 4,
+    "evidence": [
+      "D28:5"
+    ],
+    "prediction": "salsa dancing",
+    "prediction_context": [
+      "D28:5",
+      "D14:9",
+      "D28:7",
+      "D28:3",
+      "D14:8",
+      "D28:1",
+      "D28:9",
+      "D14:5"
+    ],
+    "question_id": "synthetic_locomo_06_c4_0022"
+  },
+  {
+    "answer": "Riverside Workshop",
+    "category": 4,
+    "evidence": [
+      "D12:5"
+    ],
+    "prediction": "Riverside Workshop",
+    "prediction_context": [
+      "D12:5",
+      "D12:25",
+      "D12:9",
+      "D26:1",
+      "D12:7",
+      "D12:1",
+      "D26:9"
+    ],
+    "question_id": "synthetic_locomo_06_c4_0023"
+  },
+  {
+    "answer": "raise funds for new art supplies",
+    "category": 4,
+    "evidence": [
+      "D4:3"
+    ],
+    "prediction": "raising funds for new art supplies",
+    "prediction_context": [
+      "D4:3",
+      "D18:1",
+      "D18:5",
+      "D4:1",
+      "D18:3",
+      "D4:5"
+    ],
+    "question_id": "synthetic_locomo_06_c4_0027"
+  },
+  {
+    "answer": "team Indigo",
+    "category": 4,
+    "evidence": [
+      "D12:7"
+    ],
+    "prediction": "team Indigo",
+    "prediction_context": [
+      "D12:7",
+      "D12:3",
+      "D26:7",
+      "D12:5",
+      "D26:5",
+      "D26:11",
+      "D26:3",
+      "D12:11"
+    ],
+    "question_id": "synthetic_locomo_06_c4_0030"
+  },
+  {
+    "answer": "organize a community exhibition",
+    "category": 4,
+    "evidence": [
+      "D18:3"
+    ],
+    "prediction": "community exhibition",
+    "prediction_context": [
+      "D18:3",
+      "D18:1",
+      "D4:1",
+      "D18:5",
+      "D18:4",
+      "D4:5",
+      "D4:3"
+    ],
+    "question_id": "synthetic_locomo_06_c4_0037"
+  },
+  {
+    "answer": "break the work into weekly milestones",
+    "category": 4,
+    "evidence": [
+      "D2:7"
+    ],
+    "prediction": "Break the work into weekly milestones for the Silver Garden spring program.",
+    "prediction_context": [
+      "D2:7",
+      "D16:7",
+      "D2:11",
+      "D2:5",
+      "D16:3",
+      "D2:3",
+      "D16:11"
+    ],
+    "question_id": "synthetic_locomo_06_c4_0038"
+  },
+  {
+    "answer": "local history pamphlets",
+    "category": 4,
+    "evidence": [
+      "D14:7"
+    ],
+    "prediction": "local history pamphlets",
+    "prediction_context": [
+      "D14:7",
+      "D28:3",
+      "D14:5",
+      "D14:9",
+      "D28:5",
+      "D14:11",
+      "D14:3",
+      "D28:7"
+    ],
+    "question_id": "synthetic_locomo_06_c4_0039"
+  },
+  {
+    "answer": "complete the route before sunset",
+    "category": 4,
+    "evidence": [
+      "D4:5"
+    ],
+    "prediction": "completing the Maple Harbor spring program route before sunset",
+    "prediction_context": [
+      "D4:5",
+      "D18:1",
+      "D18:5",
+      "D4:1",
+      "D18:3",
+      "D4:3"
+    ],
+    "question_id": "synthetic_locomo_06_c4_0047"
+  },
+  {
+    "answer": "a compact brass telescope",
+    "category": 4,
+    "evidence": [
+      "D18:5"
+    ],
+    "prediction": "compact brass telescope",
+    "prediction_context": [
+      "D18:5",
+      "D4:1",
+      "D18:3",
+      "D4:3",
+      "D18:2",
+      "D18:1"
+    ],
+    "question_id": "synthetic_locomo_06_c4_0057"
+  },
+  {
+    "answer": "salsa dancing",
+    "category": 4,
+    "evidence": [
+      "D28:13"
+    ],
+    "prediction": "salsa dancing",
+    "prediction_context": [
+      "D28:13",
+      "D14:9",
+      "D28:5",
+      "D28:15",
+      "D28:11",
+      "D14:5",
+      "D28:9",
+      "D14:1"
+    ],
+    "question_id": "synthetic_locomo_06_c4_0062"
+  },
+  {
+    "answer": "wood carving",
+    "category": 4,
+    "evidence": [
+      "D31:1"
+    ],
+    "prediction": "wood carving",
+    "prediction_context": [
+      "D31:1",
+      "D16:1",
+      "D9:3",
+      "D3:7",
+      "D24:1",
+      "D1:3",
+      "D24:3"
+    ],
+    "question_id": "synthetic_locomo_07_c4_0002"
+  },
+  {
+    "answer": "Silver Lake Park",
+    "category": 4,
+    "evidence": [
+      "D12:1"
+    ],
+    "prediction": "Silver Lake Park",
+    "prediction_context": [
+      "D12:1",
+      "D13:3",
+      "D13:1",
+      "D21:5",
+      "D29:3",
+      "D28:1",
+      "D21:3",
+      "D14:5",
+      "D29:5"
+    ],
+    "question_id": "synthetic_locomo_07_c4_0003"
+  },
+  {
+    "answer": "a maple-wood chess set",
+    "category": 4,
+    "evidence": [
+      "D22:1"
+    ],
+    "prediction": "maple-wood chess set",
+    "prediction_context": [
+      "D22:1",
+      "D23:1",
+      "D16:3",
+      "D22:3",
+      "D16:5",
+      "D19:1"
+    ],
+    "question_id": "synthetic_locomo_07_c4_0009"
+  },
+  {
+    "answer": "a cobalt travel journal",
+    "category": 4,
+    "evidence": [
+      "D13:1"
+    ],
+    "prediction": "cobalt travel journal",
+    "prediction_context": [
+      "D6:3",
+      "D14:3",
+      "D6:1",
+      "D6:5",
+      "D5:3",
+      "D30:5",
+      "D13:1",
+      "D29:3",
+      "D5:1"
+    ],
+    "question_id": "synthetic_locomo_07_c4_0015"
+  },
+  {
+    "answer": "calm and accomplished",
+    "category": 4,
+    "evidence": [
+      "D25:1"
+    ],
+    "prediction": "Leon felt calm and accomplished after the Juniper Bridge winter project.",
+    "prediction_context": [
+      "D25:1",
+      "D18:1",
+      "D18:3",
+      "D10:5",
+      "D2:1",
+      "D10:3",
+      "D3:5",
+      "D26:3"
+    ],
+    "question_id": "synthetic_locomo_07_c4_0016"
+  },
+  {
+    "answer": "botanical postcards",
+    "category": 4,
+    "evidence": [
+      "D30:1"
+    ],
+    "prediction": "botanical postcards",
+    "prediction_context": [
+      "D30:1",
+      "D16:3",
+      "D7:3",
+      "D15:3",
+      "D31:3",
+      "D15:1",
+      "D7:1",
+      "D8:3"
+    ],
+    "question_id": "synthetic_locomo_07_c4_0019"
+  },
+  {
+    "answer": "an ivory recipe binder",
+    "category": 4,
+    "evidence": [
+      "D5:3"
+    ],
+    "prediction": "ivory recipe binder",
+    "prediction_context": [
+      "D5:3",
+      "D13:3",
+      "D20:1",
+      "D20:3",
+      "D5:1",
+      "D6:5"
+    ],
+    "question_id": "synthetic_locomo_07_c4_0033"
+  },
+  {
+    "answer": "the volunteer team was understaffed",
+    "category": 4,
+    "evidence": [
+      "D17:3"
+    ],
+    "prediction": "The Emerald Garden winter project was postponed because the volunteer team was understaffed.",
+    "prediction_context": [
+      "D17:3",
+      "D10:5",
+      "D24:1",
+      "D10:3",
+      "D18:5",
+      "D2:3",
+      "D25:3"
+    ],
+    "question_id": "synthetic_locomo_07_c4_0034"
+  },
+  {
+    "answer": "relieved",
+    "category": 4,
+    "evidence": [
+      "D10:3"
+    ],
+    "prediction": "felt relieved",
+    "prediction_context": [
+      "D10:3",
+      "D11:5",
+      "D25:1",
+      "D18:3",
+      "D3:3",
+      "D3:5",
+      "D26:3"
+    ],
+    "question_id": "synthetic_locomo_07_c4_0036"
+  },
+  {
+    "answer": "a silver fountain pen",
+    "category": 4,
+    "evidence": [
+      "D20:3"
+    ],
+    "prediction": "a clear photo showing a silver fountain pen prepared for the Amber Harbor winter project",
+    "prediction_context": [
+      "D20:3",
+      "D20:1",
+      "D21:3",
+      "D21:7",
+      "D19:3",
+      "D21:5",
+      "D19:1"
+    ],
+    "question_id": "synthetic_locomo_07_c4_0041"
+  },
+  {
+    "answer": "a maple-wood chess set",
+    "category": 4,
+    "evidence": [
+      "D23:1"
+    ],
+    "prediction": "maple-wood chess set",
+    "prediction_context": [
+      "D23:1",
+      "D20:3",
+      "D30:1",
+      "D30:3",
+      "D20:1",
+      "D22:1"
+    ],
+    "question_id": "synthetic_locomo_07_c4_0049"
+  },
+  {
+    "answer": "team Juniper",
+    "category": 4,
+    "evidence": [
+      "D4:3"
+    ],
+    "prediction": "team Juniper",
+    "prediction_context": [
+      "D4:3",
+      "D3:1",
+      "D20:5",
+      "D11:3",
+      "D4:1",
+      "D11:1",
+      "D12:5",
+      "D19:3"
+    ],
+    "question_id": "synthetic_locomo_07_c4_0050"
+  },
+  {
+    "answer": "wood carving",
+    "category": 4,
+    "evidence": [
+      "D9:3"
+    ],
+    "prediction": "wood carving",
+    "prediction_context": [
+      "D9:3",
+      "D16:1",
+      "D2:5",
+      "D3:7",
+      "D31:1",
+      "D1:3"
+    ],
+    "question_id": "synthetic_locomo_07_c4_0052"
+  },
+  {
+    "answer": "Silver Lake Park",
+    "category": 4,
+    "evidence": [
+      "D21:3"
+    ],
+    "prediction": "Silver Lake Park",
+    "prediction_context": [
+      "D21:3",
+      "D13:3",
+      "D28:3",
+      "D14:3",
+      "D21:5",
+      "D28:1",
+      "D14:5",
+      "D12:1",
+      "D29:5"
+    ],
+    "question_id": "synthetic_locomo_07_c4_0053"
+  },
+  {
+    "answer": "the delivery arrived late",
+    "category": 4,
+    "evidence": [
+      "D2:3"
+    ],
+    "prediction": "delivery arrived late",
+    "prediction_context": [
+      "D2:3",
+      "D24:1",
+      "D17:3",
+      "D9:3",
+      "D2:1",
+      "D9:1",
+      "D18:5",
+      "D1:1"
+    ],
+    "question_id": "synthetic_locomo_07_c4_0054"
+  },
+  {
+    "answer": "confident",
+    "category": 4,
+    "evidence": [
+      "D3:5"
+    ],
+    "prediction": "felt confident",
+    "prediction_context": [
+      "D3:5",
+      "D11:5",
+      "D18:3",
+      "D25:1",
+      "D10:5",
+      "D10:3",
+      "D26:3"
+    ],
+    "question_id": "synthetic_locomo_07_c4_0066"
+  },
+  {
+    "answer": "finish twelve practice sessions",
+    "category": 4,
+    "evidence": [
+      "D15:3"
+    ],
+    "prediction": "finish twelve practice sessions",
+    "prediction_context": [
+      "D30:3",
+      "D15:3",
+      "D22:3",
+      "D29:1",
+      "D23:1",
+      "D23:3",
+      "D14:1"
+    ],
+    "question_id": "synthetic_locomo_07_c4_0067"
+  },
+  {
+    "answer": "confirm the venue before inviting guests",
+    "category": 4,
+    "evidence": [
+      "D27:5"
+    ],
+    "prediction": "Confirm the venue before inviting guests for the Silver Meadow winter project.",
+    "prediction_context": [
+      "D27:5",
+      "D3:5",
+      "D10:3",
+      "D11:5",
+      "D18:3",
+      "D11:3",
+      "D3:3",
+      "D4:5",
+      "D18:1",
+      "D10:1"
+    ],
+    "question_id": "synthetic_locomo_07_c4_0068"
+  },
+  {
+    "answer": "a cobalt travel journal",
+    "category": 4,
+    "evidence": [
+      "D30:5"
+    ],
+    "prediction": "cobalt travel journal",
+    "prediction_context": [
+      "D30:5",
+      "D14:3",
+      "D6:5",
+      "D5:3",
+      "D14:1",
+      "D29:3",
+      "D5:1",
+      "D6:3",
+      "D13:1"
+    ],
+    "question_id": "synthetic_locomo_07_c4_0075"
+  },
+  {
+    "answer": "urban gardening",
+    "category": 4,
+    "evidence": [
+      "D4:1"
+    ],
+    "prediction": "urban gardening",
+    "prediction_context": [
+      "D4:1",
+      "D24:9",
+      "D24:1",
+      "D24:5",
+      "D4:3",
+      "D4:13",
+      "D4:5"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0002"
+  },
+  {
+    "answer": "the instructor became ill",
+    "category": 4,
+    "evidence": [
+      "D28:1"
+    ],
+    "prediction": "The instructor became ill.",
+    "prediction_context": [
+      "D28:1",
+      "D28:5",
+      "D28:9",
+      "D28:3",
+      "D18:1",
+      "D18:5",
+      "D8:9"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0004"
+  },
+  {
+    "answer": "raise funds for new art supplies",
+    "category": 4,
+    "evidence": [
+      "D4:3"
+    ],
+    "prediction": "raise funds for new art supplies",
+    "prediction_context": [
+      "D4:3",
+      "D4:7",
+      "D4:11",
+      "D4:1",
+      "D24:3",
+      "D14:11",
+      "D14:7"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0007"
+  },
+  {
+    "answer": "a portable watercolor kit",
+    "category": 4,
+    "evidence": [
+      "D28:3"
+    ],
+    "prediction": "portable watercolor kit",
+    "prediction_context": [
+      "D28:3",
+      "D28:1",
+      "D18:10",
+      "D28:2",
+      "D8:6",
+      "D18:11",
+      "D8:7"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0009"
+  },
+  {
+    "answer": "urban gardening",
+    "category": 4,
+    "evidence": [
+      "D24:1"
+    ],
+    "prediction": "urban gardening",
+    "prediction_context": [
+      "D24:1",
+      "D24:9",
+      "D24:5",
+      "D24:3",
+      "D4:3",
+      "D4:1",
+      "D4:13"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0022"
+  },
+  {
+    "answer": "test the route with a smaller group first",
+    "category": 4,
+    "evidence": [
+      "D6:3"
+    ],
+    "prediction": "Advised to test the route with a smaller group first for the Silver Compass community initiative.",
+    "prediction_context": [
+      "D6:3",
+      "D6:1",
+      "D6:5",
+      "D16:1",
+      "D16:5",
+      "D16:3",
+      "D26:7",
+      "D26:3",
+      "D26:11"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0028"
+  },
+  {
+    "answer": "the venue lost power",
+    "category": 4,
+    "evidence": [
+      "D28:5"
+    ],
+    "prediction": "venue lost power",
+    "prediction_context": [
+      "D28:5",
+      "D28:9",
+      "D28:13",
+      "D28:7",
+      "D8:9",
+      "D18:5",
+      "D18:1"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0034"
+  },
+  {
+    "answer": "calm and accomplished",
+    "category": 4,
+    "evidence": [
+      "D22:7"
+    ],
+    "prediction": "felt calm and accomplished",
+    "prediction_context": [
+      "D22:7",
+      "D2:11",
+      "D22:5",
+      "D12:9",
+      "D2:9",
+      "D22:11",
+      "D12:7",
+      "D12:3",
+      "D22:15"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0036"
+  },
+  {
+    "answer": "organize a community exhibition",
+    "category": 4,
+    "evidence": [
+      "D14:7"
+    ],
+    "prediction": "organize a community exhibition",
+    "prediction_context": [
+      "D14:7",
+      "D4:3",
+      "D4:7",
+      "D4:11",
+      "D14:5",
+      "D14:11",
+      "D24:3"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0047"
+  },
+  {
+    "answer": "break the work into weekly milestones",
+    "category": 4,
+    "evidence": [
+      "D26:7"
+    ],
+    "prediction": "Break work into weekly milestones for the Silver Harbor community initiative.",
+    "prediction_context": [
+      "D26:7",
+      "D6:7",
+      "D6:3",
+      "D26:5",
+      "D26:3",
+      "D26:11",
+      "D16:11"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0048"
+  },
+  {
+    "answer": "the permit was delayed",
+    "category": 4,
+    "evidence": [
+      "D18:5"
+    ],
+    "prediction": "The Emerald Lantern community initiative was postponed by Celeste because the permit was delayed.",
+    "prediction_context": [
+      "D18:5",
+      "D28:5",
+      "D28:13",
+      "D28:9",
+      "D18:7",
+      "D18:1",
+      "D8:9"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0054"
+  },
+  {
+    "answer": "test the route with a smaller group first",
+    "category": 4,
+    "evidence": [
+      "D6:7"
+    ],
+    "prediction": "test route with smaller group",
+    "prediction_context": [
+      "D6:7",
+      "D6:5",
+      "D16:1",
+      "D6:9",
+      "D16:5",
+      "D26:7",
+      "D16:3",
+      "D26:11",
+      "D26:3"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0058"
+  },
+  {
+    "answer": "team Silver",
+    "category": 4,
+    "evidence": [
+      "D22:9"
+    ],
+    "prediction": "team Silver",
+    "prediction_context": [
+      "D22:9",
+      "D22:5",
+      "D22:4",
+      "D22:8",
+      "D2:9",
+      "D12:1",
+      "D12:5",
+      "D2:1"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0061"
+  },
+  {
+    "answer": "the train service was suspended",
+    "category": 4,
+    "evidence": [
+      "D28:9"
+    ],
+    "prediction": "train service suspended",
+    "prediction_context": [
+      "D28:9",
+      "D28:5",
+      "D18:4",
+      "D28:4",
+      "D8:9",
+      "D18:5",
+      "D18:1",
+      "D8:1"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0064"
+  },
+  {
+    "answer": "practice slowly before increasing speed",
+    "category": 4,
+    "evidence": [
+      "D16:11"
+    ],
+    "prediction": "Practice slowly before increasing speed for the Silver Meadow community initiative.",
+    "prediction_context": [
+      "D16:11",
+      "D6:7",
+      "D16:9",
+      "D6:5",
+      "D26:10",
+      "D16:7",
+      "D26:11",
+      "D26:7",
+      "D26:3"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0068"
+  },
+  {
+    "answer": "local history pamphlets",
+    "category": 4,
+    "evidence": [
+      "D28:11"
+    ],
+    "prediction": "local history pamphlets",
+    "prediction_context": [
+      "D28:11",
+      "D8:11",
+      "D28:9",
+      "D28:17",
+      "D18:3",
+      "D28:7",
+      "D18:7",
+      "D28:15"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0069"
+  },
+  {
+    "answer": "team Maple",
+    "category": 4,
+    "evidence": [
+      "D10:11"
+    ],
+    "prediction": "team Maple",
+    "prediction_context": [
+      "D10:11",
+      "D10:7",
+      "D10:9",
+      "D10:6",
+      "D20:7",
+      "D30:7",
+      "D20:11",
+      "D30:3"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0070"
+  },
+  {
+    "answer": "urban gardening",
+    "category": 4,
+    "evidence": [
+      "D14:9"
+    ],
+    "prediction": "urban gardening",
+    "prediction_context": [
+      "D24:1",
+      "D24:9",
+      "D24:5",
+      "D14:11",
+      "D14:9",
+      "D4:5",
+      "D4:9"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0072"
+  },
+  {
+    "answer": "a compact brass telescope",
+    "category": 4,
+    "evidence": [
+      "D20:9"
+    ],
+    "prediction": "Compact brass telescope",
+    "prediction_context": [
+      "D20:9",
+      "D30:9",
+      "D30:5",
+      "D20:11",
+      "D10:7",
+      "D10:5",
+      "D20:1",
+      "D10:1"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0075"
+  },
+  {
+    "answer": "proud",
+    "category": 4,
+    "evidence": [
+      "D2:11"
+    ],
+    "prediction": "felt proud",
+    "prediction_context": [
+      "D2:11",
+      "D2:3",
+      "D2:9",
+      "D12:9",
+      "D22:7",
+      "D22:11",
+      "D12:7",
+      "D12:3"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0076"
+  },
+  {
+    "answer": "complete the route before sunset",
+    "category": 4,
+    "evidence": [
+      "D24:11"
+    ],
+    "prediction": "Complete the route before sunset",
+    "prediction_context": [
+      "D24:11",
+      "D4:7",
+      "D4:3",
+      "D4:11",
+      "D24:9",
+      "D14:11",
+      "D14:7"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0087"
+  },
+  {
+    "answer": "test the route with a smaller group first",
+    "category": 4,
+    "evidence": [
+      "D6:11"
+    ],
+    "prediction": "Advised to test the route with a smaller group first for the Silver Studio community initiative.",
+    "prediction_context": [
+      "D6:11",
+      "D6:9",
+      "D16:13",
+      "D26:5",
+      "D26:9",
+      "D16:15",
+      "D26:7",
+      "D26:3",
+      "D26:11"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0088"
+  },
+  {
+    "answer": "Willow Market",
+    "category": 4,
+    "evidence": [
+      "D16:13"
+    ],
+    "prediction": "Willow Market",
+    "prediction_context": [
+      "D16:13",
+      "D26:1",
+      "D16:15",
+      "D6:8",
+      "D6:4",
+      "D16:1",
+      "D6:9",
+      "D6:1",
+      "D6:5"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0093"
+  },
+  {
+    "answer": "hopeful",
+    "category": 4,
+    "evidence": [
+      "D22:15"
+    ],
+    "prediction": "Celeste felt hopeful.",
+    "prediction_context": [
+      "D22:15",
+      "D2:3",
+      "D22:13",
+      "D12:9",
+      "D22:7",
+      "D12:11",
+      "D22:11",
+      "D12:7"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0096"
+  },
+  {
+    "answer": "practice slowly before increasing speed",
+    "category": 4,
+    "evidence": [
+      "D16:15"
+    ],
+    "prediction": "Practice slowly before increasing speed for the Silver Workshop community initiative.",
+    "prediction_context": [
+      "D16:15",
+      "D6:11",
+      "D16:13",
+      "D6:9",
+      "D16:1",
+      "D26:11",
+      "D26:7",
+      "D26:3",
+      "D16:3"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0098"
+  },
+  {
+    "answer": "team Maple",
+    "category": 4,
+    "evidence": [
+      "D10:15"
+    ],
+    "prediction": "team Maple",
+    "prediction_context": [
+      "D10:15",
+      "D10:7",
+      "D10:11",
+      "D10:13",
+      "D30:11",
+      "D30:7",
+      "D30:3"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0100"
+  },
+  {
+    "answer": "Willow Market",
+    "category": 4,
+    "evidence": [
+      "D26:13"
+    ],
+    "prediction": "Willow Market",
+    "prediction_context": [
+      "D26:13",
+      "D16:21",
+      "D6:13",
+      "D6:21",
+      "D16:22",
+      "D16:1"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0103"
+  },
+  {
+    "answer": "the train service was suspended",
+    "category": 4,
+    "evidence": [
+      "D8:13"
+    ],
+    "prediction": "Emerald Atlas evening series | fact: Celeste -[postponed]-> Emerald Atlas evening series | source_role: user | source_quote: \"I postponed the Emerald Atlas evening series because the train service was suspended.\"",
+    "prediction_context": [
+      "D8:13",
+      "D23:4",
+      "D13:1",
+      "D28:1",
+      "D18:13",
+      "D18:1",
+      "D23:3",
+      "D13:2"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0104"
+  },
+  {
+    "answer": "calm and accomplished",
+    "category": 4,
+    "evidence": [
+      "D2:15"
+    ],
+    "prediction": "felt calm and accomplished.",
+    "prediction_context": [
+      "D2:15",
+      "D7:5",
+      "D17:5",
+      "D2:13",
+      "D12:15",
+      "D22:3",
+      "D7:6",
+      "D22:7",
+      "D17:6"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0106"
+  },
+  {
+    "answer": "local history pamphlets",
+    "category": 4,
+    "evidence": [
+      "D8:15"
+    ],
+    "prediction": "local history pamphlets",
+    "prediction_context": [
+      "D8:15",
+      "D3:2",
+      "D8:19",
+      "D28:21",
+      "D18:3",
+      "D28:20",
+      "D8:18"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0109"
+  },
+  {
+    "answer": "urban gardening",
+    "category": 4,
+    "evidence": [
+      "D24:13"
+    ],
+    "prediction": "urban gardening",
+    "prediction_context": [
+      "D24:13",
+      "D9:4",
+      "D19:4",
+      "D9:1",
+      "D14:13",
+      "D9:3",
+      "D19:2",
+      "D19:3"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0112"
+  },
+  {
+    "answer": "an orange field recorder",
+    "category": 4,
+    "evidence": [
+      "D6:13"
+    ],
+    "prediction": "Orange field recorder",
+    "prediction_context": [
+      "D26:21",
+      "D6:21",
+      "D16:21",
+      "D26:13",
+      "D6:13"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0113"
+  },
+  {
+    "answer": "a compact brass telescope",
+    "category": 4,
+    "evidence": [
+      "D30:13"
+    ],
+    "prediction": "compact brass telescope",
+    "prediction_context": [
+      "D30:13",
+      "D20:13",
+      "D10:20",
+      "D30:18",
+      "D30:17",
+      "D5:2",
+      "D10:18"
+    ],
+    "question_id": "synthetic_locomo_08_c4_0115"
+  },
+  {
+    "answer": "Cedar Point Library",
+    "category": 4,
+    "evidence": [
+      "D24:1"
+    ],
+    "prediction": "Cedar Point Library",
+    "prediction_context": [
+      "D24:1",
+      "D4:3",
+      "D19:1",
+      "D19:7",
+      "D24:7",
+      "D14:1",
+      "D24:5",
+      "D19:5"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0003"
+  },
+  {
+    "answer": "a forest-green rain jacket",
+    "category": 4,
+    "evidence": [
+      "D23:1"
+    ],
+    "prediction": "forest-green rain jacket",
+    "prediction_context": [
+      "D23:1",
+      "D13:9",
+      "D23:5",
+      "D13:8",
+      "D8:3",
+      "D3:3",
+      "D18:1"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0005"
+  },
+  {
+    "answer": "record each expense in a shared ledger",
+    "category": 4,
+    "evidence": [
+      "D9:1"
+    ],
+    "prediction": "Matteo -[advice]-> Silver Atlas field study | source_role: user | source_quote: \"My neighbor advised me to record each expense in a shared ledger for the Silver Atlas field study.\"",
+    "prediction_context": [
+      "D9:1",
+      "D9:14",
+      "D24:3",
+      "D24:15",
+      "D4:13",
+      "D9:13",
+      "D8:1",
+      "D24:14",
+      "D4:12"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0008"
+  },
+  {
+    "answer": "a silver fountain pen",
+    "category": 4,
+    "evidence": [
+      "D21:1"
+    ],
+    "prediction": "silver fountain pen",
+    "prediction_context": [
+      "D21:1",
+      "D21:14",
+      "D6:15",
+      "D6:14",
+      "D1:5",
+      "D1:3"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0009"
+  },
+  {
+    "answer": "a forest-green rain jacket",
+    "category": 4,
+    "evidence": [
+      "D18:1"
+    ],
+    "prediction": "forest-green rain jacket",
+    "prediction_context": [
+      "D18:1",
+      "D8:11",
+      "D23:5",
+      "D3:1",
+      "D8:5",
+      "D3:3",
+      "D23:1",
+      "D8:3"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0015"
+  },
+  {
+    "answer": "energized",
+    "category": 4,
+    "evidence": [
+      "D5:1"
+    ],
+    "prediction": "energized",
+    "prediction_context": [
+      "D5:1",
+      "D15:3",
+      "D20:1",
+      "D20:5",
+      "D10:5",
+      "D20:3",
+      "D10:1",
+      "D5:5"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0016"
+  },
+  {
+    "answer": "kayaking",
+    "category": 4,
+    "evidence": [
+      "D2:1"
+    ],
+    "prediction": "kayaking",
+    "prediction_context": [
+      "D2:1",
+      "D12:5",
+      "D17:15",
+      "D17:13",
+      "D12:1",
+      "D7:13",
+      "D17:14",
+      "D7:1"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0022"
+  },
+  {
+    "answer": "publish a neighborhood guide",
+    "category": 4,
+    "evidence": [
+      "D12:3"
+    ],
+    "prediction": "To publish a neighborhood guide.",
+    "prediction_context": [
+      "D12:3",
+      "D22:1",
+      "D7:3",
+      "D17:5",
+      "D17:16",
+      "D2:3",
+      "D17:15"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0027"
+  },
+  {
+    "answer": "team Silver",
+    "category": 4,
+    "evidence": [
+      "D23:3"
+    ],
+    "prediction": "team Silver",
+    "prediction_context": [
+      "D23:3",
+      "D8:1",
+      "D18:3",
+      "D13:1",
+      "D18:2",
+      "D8:5",
+      "D3:1",
+      "D13:3"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0030"
+  },
+  {
+    "answer": "team Willow",
+    "category": 4,
+    "evidence": [
+      "D10:3"
+    ],
+    "prediction": "team Willow",
+    "prediction_context": [
+      "D10:3",
+      "D20:5",
+      "D25:7",
+      "D20:3",
+      "D15:5",
+      "D15:1",
+      "D25:5",
+      "D20:1"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0031"
+  },
+  {
+    "answer": "confident",
+    "category": 4,
+    "evidence": [
+      "D20:3"
+    ],
+    "prediction": "confident",
+    "prediction_context": [
+      "D20:3",
+      "D15:3",
+      "D5:1",
+      "D10:3",
+      "D10:5",
+      "D5:5",
+      "D10:1"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0036"
+  },
+  {
+    "answer": "record each expense in a shared ledger",
+    "category": 4,
+    "evidence": [
+      "D19:3"
+    ],
+    "prediction": "Silver Garden field study | fact: Matteo -[advised by]-> neighbor | source_role: user | source_quote: \"My neighbor advised me to record each expense in a shared ledger for the Silver Garden field study.\"",
+    "prediction_context": [
+      "D19:3",
+      "D24:3",
+      "D9:5",
+      "D18:3",
+      "D4:7",
+      "D4:12",
+      "D4:5"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0038"
+  },
+  {
+    "answer": "hopeful",
+    "category": 4,
+    "evidence": [
+      "D15:3"
+    ],
+    "prediction": "Matteo felt hopeful.",
+    "prediction_context": [
+      "D15:3",
+      "D5:1",
+      "D5:3",
+      "D20:5",
+      "D10:5",
+      "D20:3",
+      "D5:5",
+      "D10:1"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0046"
+  },
+  {
+    "answer": "team Silver",
+    "category": 4,
+    "evidence": [
+      "D13:3"
+    ],
+    "prediction": "team Silver",
+    "prediction_context": [
+      "D13:3",
+      "D18:3",
+      "D3:5",
+      "D3:3",
+      "D18:2",
+      "D8:5",
+      "D3:1",
+      "D23:3"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0050"
+  },
+  {
+    "answer": "the room needed repairs",
+    "category": 4,
+    "evidence": [
+      "D11:5"
+    ],
+    "prediction": "The room needed repairs.",
+    "prediction_context": [
+      "D11:5",
+      "D11:1",
+      "D6:5",
+      "D11:4",
+      "D6:4",
+      "D16:3",
+      "D1:1",
+      "D6:1"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0054"
+  },
+  {
+    "answer": "a forest-green rain jacket",
+    "category": 4,
+    "evidence": [
+      "D23:5"
+    ],
+    "prediction": "forest-green rain jacket",
+    "prediction_context": [
+      "D23:5",
+      "D8:5",
+      "D18:3",
+      "D23:3",
+      "D3:5",
+      "D3:3",
+      "D8:3",
+      "D23:1",
+      "D18:1"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0055"
+  },
+  {
+    "answer": "handmade bookmarks",
+    "category": 4,
+    "evidence": [
+      "D21:5"
+    ],
+    "prediction": "handmade bookmarks",
+    "prediction_context": [
+      "D21:5",
+      "D16:1",
+      "D16:7",
+      "D11:5",
+      "D21:3",
+      "D16:5",
+      "D11:3",
+      "D6:3",
+      "D25:5"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0059"
+  },
+  {
+    "answer": "grateful",
+    "category": 4,
+    "evidence": [
+      "D5:5"
+    ],
+    "prediction": "felt grateful.",
+    "prediction_context": [
+      "D5:5",
+      "D15:3",
+      "D5:1",
+      "D20:5",
+      "D10:3",
+      "D10:5",
+      "D20:3",
+      "D10:1"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0066"
+  },
+  {
+    "answer": "record each expense in a shared ledger",
+    "category": 4,
+    "evidence": [
+      "D4:5"
+    ],
+    "prediction": "Record each expense in a shared ledger for the Silver Meadow field study.",
+    "prediction_context": [
+      "D4:5",
+      "D9:5",
+      "D24:3",
+      "D3:5",
+      "D19:5",
+      "D19:3",
+      "D14:3"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0068"
+  },
+  {
+    "answer": "kayaking",
+    "category": 4,
+    "evidence": [
+      "D2:5"
+    ],
+    "prediction": "Matteo began kayaking for the Cobalt Orchard field study.",
+    "prediction_context": [
+      "D2:5",
+      "D12:5",
+      "D2:1",
+      "D7:7",
+      "D2:3",
+      "D22:3",
+      "D7:5",
+      "D12:1"
+    ],
+    "question_id": "synthetic_locomo_09_c4_0072"
+  },
+  {
+    "answer": "Harbor Arts Center",
+    "category": 4,
+    "evidence": [
+      "D22:1"
+    ],
+    "prediction": "Harbor Arts Center",
+    "prediction_context": [
+      "D22:1",
+      "D2:1",
+      "D12:11",
+      "D22:3",
+      "D12:3",
+      "D12:1",
+      "D12:5",
+      "D12:9",
+      "D22:9"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0003"
+  },
+  {
+    "answer": "team Willow",
+    "category": 4,
+    "evidence": [
+      "D16:3"
+    ],
+    "prediction": "team Willow",
+    "prediction_context": [
+      "D16:3",
+      "D16:11",
+      "D16:1",
+      "D6:5",
+      "D26:7",
+      "D6:7",
+      "D6:3",
+      "D26:3"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0010"
+  },
+  {
+    "answer": "ceramics",
+    "category": 4,
+    "evidence": [
+      "D20:1"
+    ],
+    "prediction": "Began ceramics for the Cobalt Bridge open-house effort",
+    "prediction_context": [
+      "D20:1",
+      "D30:1",
+      "D20:3",
+      "D10:3",
+      "D20:5",
+      "D10:1",
+      "D10:5",
+      "D10:9"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0012"
+  },
+  {
+    "answer": "a hand-thrown ceramic bowl",
+    "category": 4,
+    "evidence": [
+      "D26:1"
+    ],
+    "prediction": "hand-thrown ceramic bowl",
+    "prediction_context": [
+      "D26:1",
+      "D6:9",
+      "D6:5",
+      "D26:3",
+      "D6:3",
+      "D26:5",
+      "D26:9",
+      "D16:5"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0015"
+  },
+  {
+    "answer": "a portable watercolor kit",
+    "category": 4,
+    "evidence": [
+      "D20:3"
+    ],
+    "prediction": "portable watercolor kit",
+    "prediction_context": [
+      "D20:3",
+      "D10:3",
+      "D10:7",
+      "D20:1",
+      "D30:5",
+      "D30:7"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0017"
+  },
+  {
+    "answer": "practice slowly before increasing speed",
+    "category": 4,
+    "evidence": [
+      "D2:3"
+    ],
+    "prediction": "neighbor advised to practice slowly before increasing speed for the Silver Bridge open-house effort.",
+    "prediction_context": [
+      "D2:3",
+      "D12:3",
+      "D12:7",
+      "D2:1",
+      "D2:9",
+      "D2:7",
+      "D22:3",
+      "D22:7"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0018"
+  },
+  {
+    "answer": "local history pamphlets",
+    "category": 4,
+    "evidence": [
+      "D14:3"
+    ],
+    "prediction": "local history pamphlets",
+    "prediction_context": [
+      "D14:3",
+      "D14:11",
+      "D14:1",
+      "D4:9",
+      "D4:7",
+      "D24:7",
+      "D24:3",
+      "D4:11"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0019"
+  },
+  {
+    "answer": "team Willow",
+    "category": 4,
+    "evidence": [
+      "D26:3"
+    ],
+    "prediction": "team Willow",
+    "prediction_context": [
+      "D26:3",
+      "D16:3",
+      "D16:11",
+      "D26:1",
+      "D26:5",
+      "D26:7",
+      "D6:7",
+      "D6:3"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0020"
+  },
+  {
+    "answer": "team Violet",
+    "category": 4,
+    "evidence": [
+      "D18:1"
+    ],
+    "prediction": "team Violet",
+    "prediction_context": [
+      "D18:1",
+      "D28:5",
+      "D28:9",
+      "D18:3",
+      "D28:3",
+      "D8:1",
+      "D8:9",
+      "D18:5"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0021"
+  },
+  {
+    "answer": "railway maps",
+    "category": 4,
+    "evidence": [
+      "D24:3"
+    ],
+    "prediction": "railway maps",
+    "prediction_context": [
+      "D24:3",
+      "D14:3",
+      "D14:11",
+      "D24:1",
+      "D4:9",
+      "D4:11",
+      "D24:7",
+      "D4:7"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0029"
+  },
+  {
+    "answer": "ceramics",
+    "category": 4,
+    "evidence": [
+      "D10:5"
+    ],
+    "prediction": "Began ceramics",
+    "prediction_context": [
+      "D10:5",
+      "D30:5",
+      "D30:1",
+      "D10:7",
+      "D30:3",
+      "D10:9",
+      "D20:9",
+      "D10:1"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0032"
+  },
+  {
+    "answer": "test the route with a smaller group first",
+    "category": 4,
+    "evidence": [
+      "D22:7"
+    ],
+    "prediction": "Neighbor's advice",
+    "prediction_context": [
+      "D22:7",
+      "D12:7",
+      "D12:3",
+      "D22:5",
+      "D2:11",
+      "D22:11",
+      "D22:3"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0038"
+  },
+  {
+    "answer": "vintage buttons",
+    "category": 4,
+    "evidence": [
+      "D4:7"
+    ],
+    "prediction": "vintage buttons",
+    "prediction_context": [
+      "D4:7",
+      "D14:11",
+      "D14:3",
+      "D4:5",
+      "D4:9",
+      "D24:7",
+      "D4:11",
+      "D24:3"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0039"
+  },
+  {
+    "answer": "the permit was delayed",
+    "category": 4,
+    "evidence": [
+      "D14:5"
+    ],
+    "prediction": "The permit was delayed.",
+    "prediction_context": [
+      "D14:5",
+      "D4:1",
+      "D14:7",
+      "D14:3",
+      "D24:3",
+      "D24:1",
+      "D14:1",
+      "D24:5",
+      "D24:9"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0044"
+  },
+  {
+    "answer": "raise funds for new art supplies",
+    "category": 4,
+    "evidence": [
+      "D20:7"
+    ],
+    "prediction": "new art supplies",
+    "prediction_context": [
+      "D20:7",
+      "D10:7",
+      "D10:11",
+      "D20:5",
+      "D20:9",
+      "D30:3",
+      "D20:11",
+      "D30:11"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0047"
+  },
+  {
+    "answer": "the venue lost power",
+    "category": 4,
+    "evidence": [
+      "D4:9"
+    ],
+    "prediction": "venue lost power",
+    "prediction_context": [
+      "D4:9",
+      "D14:7",
+      "D24:3",
+      "D14:3",
+      "D24:1",
+      "D24:5",
+      "D14:5",
+      "D14:1",
+      "D24:9"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0064"
+  },
+  {
+    "answer": "a hand-thrown ceramic bowl",
+    "category": 4,
+    "evidence": [
+      "D16:9"
+    ],
+    "prediction": "a clear photo showing a hand-thrown ceramic bowl prepared for the Indigo Meadow open-house effort",
+    "prediction_context": [
+      "D16:9",
+      "D6:5",
+      "D6:9",
+      "D16:11",
+      "D16:7",
+      "D6:1"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0065"
+  },
+  {
+    "answer": "hopeful",
+    "category": 4,
+    "evidence": [
+      "D28:11"
+    ],
+    "prediction": "I felt hopeful.",
+    "prediction_context": [
+      "D8:11",
+      "D28:9",
+      "D18:9",
+      "D28:11",
+      "D28:3",
+      "D28:7",
+      "D18:3",
+      "D18:7"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0066"
+  },
+  {
+    "answer": "railway maps",
+    "category": 4,
+    "evidence": [
+      "D4:11"
+    ],
+    "prediction": "railway maps",
+    "prediction_context": [
+      "D4:11",
+      "D14:11",
+      "D14:3",
+      "D4:9",
+      "D4:7",
+      "D24:7",
+      "D24:3"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0069"
+  },
+  {
+    "answer": "the instructor became ill",
+    "category": 4,
+    "evidence": [
+      "D14:9"
+    ],
+    "prediction": "The instructor became ill.",
+    "prediction_context": [
+      "D14:9",
+      "D4:9",
+      "D4:1",
+      "D14:11",
+      "D24:3",
+      "D24:1",
+      "D24:5",
+      "D24:9"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0074"
+  },
+  {
+    "answer": "calm and accomplished",
+    "category": 4,
+    "evidence": [
+      "D8:11"
+    ],
+    "prediction": "calm and accomplished",
+    "prediction_context": [
+      "D8:11",
+      "D8:3",
+      "D8:9",
+      "D18:9",
+      "D28:3",
+      "D28:7",
+      "D18:3",
+      "D18:7"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0076"
+  },
+  {
+    "answer": "practice slowly before increasing speed",
+    "category": 4,
+    "evidence": [
+      "D2:11"
+    ],
+    "prediction": "Practice slowly before increasing speed for the Silver Orchard open-house effort.",
+    "prediction_context": [
+      "D2:11",
+      "D12:7",
+      "D12:3",
+      "D2:9",
+      "D22:5",
+      "D22:7",
+      "D22:11",
+      "D22:3"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0078"
+  },
+  {
+    "answer": "ceramics",
+    "category": 4,
+    "evidence": [
+      "D30:9"
+    ],
+    "prediction": "Inez began ceramics for the Cobalt Studio open-house effort.",
+    "prediction_context": [
+      "D30:9",
+      "D30:5",
+      "D30:1",
+      "D30:3",
+      "D10:1",
+      "D10:5",
+      "D10:9"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0082"
+  },
+  {
+    "answer": "Harbor Arts Center",
+    "category": 4,
+    "evidence": [
+      "D12:9"
+    ],
+    "prediction": "Harbor Arts Center",
+    "prediction_context": [
+      "D12:9",
+      "D2:5",
+      "D12:11",
+      "D12:7",
+      "D12:3",
+      "D22:1",
+      "D12:1",
+      "D22:9",
+      "D12:5"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0083"
+  },
+  {
+    "answer": "organize a community exhibition",
+    "category": 4,
+    "evidence": [
+      "D30:11"
+    ],
+    "prediction": "organize a community exhibition",
+    "prediction_context": [
+      "D30:11",
+      "D10:7",
+      "D10:11",
+      "D20:9",
+      "D30:9",
+      "D20:11",
+      "D30:3",
+      "D20:7"
+    ],
+    "question_id": "synthetic_locomo_10_c4_0087"
+  }
+]
