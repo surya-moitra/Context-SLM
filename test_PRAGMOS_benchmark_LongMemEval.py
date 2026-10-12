@@ -11,6 +11,7 @@ from PRAGMOS_benchmark_LongMemEval import (
     PREFERENCE_RECOMMENDATION_INTENT,
     aggregate_longmemeval_retrieval_metrics,
     assess_state_attribute_mismatch,
+    anchor_group_is_supported,
     anchor_coverage,
     anchor_coverage_across_evidence,
     answer_session_recall,
@@ -464,6 +465,40 @@ class QueryRoutingRegressionTests(unittest.TestCase):
 
         self.assertFalse(unrelated["complete"])
         self.assertTrue(exact["complete"])
+
+    def test_composite_named_entity_requires_a_coherent_phrase(self):
+        profile = build_query_profile(
+            "What did Asha prepare for Violet Bridge?",
+            known_speakers=["Asha", "Rohan"],
+        )
+
+        scattered = anchor_coverage(
+            profile,
+            "speaker: Asha\nquote: I joined team Violet for the Amber Bridge project.",
+        )
+        exact = anchor_coverage(
+            profile,
+            "speaker: Asha\nquote: I prepared the display for Violet Bridge.",
+        )
+        hyphenated = anchor_coverage(
+            profile,
+            "speaker: Asha\nquote: I prepared the Violet-Bridge display.",
+        )
+
+        self.assertFalse(scattered["complete"])
+        self.assertTrue(exact["complete"])
+        self.assertTrue(hyphenated["complete"])
+
+    def test_composite_named_entity_keeps_explicit_acronym_support(self):
+        group = {
+            "label": "named entity",
+            "kind": "subject",
+            "text": "National Aeronautics Space Administration",
+            "tokens": ["administration", "aeronautic", "national", "space"],
+            "match_policy": "ordered_phrase",
+        }
+
+        self.assertTrue(anchor_group_is_supported(group, "NASA approved the plan."))
 
     def test_abstention_uses_evidence_coverage_not_parser_success(self):
         question = "Which color did you say the Acme bicycle was?"
@@ -3365,15 +3400,24 @@ class MultiSessionOperationTests(unittest.TestCase):
                 f"With Aarav for the model show at Fern Court, I worked on my "
                 f"{model} today."
             )
+            graph_relation = (
+                "performed action on" if index == 1 else "worked on"
+            )
+            triples = [
+                ["speaker user", graph_relation, model],
+                [model, "item type", "model kit"],
+                [model, "located at", "Fern Court"],
+                ["Aarav", "show participant", model],
+            ]
+            if index == 1:
+                triples.insert(
+                    0,
+                    ["speaker user", "worked on", "model show at Fern Court"],
+                )
             rows.append(
                 extraction(
                     quote,
-                    [
-                        ["speaker user", "worked on", model],
-                        [model, "item type", "model kit"],
-                        [model, "located at", "Fern Court"],
-                        ["Aarav", "show participant", model],
-                    ],
+                    triples,
                     turn_id=f"turn-{index}",
                     session_id=f"session-{index}",
                 )
@@ -3391,6 +3435,15 @@ class MultiSessionOperationTests(unittest.TestCase):
         self.assertEqual(result["status"], "complete")
         self.assertEqual(result["answer"], "4")
         self.assertEqual(len(result["facts"]), 4)
+        self.assertEqual(
+            {fact["canonical_identity"] for fact in result["facts"]},
+            {
+                "comet racer kit",
+                "falcon glider kit",
+                "tiger tank kit",
+                "harbor tug kit",
+            },
+        )
 
     def test_count_distinct_collapses_aliases_before_global_identity_dedup(self):
         question = (
@@ -3434,6 +3487,84 @@ class MultiSessionOperationTests(unittest.TestCase):
             {fact["canonical_identity"] for fact in result["facts"]},
             {"tiger tank kit", "falcon glider kit"},
         )
+
+    def test_count_distinct_allows_target_value_overlapping_event_anchor(self):
+        question = (
+            "How many distinct workshops did Asha attend in the Willow Bridge "
+            "neighborhood plan series?"
+        )
+        rows = [
+            extraction(
+                "I attended workshop Violet as part of the Willow Bridge "
+                "neighborhood plan series.",
+                [
+                    ["Asha", "attended", "workshop Violet"],
+                    ["Asha", "part of", "Willow Bridge neighborhood plan series"],
+                ],
+                turn_id="a1",
+                session_id="s1",
+                speaker="Asha",
+            ),
+            extraction(
+                "I attended workshop Willow as part of the Willow Bridge "
+                "neighborhood plan series.",
+                [
+                    ["Asha", "attended", "workshop Willow"],
+                    ["Asha", "part of", "Willow Bridge neighborhood plan series"],
+                ],
+                turn_id="a2",
+                session_id="s2",
+                speaker="Asha",
+            ),
+            extraction(
+                "I attended workshop Amber as part of the Willow Bridge "
+                "neighborhood plan series.",
+                [
+                    ["Asha", "attended", "workshop Amber"],
+                    ["Asha", "part of", "Willow Bridge neighborhood plan series"],
+                ],
+                turn_id="a3",
+                session_id="s3",
+                speaker="Asha",
+            ),
+            extraction(
+                "I attended workshop Cobalt as part of the Maple Compass "
+                "neighborhood plan series.",
+                [["Asha", "attended", "workshop Cobalt"]],
+                turn_id="noise-event",
+                session_id="s4",
+                speaker="Asha",
+            ),
+            extraction(
+                "A workshop photo from the Willow Bridge neighborhood plan series.",
+                [["Asha", "speaker of", "workshop photo"]],
+                turn_id="noise-caption",
+                session_id="s5",
+                speaker="Asha",
+            ),
+        ]
+        plan = infer_multi_session_operation(question, "multi-session")
+        profile = build_query_profile(
+            question,
+            known_speakers=["Asha", "Rohan"],
+            allow_distributed_actor_evidence=True,
+        )
+
+        result = execute_operation_plan(None, question, plan, rows, profile)
+
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["answer"], "3")
+        self.assertEqual(
+            {fact["canonical_identity"] for fact in result["facts"]},
+            {"workshop violet", "workshop willow", "workshop amber"},
+        )
+        rejected = {
+            candidate["grounded_identity"]
+            for candidate in result["candidate_facts"]
+            if not candidate["grounded_eligible"]
+        }
+        self.assertIn("willow bridge neighborhood plan series", rejected)
+        self.assertIn("workshop photo", rejected)
 
     def test_extrema_ignore_measurements_that_do_not_map_to_explicit_operands(self):
         question = (

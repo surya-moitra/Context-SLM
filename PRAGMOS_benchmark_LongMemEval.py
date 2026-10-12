@@ -1198,6 +1198,16 @@ def retrieval_content_tokens(text):
     return tokens
 
 
+def retrieval_content_token_sequence(text):
+    """Return retrieval-normalized tokens without discarding word order."""
+    sequence = []
+    for raw_token in re.findall(r"[a-z0-9]+", (text or "").lower()):
+        normalized_tokens = retrieval_content_tokens(raw_token)
+        if len(normalized_tokens) == 1:
+            sequence.append(next(iter(normalized_tokens)))
+    return sequence
+
+
 QUERY_ANCHOR_IGNORED_NAMES = {
     "According",
     "Are",
@@ -1462,6 +1472,7 @@ def extract_query_anchor_groups(question):
     seen = set()
 
     def add_group(label, value):
+        text = re.sub(r"\s+", " ", value).strip(" ?.,\"'")
         tokens = query_anchor_tokens(value)
         if tokens and tokens.issubset(QUERY_ANCHOR_NON_ENTITY_TERMS):
             return
@@ -1473,8 +1484,14 @@ def extract_query_anchor_groups(question):
             {
                 "label": label,
                 "kind": ANCHOR_KIND_BY_LABEL.get(label, "event"),
-                "text": re.sub(r"\s+", " ", value).strip(" ?.,\"'"),
+                "text": text,
                 "tokens": sorted(tokens),
+                "match_policy": (
+                    "ordered_phrase"
+                    if label == "named entity"
+                    and len(retrieval_content_token_sequence(text)) >= 2
+                    else "token_set"
+                ),
             }
         )
 
@@ -1676,6 +1693,7 @@ def build_query_profile(
                     "kind": "subject",
                     "text": requested_speaker,
                     "tokens": sorted(query_anchor_tokens(requested_speaker)),
+                    "match_policy": "token_set",
                 },
             )
         existing_attribute_tokens = {
@@ -1801,32 +1819,60 @@ def evidence_synthesis_scope_anchor_groups(query_profile):
     ]
 
 
-def anchor_group_is_supported(group, evidence_text):
-    evidence_tokens = retrieval_content_tokens(evidence_text)
-    token_aliases = {
-        "bachelor": {"graduate", "undergrad", "undergraduate"},
-        "occupation": {"job", "profession", "role"},
-    }
-    unsupported_tokens = []
-    for token in group.get("tokens", []):
-        if token in evidence_tokens:
-            continue
-        if not token_aliases.get(token, set()).intersection(evidence_tokens):
-            unsupported_tokens.append(token)
+def ordered_token_sequence_is_present(required_tokens, evidence_tokens):
+    if not required_tokens or len(required_tokens) > len(evidence_tokens):
+        return False
+    width = len(required_tokens)
+    return any(
+        evidence_tokens[index : index + width] == required_tokens
+        for index in range(len(evidence_tokens) - width + 1)
+    )
 
-    if not unsupported_tokens:
-        return True
 
+def anchor_group_match_type(group, evidence_text):
+    """Return the explicit rule that grounds an anchor, or ``none``."""
     group_text = normalized_evidence_text(group.get("text"))
+    match_policy = group.get("match_policy")
+    if not match_policy:
+        match_policy = (
+            "ordered_phrase"
+            if group.get("label") == "named entity"
+            and len(retrieval_content_token_sequence(group.get("text"))) >= 2
+            else "token_set"
+        )
+
+    if match_policy == "ordered_phrase":
+        required_sequence = retrieval_content_token_sequence(group.get("text"))
+        evidence_sequence = retrieval_content_token_sequence(evidence_text)
+        if ordered_token_sequence_is_present(
+            required_sequence,
+            evidence_sequence,
+        ):
+            return "ordered_phrase"
+    else:
+        evidence_tokens = retrieval_content_tokens(evidence_text)
+        token_aliases = {
+            "bachelor": {"graduate", "undergrad", "undergraduate"},
+            "occupation": {"job", "profession", "role"},
+        }
+        unsupported_tokens = []
+        for token in group.get("tokens", []):
+            if token in evidence_tokens:
+                continue
+            if not token_aliases.get(token, set()).intersection(evidence_tokens):
+                unsupported_tokens.append(token)
+        if not unsupported_tokens:
+            return "token_set"
+
     if group_text in {"united states", "united states of america"}:
         if re.search(r"\b(?:u\.?s\.?a?|america|american)\b", evidence_text or "", re.I):
-            return True
+            return "location_alias"
         normalized_evidence = normalized_evidence_text(evidence_text)
         if any(
             re.search(rf"\b{re.escape(location)}\b", normalized_evidence)
             for location in UNITED_STATES_LOCATION_NAMES
         ):
-            return True
+            return "location_alias"
 
     group_words = re.findall(r"[A-Za-z]+", group.get("text", ""))
     if len(group_words) >= 2:
@@ -1835,8 +1881,12 @@ def anchor_group_is_supported(group, evidence_text):
             rf"\b{re.escape(acronym)}\b",
             evidence_text or "",
         ):
-            return True
-    return False
+            return "acronym"
+    return "none"
+
+
+def anchor_group_is_supported(group, evidence_text):
+    return anchor_group_match_type(group, evidence_text) != "none"
 
 
 def anchor_coverage(query_profile, evidence_text):
@@ -4175,6 +4225,30 @@ def extract_count_identities_from_quote(source_quote):
     return identities
 
 
+def infer_count_relation_action_tokens(question, target_tokens, anchor_groups):
+    """Isolate the count predicate so event-name words cannot act as verbs."""
+    predicate_match = re.search(
+        r"\b(?:am|are|did|do|does|had|has|have|was|were|will)\s+"
+        r"(?P<predicate>.+?)"
+        r"(?=\s+(?:at|during|for|from|in|on|with)\b|[?!.]|$)",
+        question or "",
+        flags=re.IGNORECASE,
+    )
+    if not predicate_match:
+        return set()
+    tokens = retrieval_content_tokens(predicate_match.group("predicate"))
+    tokens.difference_update(target_tokens)
+    tokens.difference_update(OPERATION_FILLER_TOKENS)
+    for group in anchor_groups or []:
+        tokens.difference_update(group.get("tokens") or [])
+    return tokens
+
+
+def normalized_count_identity(value):
+    normalized = normalized_evidence_text(value).strip(" .,:;-\"'")
+    return re.sub(r"^(?:a|an|my|the)\s+", "", normalized)
+
+
 def extract_count_fact_candidates(graph_extractions, question, operation_plan):
     query_tokens = set(retrieval_content_tokens(question))
     target_tokens = set(operation_plan.get("target_tokens", []))
@@ -4183,6 +4257,15 @@ def extract_count_fact_candidates(graph_extractions, question, operation_plan):
     )
     anchor_groups = operation_identity_anchor_groups(question)
     strict_grounded = bool(operation_plan.get("strict_grounded_selection"))
+    relation_action_tokens = infer_count_relation_action_tokens(
+        question,
+        target_tokens,
+        anchor_groups,
+    )
+    role_aware_distinct = bool(
+        strict_grounded and operation_plan.get("operation") == "count_distinct"
+        and relation_action_tokens
+    )
     candidates = []
     seen = set()
     for extraction in graph_extractions or []:
@@ -4191,6 +4274,12 @@ def extract_count_fact_candidates(graph_extractions, question, operation_plan):
         source_quote = extraction.get("source_quote", "")
         source_tokens = retrieval_content_tokens(source_quote)
         envelope = evidence_envelope(extraction)
+        raw_action_identities = extract_count_identities_from_quote(source_quote)
+        raw_action_identity_keys = {
+            normalized_count_identity(identity)
+            for identity in raw_action_identities
+            if normalized_count_identity(identity)
+        }
         if query_tokens and not query_tokens.intersection(source_tokens):
             continue
         for triple in extraction.get("triples", []):
@@ -4222,6 +4311,25 @@ def extract_count_fact_candidates(graph_extractions, question, operation_plan):
             entity_is_query_language = bool(
                 entity_tokens and entity_tokens.issubset(query_tokens)
             )
+            entity_is_bare_target = bool(
+                entity_tokens and entity_tokens.issubset(target_tokens)
+            )
+            entity_is_raw_action_object = bool(
+                normalized_count_identity(entity) in raw_action_identity_keys
+            )
+            relation_action_overlap = len(
+                relation_action_tokens.intersection(
+                    retrieval_content_tokens(relation)
+                )
+            )
+            entity_is_query_scaffolding = bool(
+                entity_is_anchor
+                or entity_is_bare_target
+                or (
+                    entity_is_query_language
+                    and not entity_is_raw_action_object
+                )
+            )
             relation_disqualifies_identity = bool(
                 re.search(
                     r"\b(?:associated|companion|informed|location|mentioned|"
@@ -4229,16 +4337,41 @@ def extract_count_fact_candidates(graph_extractions, question, operation_plan):
                     normalized_evidence_text(relation),
                 )
             )
-            grounded_eligible = bool(
-                not entity_is_anchor
-                and not entity_is_query_language
-                and not relation_disqualifies_identity
-                and (source_action_overlap > 0 or target_overlap > 0)
-                and (
-                    not anchor_groups
-                    or supported_anchor_count == len(anchor_groups)
+            if role_aware_distinct:
+                if raw_action_identity_keys:
+                    requested_role_supported = entity_is_raw_action_object
+                    role_support_source = "raw_quote_action_object"
+                else:
+                    requested_role_supported = bool(
+                        relation_action_overlap > 0
+                        and not entity_is_query_language
+                    )
+                    role_support_source = "graph_relation_fallback"
+                grounded_eligible = bool(
+                    not entity_is_query_scaffolding
+                    and (
+                        not relation_disqualifies_identity
+                        or entity_is_raw_action_object
+                    )
+                    and requested_role_supported
+                    and (
+                        not anchor_groups
+                        or supported_anchor_count == len(anchor_groups)
+                    )
                 )
-            )
+            else:
+                requested_role_supported = None
+                role_support_source = "legacy_count_policy"
+                grounded_eligible = bool(
+                    not entity_is_anchor
+                    and not entity_is_query_language
+                    and not relation_disqualifies_identity
+                    and (source_action_overlap > 0 or target_overlap > 0)
+                    and (
+                        not anchor_groups
+                        or supported_anchor_count == len(anchor_groups)
+                    )
+                )
             if strict_grounded:
                 key = (
                     extraction.get("source_turn_id"),
@@ -4270,6 +4403,15 @@ def extract_count_fact_candidates(graph_extractions, question, operation_plan):
                     "grounded_eligible": grounded_eligible,
                     "entity_is_query_anchor": entity_is_anchor,
                     "entity_is_query_language": entity_is_query_language,
+                    "entity_is_bare_target": entity_is_bare_target,
+                    "entity_is_query_scaffolding": entity_is_query_scaffolding,
+                    "entity_is_raw_action_object": entity_is_raw_action_object,
+                    "raw_action_identities": raw_action_identities,
+                    "requested_role_supported": requested_role_supported,
+                    "role_support_source": role_support_source,
+                    "relation_action_overlap": relation_action_overlap,
+                    "relation_action_tokens": sorted(relation_action_tokens),
+                    "role_aware_distinct": role_aware_distinct,
                     "relation_disqualifies_identity": relation_disqualifies_identity,
                     "supported_anchor_count": supported_anchor_count,
                     "required_anchor_count": len(anchor_groups),
