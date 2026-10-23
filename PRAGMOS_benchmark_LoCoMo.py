@@ -57,8 +57,10 @@ DEFAULT_OUTPUT_DIR = "benchmark/locomo/runs"
 DEFAULT_MAX_TOKENS = 64
 RETRIEVAL_KS = (1, 5, 10)
 MANIFEST_SCHEMA_VERSION = 1
-TRACE_SCHEMA_VERSION = 3
+TRACE_SCHEMA_VERSION = 4
 LATENCY_SCHEMA_VERSION = 1
+DIALOG_ID_PATTERN = re.compile(r"^D:?(\d+):(\d+)$", re.IGNORECASE)
+DIALOG_ID_SEARCH_PATTERN = re.compile(r"D:?\d+:\d+", re.IGNORECASE)
 CATEGORY_NAMES = {
     1: "multi-hop",
     2: "temporal",
@@ -151,6 +153,71 @@ def normalize_session_timestamp(value):
     raise ValueError(f"Unsupported LoCoMo session timestamp: {value!r}")
 
 
+def canonical_locomo_dialog_id(value):
+    match = DIALOG_ID_PATTERN.fullmatch(str(value or "").strip())
+    if not match:
+        return None
+    return f"D{int(match.group(1))}:{int(match.group(2))}"
+
+
+def locomo_dialog_ids(sample):
+    conversation = sample["conversation"]
+    return {
+        str(turn["dia_id"]).strip()
+        for session_key in locomo_session_keys(conversation)
+        for turn in conversation[session_key]
+    }
+
+
+def resolve_locomo_evidence_ids(evidence, dialog_ids):
+    """Resolve deterministic formatting defects in official evidence IDs.
+
+    The official release contains composite strings, leading-zero turn numbers,
+    and an occasional extra colon. Values that cannot be resolved exactly after
+    those syntax-only transformations remain explicit unresolved annotations.
+    """
+    raw_ids = [str(value).strip() for value in evidence]
+    dialog_lookup = {
+        canonical_locomo_dialog_id(dialog_id): dialog_id
+        for dialog_id in dialog_ids
+        if canonical_locomo_dialog_id(dialog_id) is not None
+    }
+    normalized_ids = []
+    unresolved_ids = []
+    transformations = []
+
+    for raw_id in raw_ids:
+        candidates = DIALOG_ID_SEARCH_PATTERN.findall(raw_id)
+        if not candidates:
+            unresolved_ids.append(raw_id)
+            continue
+        resolved_for_raw = []
+        for candidate in candidates:
+            canonical_id = canonical_locomo_dialog_id(candidate)
+            resolved_id = dialog_lookup.get(canonical_id)
+            if resolved_id is None:
+                unresolved_ids.append(candidate)
+                continue
+            if resolved_id not in normalized_ids:
+                normalized_ids.append(resolved_id)
+            resolved_for_raw.append(resolved_id)
+        if resolved_for_raw and resolved_for_raw != [raw_id]:
+            transformations.append(
+                {
+                    "raw": raw_id,
+                    "resolved": resolved_for_raw,
+                }
+            )
+
+    return {
+        "raw_ids": raw_ids,
+        "normalized_ids": normalized_ids,
+        "unresolved_ids": unresolved_ids,
+        "transformations": transformations,
+        "complete": not unresolved_ids,
+    }
+
+
 def validate_locomo_dataset(samples):
     seen_question_ids = set()
     seen_sample_ids = set()
@@ -158,6 +225,10 @@ def validate_locomo_dataset(samples):
     question_count = 0
     turn_count = 0
     caption_count = 0
+    normalized_evidence_question_count = 0
+    unresolved_evidence_question_count = 0
+    unresolved_evidence_id_count = 0
+    evidence_annotation_issues = []
 
     for sample_index, sample in enumerate(samples):
         if not isinstance(sample, dict):
@@ -212,8 +283,29 @@ def validate_locomo_dataset(samples):
             evidence = qa.get("evidence") or []
             if not question or category not in CATEGORY_NAMES:
                 raise ValueError(f"Invalid question/category for {question_id}")
-            if not isinstance(evidence, list) or not set(evidence).issubset(dialog_ids):
-                raise ValueError(f"Invalid evidence IDs for {question_id}")
+            if not isinstance(evidence, list):
+                raise ValueError(f"Invalid evidence list for {question_id}")
+            evidence_resolution = resolve_locomo_evidence_ids(
+                evidence,
+                dialog_ids,
+            )
+            if evidence_resolution["transformations"]:
+                normalized_evidence_question_count += 1
+            if evidence_resolution["unresolved_ids"]:
+                unresolved_evidence_question_count += 1
+                unresolved_evidence_id_count += len(
+                    evidence_resolution["unresolved_ids"]
+                )
+            if (
+                evidence_resolution["transformations"]
+                or evidence_resolution["unresolved_ids"]
+            ):
+                evidence_annotation_issues.append(
+                    {
+                        "question_id": question_id,
+                        **evidence_resolution,
+                    }
+                )
             answer = qa.get("answer")
             if category != 5 and (answer is None or answer == ""):
                 raise ValueError(f"Answerable QA {question_id} has no answer")
@@ -225,6 +317,14 @@ def validate_locomo_dataset(samples):
         "question_count": question_count,
         "turn_count": turn_count,
         "caption_turn_count": caption_count,
+        "normalized_evidence_question_count": (
+            normalized_evidence_question_count
+        ),
+        "unresolved_evidence_question_count": (
+            unresolved_evidence_question_count
+        ),
+        "unresolved_evidence_id_count": unresolved_evidence_id_count,
+        "evidence_annotation_issues": evidence_annotation_issues,
         "category_counts": {
             str(category): category_counts[category]
             for category in sorted(CATEGORY_NAMES)
@@ -810,6 +910,7 @@ def main():
     current_sample_id = None
     prepared = None
     raw_record = None
+    current_dialog_ids = set()
     pending_conversation_ingestion_seconds = None
     source_conversation_tokens = 0
     stemmer = porter_stemmer()
@@ -823,6 +924,7 @@ def main():
             sample_id = item["sample_id"]
             if sample_id != current_sample_id:
                 current_sample_id = sample_id
+                current_dialog_ids = locomo_dialog_ids(item["sample"])
                 if args.mode == "pragmos_context":
                     ingestion_started = time.perf_counter()
                     context_layer.reset_memory(session_id=f"locomo-{sample_id}")
@@ -954,7 +1056,12 @@ def main():
 
             # Gold fields are deliberately first accessed after inference.
             answer = qa.get("answer")
-            gold_evidence = [str(value) for value in qa.get("evidence") or []]
+            evidence_resolution = resolve_locomo_evidence_ids(
+                qa.get("evidence") or [],
+                current_dialog_ids,
+            )
+            raw_gold_evidence = evidence_resolution["raw_ids"]
+            gold_evidence = evidence_resolution["normalized_ids"]
             official_score = official_locomo_score(
                 prediction,
                 answer,
@@ -970,16 +1077,41 @@ def main():
                     + list(pragmos_result["graph_evidence"]),
                     prepared["internal_to_dialog"],
                 )
-                dialog_retrieval = retrieval_metrics(gold_evidence, ranked_dialogs)
-                gold_sessions = session_ids_for_dialogs(
-                    gold_evidence,
-                    prepared["dialog_to_session"],
-                )
-                ranked_sessions = session_ids_for_dialogs(
-                    ranked_dialogs,
-                    prepared["dialog_to_session"],
-                )
-                session_retrieval = retrieval_metrics(gold_sessions, ranked_sessions)
+                if evidence_resolution["complete"]:
+                    dialog_retrieval = retrieval_metrics(
+                        gold_evidence,
+                        ranked_dialogs,
+                    )
+                    gold_sessions = session_ids_for_dialogs(
+                        gold_evidence,
+                        prepared["dialog_to_session"],
+                    )
+                    ranked_sessions = session_ids_for_dialogs(
+                        ranked_dialogs,
+                        prepared["dialog_to_session"],
+                    )
+                    session_retrieval = retrieval_metrics(
+                        gold_sessions,
+                        ranked_sessions,
+                    )
+                else:
+                    not_applicable = {
+                        "applicable": False,
+                        "gold_ids": gold_evidence,
+                        "ranked_ids": ranked_dialogs,
+                        "not_applicable_reason": (
+                            "unresolved_official_evidence_annotation"
+                        ),
+                        "unresolved_gold_ids": evidence_resolution[
+                            "unresolved_ids"
+                        ],
+                    }
+                    dialog_retrieval = not_applicable
+                    session_retrieval = {
+                        **not_applicable,
+                        "gold_ids": [],
+                        "ranked_ids": [],
+                    }
 
             prediction_record = {
                 "question_id": item["question_id"],
@@ -996,6 +1128,8 @@ def main():
                 "question": question,
                 "answer": answer,
                 "evidence": gold_evidence,
+                "raw_evidence": raw_gold_evidence,
+                "evidence_annotation_resolution": evidence_resolution,
                 "official_locomo_f1": official_score,
                 "elapsed_seconds": query_wall_seconds,
                 "core_elapsed_seconds": result["elapsed_seconds"],
@@ -1173,6 +1307,7 @@ def main():
             "answer": row["answer"],
             "prediction": row["hypothesis"],
             "evidence": row["evidence"],
+            "raw_evidence": row["raw_evidence"],
             "prediction_context": row.get("ranked_dialog_ids", []),
         }
         for row in run_rows

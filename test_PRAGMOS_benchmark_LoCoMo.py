@@ -1,4 +1,5 @@
 import argparse
+import copy
 import unittest
 from collections import OrderedDict
 
@@ -147,6 +148,33 @@ class LoCoMoAdapterTests(unittest.TestCase):
         workload = adapter.flatten_workload([self.sample], args)
         self.assertEqual(len(workload), 1)
         self.assertEqual(workload[0]["question_id"], "q-1")
+
+    def test_official_evidence_id_formatting_is_normalized_without_guessing(self):
+        resolution = adapter.resolve_locomo_evidence_ids(
+            ["D8:6; D9:17", "D:11:26", "D30:05", "D", "D4:36"],
+            {"D8:6", "D9:17", "D11:26", "D30:5"},
+        )
+
+        self.assertEqual(
+            resolution["normalized_ids"],
+            ["D8:6", "D9:17", "D11:26", "D30:5"],
+        )
+        self.assertEqual(resolution["unresolved_ids"], ["D", "D4:36"])
+        self.assertFalse(resolution["complete"])
+
+    def test_dataset_validation_reports_official_evidence_annotation_issues(self):
+        sample = copy.deepcopy(self.sample)
+        sample["qa"][0]["evidence"] = ["D1:1; D2:1", "D"]
+
+        validation = adapter.validate_locomo_dataset([sample])
+
+        self.assertEqual(validation["question_count"], 2)
+        self.assertEqual(validation["normalized_evidence_question_count"], 1)
+        self.assertEqual(validation["unresolved_evidence_question_count"], 1)
+        self.assertEqual(validation["unresolved_evidence_id_count"], 1)
+        issue = validation["evidence_annotation_issues"][0]
+        self.assertEqual(issue["normalized_ids"], ["D1:1", "D2:1"])
+        self.assertEqual(issue["unresolved_ids"], ["D"])
 
     def test_official_category_scoring_rules(self):
         stemmer = IdentityStemmer()
