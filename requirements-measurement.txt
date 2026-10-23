@@ -1,0 +1,2 @@
+# Independent process-tree RAM and CPU sampling for publication runs.
+psutil>=5.9,<8

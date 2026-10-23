@@ -211,6 +211,85 @@ class LoCoMoAdapterTests(unittest.TestCase):
         )
         self.assertEqual(sessions, ["session_1", "session_2"])
 
+    def test_latency_aggregation_includes_fork_and_amortizes_ingestion(self):
+        rows = [
+            {
+                "sample_id": "sample-a",
+                "core_elapsed_seconds": 2.0,
+                "query_fork_seconds": 0.4,
+                "query_wall_seconds": 3.0,
+                "conversation_ingestion_event": True,
+                "conversation_ingestion_seconds": 5.0,
+            },
+            {
+                "sample_id": "sample-a",
+                "core_elapsed_seconds": 2.0,
+                "query_fork_seconds": 0.3,
+                "query_wall_seconds": 2.5,
+                "conversation_ingestion_event": False,
+                "conversation_ingestion_seconds": 0.0,
+            },
+            {
+                "sample_id": "sample-b",
+                "core_elapsed_seconds": 1.0,
+                "query_fork_seconds": 0.2,
+                "query_wall_seconds": 2.0,
+                "conversation_ingestion_event": True,
+                "conversation_ingestion_seconds": 4.0,
+            },
+        ]
+
+        metrics = adapter.aggregate_latency_metrics(rows)
+
+        self.assertEqual(metrics["question_count"], 3)
+        self.assertEqual(metrics["unique_conversation_count"], 2)
+        self.assertEqual(metrics["conversation_ingestion_event_count"], 2)
+        self.assertAlmostEqual(metrics["avg_core_elapsed_seconds"], 5.0 / 3.0)
+        self.assertAlmostEqual(metrics["avg_query_fork_seconds"], 0.3)
+        self.assertAlmostEqual(metrics["avg_query_wall_seconds"], 2.5)
+        self.assertAlmostEqual(
+            metrics["total_conversation_ingestion_seconds"],
+            9.0,
+        )
+        self.assertAlmostEqual(
+            metrics["avg_conversation_ingestion_seconds_per_event"],
+            4.5,
+        )
+        self.assertAlmostEqual(
+            metrics["avg_amortized_ingestion_seconds_per_question"],
+            3.0,
+        )
+        self.assertAlmostEqual(
+            metrics["avg_amortized_end_to_end_seconds"],
+            5.5,
+        )
+
+    def test_latency_aggregation_does_not_repeat_ingestion_per_question(self):
+        rows = [
+            {
+                "sample_id": "sample-a",
+                "core_elapsed_seconds": 1.0,
+                "query_fork_seconds": 0.1,
+                "query_wall_seconds": 1.5,
+                "conversation_ingestion_event": True,
+                "conversation_ingestion_seconds": 6.0,
+            },
+            {
+                "sample_id": "sample-a",
+                "core_elapsed_seconds": 1.0,
+                "query_fork_seconds": 0.1,
+                "query_wall_seconds": 1.5,
+                "conversation_ingestion_event": False,
+                "conversation_ingestion_seconds": 6.0,
+            },
+        ]
+
+        metrics = adapter.aggregate_latency_metrics(rows)
+
+        self.assertEqual(metrics["conversation_ingestion_event_count"], 1)
+        self.assertEqual(metrics["total_conversation_ingestion_seconds"], 6.0)
+        self.assertEqual(metrics["avg_amortized_end_to_end_seconds"], 4.5)
+
     def test_wrong_speaker_with_identical_fact_does_not_ground_answer(self):
         profile = build_query_profile(
             "When did Asha start painting?",

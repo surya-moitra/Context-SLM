@@ -42,6 +42,11 @@ from PRAGMOS_benchmark_LongMemEval import (
     run_pragmos_record,
     with_manifest_fingerprint,
 )
+from PRAGMOS_observability import (
+    MEASUREMENT_TRACE_SCHEMA_VERSION,
+    aggregate_measurement_traces,
+    build_measurement_trace,
+)
 
 
 DEFAULT_DATA_FILE = (
@@ -52,6 +57,8 @@ DEFAULT_OUTPUT_DIR = "benchmark/locomo/runs"
 DEFAULT_MAX_TOKENS = 64
 RETRIEVAL_KS = (1, 5, 10)
 MANIFEST_SCHEMA_VERSION = 1
+TRACE_SCHEMA_VERSION = 3
+LATENCY_SCHEMA_VERSION = 1
 CATEGORY_NAMES = {
     1: "multi-hop",
     2: "temporal",
@@ -87,6 +94,13 @@ TEMPORAL_INSTRUCTION = (
     " Use the dates attached to the conversation sessions. When the evidence "
     "uses relative time, resolve it against that session date and return the "
     "corresponding approximate calendar date."
+)
+LATENCY_ACCOUNTING_POLICY = (
+    "Conversation ingestion is timed once per actual PRAGMOS indexing event. "
+    "Per-question wall time includes adapter query preparation, query-layer "
+    "forking, retrieval, generation, and answer canonicalization, but excludes "
+    "post-inference observability and scoring. Headline latency amortizes all "
+    "recorded ingestion events across the processed questions."
 )
 
 
@@ -300,6 +314,25 @@ def locomo_as_haystack_record(sample):
     }
 
 
+def canonical_locomo_source_conversation(sample):
+    """Serialize the complete source consistently for tokenizer-based accounting."""
+    conversation = sample["conversation"]
+    blocks = []
+    for session_key in locomo_session_keys(conversation):
+        timestamp = normalize_session_timestamp(
+            conversation.get(f"{session_key}_date_time")
+        )
+        lines = [f"[session_id={session_key}; timestamp={timestamp or 'unknown'}]"]
+        for turn in conversation[session_key]:
+            speaker = str(turn["speaker"]).strip()
+            lines.append(f"{speaker}: {str(turn['text']).strip()}")
+            caption = str(turn.get("blip_caption") or "").strip()
+            if caption:
+                lines.append(f"{speaker} [image_caption]: {caption}")
+        blocks.append("\n".join(lines))
+    return "\n\n".join(blocks)
+
+
 def inference_record_for_category(category):
     """Return only non-gold metadata needed by the inference pipeline."""
     record = {}
@@ -511,6 +544,7 @@ def build_manifest(args, workload):
     root = Path(__file__).resolve().parent
     sources = [
         root / "PRAGMOS_benchmark_LoCoMo.py",
+        root / "PRAGMOS_observability.py",
         root / "PRAGMOS_benchmark_LongMemEval.py",
         root / "Phi3_raw_baseline.py",
     ]
@@ -541,6 +575,13 @@ def build_manifest(args, workload):
             "gold_isolation_policy": (
                 "answer and evidence fields are read only after inference"
             ),
+            "trace_schema_version": TRACE_SCHEMA_VERSION,
+            "latency_schema_version": LATENCY_SCHEMA_VERSION,
+            "latency_accounting_policy": LATENCY_ACCOUNTING_POLICY,
+            "measurement_trace_schema_version": MEASUREMENT_TRACE_SCHEMA_VERSION,
+            "measurement_policy": (
+                "post_inference_sidecar_accounting_without_retrieval_or_generation_changes"
+            ),
         }
     )
 
@@ -563,6 +604,60 @@ def aggregate_retrieval_metrics(rows, field):
             item[f"ndcg_at_{k}"] for item in applicable
         )
     return result
+
+
+def aggregate_latency_metrics(rows):
+    """Aggregate non-overlapping adapter latency components.
+
+    Ingestion is an event-level cost. It is intentionally recorded on only the
+    first question processed after an actual conversation indexing operation,
+    so this aggregation remains correct for resumed runs that re-index a sample.
+    """
+    rows = list(rows)
+    if not rows:
+        raise ValueError("Cannot aggregate latency for an empty run")
+
+    core_seconds = [
+        float(row.get("core_elapsed_seconds", row.get("elapsed_seconds", 0.0)))
+        for row in rows
+    ]
+    fork_seconds = [float(row.get("query_fork_seconds", 0.0)) for row in rows]
+    query_wall_seconds = [
+        float(row.get("query_wall_seconds", row.get("elapsed_seconds", 0.0)))
+        for row in rows
+    ]
+    ingestion_events = [
+        float(row.get("conversation_ingestion_seconds", 0.0))
+        for row in rows
+        if row.get("conversation_ingestion_event", False)
+    ]
+    total_query_wall_seconds = sum(query_wall_seconds)
+    total_ingestion_seconds = sum(ingestion_events)
+    question_count = len(rows)
+
+    return {
+        "schema_version": LATENCY_SCHEMA_VERSION,
+        "accounting_policy": LATENCY_ACCOUNTING_POLICY,
+        "question_count": question_count,
+        "unique_conversation_count": len(
+            {str(row.get("sample_id")) for row in rows}
+        ),
+        "conversation_ingestion_event_count": len(ingestion_events),
+        "avg_core_elapsed_seconds": statistics.mean(core_seconds),
+        "avg_query_fork_seconds": statistics.mean(fork_seconds),
+        "avg_query_wall_seconds": statistics.mean(query_wall_seconds),
+        "total_conversation_ingestion_seconds": total_ingestion_seconds,
+        "avg_conversation_ingestion_seconds_per_event": (
+            statistics.mean(ingestion_events) if ingestion_events else 0.0
+        ),
+        "avg_amortized_ingestion_seconds_per_question": (
+            total_ingestion_seconds / question_count
+        ),
+        "avg_amortized_end_to_end_seconds": (
+            total_query_wall_seconds + total_ingestion_seconds
+        )
+        / question_count,
+    }
 
 
 def parse_args():
@@ -715,7 +810,8 @@ def main():
     current_sample_id = None
     prepared = None
     raw_record = None
-    conversation_ingestion_seconds = 0.0
+    pending_conversation_ingestion_seconds = None
+    source_conversation_tokens = 0
     stemmer = porter_stemmer()
     started_at = time.perf_counter()
 
@@ -728,23 +824,35 @@ def main():
             if sample_id != current_sample_id:
                 current_sample_id = sample_id
                 if args.mode == "pragmos_context":
+                    ingestion_started = time.perf_counter()
                     context_layer.reset_memory(session_id=f"locomo-{sample_id}")
                     prepared = build_locomo_turns(context_layer, item["sample"])
-                    ingestion_started = time.perf_counter()
                     context_layer.index_raw_turns(
                         prepared["turns"],
                         chunk_words=args.pragmos_chunk_words,
                         overlap_words=args.pragmos_chunk_overlap_words,
                         batch_size=args.pragmos_embedding_batch_size,
                     )
-                    conversation_ingestion_seconds = time.perf_counter() - ingestion_started
+                    pending_conversation_ingestion_seconds = (
+                        time.perf_counter() - ingestion_started
+                    )
                 else:
                     raw_record = locomo_as_haystack_record(item["sample"])
+                    pending_conversation_ingestion_seconds = None
+                token_counter = context_layer if context_layer is not None else model
+                source_conversation_tokens = token_counter.count_tokens(
+                    canonical_locomo_source_conversation(item["sample"])
+                )
 
+            question_wall_started_at = time.perf_counter()
             pragmos_result = None
             haystack_info = None
+            query_layer = None
+            query_fork_seconds = 0.0
             if args.mode == "pragmos_context":
+                fork_started = time.perf_counter()
                 query_layer = context_layer.fork_for_query()
+                query_fork_seconds = time.perf_counter() - fork_started
                 query_args = copy.copy(args)
                 query_args.pragmos_system_prompt = system_prompt_for_category(
                     args.pragmos_system_prompt,
@@ -791,6 +899,58 @@ def main():
                 )
 
             prediction = canonicalize_locomo_abstention(result["text"])
+            query_wall_seconds = time.perf_counter() - question_wall_started_at
+            conversation_ingestion_event = (
+                pending_conversation_ingestion_seconds is not None
+            )
+            conversation_ingestion_seconds = (
+                float(pending_conversation_ingestion_seconds)
+                if conversation_ingestion_event
+                else 0.0
+            )
+            pending_conversation_ingestion_seconds = None
+            accounted_end_to_end_seconds = (
+                query_wall_seconds + conversation_ingestion_seconds
+            )
+            injected_context_tokens = (
+                pragmos_result["context_tokens_estimate"]
+                if pragmos_result is not None
+                else haystack_info["history_tokens_estimate"]
+            )
+            measurement_trace = build_measurement_trace(
+                source_conversation_tokens=source_conversation_tokens,
+                injected_context_tokens=injected_context_tokens,
+                context_token_budget=(
+                    pragmos_result.get("context_token_budget")
+                    if pragmos_result is not None
+                    else None
+                ),
+                final_memories=(
+                    pragmos_result.get("final_memories")
+                    if pragmos_result is not None
+                    else None
+                ),
+                graph_evidence=(
+                    pragmos_result.get("graph_evidence")
+                    if pragmos_result is not None
+                    else None
+                ),
+                memory_count=(
+                    pragmos_result.get("memory_count")
+                    if pragmos_result is not None
+                    else None
+                ),
+                graph_node_count=(
+                    pragmos_result.get("graph_node_count")
+                    if pragmos_result is not None
+                    else None
+                ),
+                graph_edge_count=(
+                    pragmos_result.get("graph_edge_count")
+                    if pragmos_result is not None
+                    else None
+                ),
+            )
 
             # Gold fields are deliberately first accessed after inference.
             answer = qa.get("answer")
@@ -837,12 +997,21 @@ def main():
                 "answer": answer,
                 "evidence": gold_evidence,
                 "official_locomo_f1": official_score,
-                "elapsed_seconds": result["elapsed_seconds"],
+                "elapsed_seconds": query_wall_seconds,
+                "core_elapsed_seconds": result["elapsed_seconds"],
+                "query_fork_seconds": query_fork_seconds,
+                "query_wall_seconds": query_wall_seconds,
+                "conversation_ingestion_event": conversation_ingestion_event,
+                "conversation_ingestion_seconds": conversation_ingestion_seconds,
+                "accounted_end_to_end_seconds": accounted_end_to_end_seconds,
                 "prompt_tokens_estimate": result["prompt_tokens_estimate"],
                 "completion_tokens_estimate": result["completion_tokens_estimate"],
                 "canonicalized_abstention": prediction != result["text"],
                 "dialog_retrieval_metrics": dialog_retrieval,
                 "session_retrieval_metrics": session_retrieval,
+                "trace_schema_version": TRACE_SCHEMA_VERSION,
+                "latency_schema_version": LATENCY_SCHEMA_VERSION,
+                "measurement_trace": measurement_trace,
             }
             if haystack_info is not None:
                 trace_record["included_haystack_session_ids"] = haystack_info[
@@ -857,7 +1026,6 @@ def main():
             if pragmos_result is not None:
                 trace_record.update(
                     {
-                        "conversation_ingestion_seconds": conversation_ingestion_seconds,
                         "ingested_turn_count": len(prepared["turns"]),
                         "answer_decision": pragmos_result["answer_decision"],
                         "safe_abstention": pragmos_result["safe_abstention"],
@@ -867,6 +1035,12 @@ def main():
                         "context_tokens_estimate": pragmos_result[
                             "context_tokens_estimate"
                         ],
+                        "context_token_budget": pragmos_result[
+                            "context_token_budget"
+                        ],
+                        "memory_count": pragmos_result["memory_count"],
+                        "graph_node_count": pragmos_result["graph_node_count"],
+                        "graph_edge_count": pragmos_result["graph_edge_count"],
                         "operation_plan": pragmos_result["operation_plan"],
                         "operation_result": pragmos_result["operation_result"],
                         "evidence_synthesis_result": pragmos_result[
@@ -918,7 +1092,10 @@ def main():
             print(
                 f"[{processed}/{len(workload)}] {item['question_id']} "
                 f"category={category} f1={official_score:.3f} "
-                f"time={result['elapsed_seconds']:.2f}s"
+                f"query={query_wall_seconds:.2f}s "
+                f"core={result['elapsed_seconds']:.2f}s "
+                f"fork={query_fork_seconds:.2f}s "
+                f"ingestion={conversation_ingestion_seconds:.2f}s"
             )
     finally:
         try:
@@ -938,6 +1115,7 @@ def main():
                     row["official_locomo_f1"] for row in rows
                 ),
             }
+    latency_summary = aggregate_latency_metrics(run_rows)
     summary = {
         "mode": args.mode,
         "processed": len(run_rows),
@@ -951,9 +1129,10 @@ def main():
             row["official_locomo_f1"] for row in run_rows
         ),
         "by_category": category_summary,
-        "avg_elapsed_seconds": statistics.mean(
-            row["elapsed_seconds"] for row in run_rows
-        ),
+        "avg_elapsed_seconds": latency_summary[
+            "avg_amortized_end_to_end_seconds"
+        ],
+        "latency": latency_summary,
         "invocation_elapsed_seconds": time.perf_counter() - started_at,
         "predictions_path": str(predictions_path),
         "trace_path": str(trace_path),
@@ -966,7 +1145,18 @@ def main():
         "gold_isolation_policy": (
             "Gold answer/evidence accessed only after each prediction"
         ),
+        "trace_schema_version": TRACE_SCHEMA_VERSION,
+        "latency_schema_version": LATENCY_SCHEMA_VERSION,
+        "measurement_trace_schema_version": MEASUREMENT_TRACE_SCHEMA_VERSION,
     }
+    measurement_summary = aggregate_measurement_traces(
+        row["measurement_trace"] for row in run_rows
+    )
+    summary["context_efficiency"] = measurement_summary["context_efficiency"]
+    if measurement_summary["memory_graph_quality"] is not None:
+        summary["memory_graph_quality"] = measurement_summary[
+            "memory_graph_quality"
+        ]
     if args.mode == "pragmos_context":
         summary["dialog_retrieval"] = aggregate_retrieval_metrics(
             run_rows,
