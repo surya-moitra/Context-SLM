@@ -126,6 +126,7 @@ class MeasurementReportTests(unittest.TestCase):
             "run_name": "candidate",
             "completed": True,
             "processed_questions": 200,
+            "wall_seconds": 16000.0,
             "headline_metrics": {
                 "peak_process_tree_rss_gib": 3.25,
                 "mean_cpu_utilization_percent_of_machine": 61.0,
@@ -159,6 +160,16 @@ class MeasurementReportTests(unittest.TestCase):
         self.assertEqual(report["quality"]["f1"], 0.83)
         self.assertEqual(report["quality"]["llm_judge_accuracy"], 0.8)
         self.assertEqual(report["retrieval"]["recall_at_5"], 0.98)
+        self.assertEqual(
+            report["latency"]["end_to_end_wall_seconds_per_question"],
+            80.0,
+        )
+        self.assertEqual(
+            report["latency"][
+                "benchmark_internal_mean_seconds_per_question"
+            ],
+            75.0,
+        )
         self.assertEqual(len(report["resources"]), 3)
         self.assertTrue(report["execution"]["process_tree_enumeration_complete"])
 
@@ -212,6 +223,57 @@ class MeasurementReportTests(unittest.TestCase):
                 benchmark,
                 self.resource_summary(),
             )
+
+    def test_resumed_run_uses_newly_processed_question_count(self):
+        benchmark = {
+            "avg_token_f1": 0.8,
+            "avg_elapsed_seconds": 3.0,
+            "processed": 200,
+            "newly_processed": 25,
+        }
+        resources = self.resource_summary()
+        resources["processed_questions"] = 25
+        resources["wall_seconds"] = 100.0
+
+        report = reporter.build_measurement_report(benchmark, resources)
+
+        self.assertEqual(
+            report["latency"]["end_to_end_wall_seconds_per_question"],
+            4.0,
+        )
+
+    def test_report_rejects_invalid_wall_time_or_question_count(self):
+        benchmark = {"avg_token_f1": 0.8}
+        missing_wall = self.resource_summary()
+        missing_wall.pop("wall_seconds")
+        with self.assertRaisesRegex(ValueError, "missing wall_seconds"):
+            reporter.build_measurement_report(benchmark, missing_wall)
+
+        invalid_wall = self.resource_summary()
+        invalid_wall["wall_seconds"] = 0
+        with self.assertRaisesRegex(ValueError, "wall_seconds"):
+            reporter.build_measurement_report(benchmark, invalid_wall)
+
+        invalid_count = self.resource_summary()
+        invalid_count["processed_questions"] = 0
+        with self.assertRaisesRegex(ValueError, "processed_questions"):
+            reporter.build_measurement_report(benchmark, invalid_count)
+
+    def test_markdown_labels_end_to_end_latency_as_headline(self):
+        benchmark = {
+            "avg_token_f1": 0.8,
+            "avg_elapsed_seconds": 60.0,
+        }
+
+        markdown = reporter.report_markdown(
+            reporter.build_measurement_report(benchmark, self.resource_summary())
+        )
+
+        self.assertIn("End-to-end wall time per question: 80.000 seconds", markdown)
+        self.assertIn(
+            "Benchmark-reported internal mean latency (diagnostic): 60.000 seconds",
+            markdown,
+        )
 
     def test_sidecar_trace_metrics_are_used_for_longmemeval(self):
         benchmark = {

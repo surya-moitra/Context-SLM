@@ -5,11 +5,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 from typing import Any, Sequence
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -47,6 +48,29 @@ def retrieval_metrics(summary: dict[str, Any], family: str) -> dict[str, Any]:
             "answer_session_full_coverage_rate"
         ),
     }
+
+
+def end_to_end_wall_seconds_per_question(
+    resource_summary: dict[str, Any],
+) -> float:
+    wall_seconds = resource_summary.get("wall_seconds")
+    processed_questions = resource_summary.get("processed_questions")
+    if wall_seconds is None:
+        raise ValueError("Resource summary is missing wall_seconds")
+    if processed_questions is None:
+        raise ValueError("Resource summary is missing processed_questions")
+    try:
+        wall_seconds = float(wall_seconds)
+        processed_questions = int(processed_questions)
+    except (TypeError, ValueError) as error:
+        raise ValueError(
+            "Resource wall_seconds and processed_questions must be numeric"
+        ) from error
+    if not math.isfinite(wall_seconds) or wall_seconds <= 0:
+        raise ValueError("Resource wall_seconds must be finite and greater than zero")
+    if processed_questions <= 0:
+        raise ValueError("Resource processed_questions must be greater than zero")
+    return wall_seconds / processed_questions
 
 
 def build_measurement_report(
@@ -93,6 +117,7 @@ def build_measurement_report(
     trace_metrics_summary = trace_metrics_summary or benchmark_summary
     context_efficiency = trace_metrics_summary.get("context_efficiency") or {}
     memory_graph_quality = trace_metrics_summary.get("memory_graph_quality") or {}
+    end_to_end_latency = end_to_end_wall_seconds_per_question(resource_summary)
     return {
         "schema_version": SCHEMA_VERSION,
         "benchmark_family": family,
@@ -105,8 +130,14 @@ def build_measurement_report(
         },
         "retrieval": retrieval_metrics(benchmark_summary, family),
         "latency": {
-            "mean_seconds_per_question": benchmark_summary.get(
+            "end_to_end_wall_seconds_per_question": end_to_end_latency,
+            "benchmark_internal_mean_seconds_per_question": benchmark_summary.get(
                 "avg_elapsed_seconds"
+            ),
+            "total_process_wall_seconds": float(resource_summary["wall_seconds"]),
+            "headline_definition": (
+                "Measured benchmark-process wall seconds divided by questions "
+                "completed during this invocation."
             ),
         },
         "resources": resource_summary.get("headline_metrics") or {},
@@ -187,8 +218,12 @@ def report_markdown(report: dict[str, Any]) -> str:
         f"- Recall@10: {format_value(retrieval.get('recall_at_10'))}",
         "- Complete evidence coverage: "
         f"{format_value(retrieval.get('complete_evidence_coverage_rate'))}",
-        "- Mean latency per question: "
-        f"{format_value(latency.get('mean_seconds_per_question'), 3)} seconds",
+        "- End-to-end wall time per question: "
+        f"{format_value(latency.get('end_to_end_wall_seconds_per_question'), 3)} "
+        "seconds",
+        "- Benchmark-reported internal mean latency (diagnostic): "
+        f"{format_value(latency.get('benchmark_internal_mean_seconds_per_question'), 3)} "
+        "seconds",
         "",
         "## Context Efficiency",
         "",

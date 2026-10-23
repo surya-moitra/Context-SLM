@@ -70,6 +70,21 @@ The compact report contains the existing F1, judge accuracy, retrieval, and
 latency results plus the resource, context-efficiency, and memory/graph quality
 metrics. It rejects mismatched benchmark and resource invocation counts.
 
+The headline latency is end-to-end process wall time per question:
+
+```text
+resource_summary.wall_seconds / resource_summary.processed_questions
+```
+
+This applies the same boundary to raw-model and PRAGMOS runs, including process
+startup, model loading, prompt or context preparation, retrieval, generation,
+and result serialization. The benchmark's own `avg_elapsed_seconds` is retained
+only as an internal diagnostic because its timed region differs between raw and
+PRAGMOS execution paths. For resumed invocations, `processed_questions` is the
+benchmark summary's `newly_processed` count. Use full-suite runs, rather than
+small smoke runs, for the publication headline so startup costs are amortized
+over the same workload size.
+
 ## Trace Metrics
 
 New LoCoMo runs write a versioned `measurement_trace` object into every trace
