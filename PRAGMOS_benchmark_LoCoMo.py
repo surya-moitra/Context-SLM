@@ -57,7 +57,7 @@ DEFAULT_OUTPUT_DIR = "benchmark/locomo/runs"
 DEFAULT_MAX_TOKENS = 64
 RETRIEVAL_KS = (1, 5, 10)
 MANIFEST_SCHEMA_VERSION = 1
-TRACE_SCHEMA_VERSION = 4
+TRACE_SCHEMA_VERSION = 5
 LATENCY_SCHEMA_VERSION = 1
 DIALOG_ID_PATTERN = re.compile(r"^D:?(\d+):(\d+)$", re.IGNORECASE)
 DIALOG_ID_SEARCH_PATTERN = re.compile(r"D:?\d+:\d+", re.IGNORECASE)
@@ -813,6 +813,11 @@ def parse_args():
     parser.add_argument("--pragmos-session-neighbor-radius", type=int, default=2)
     parser.add_argument("--pragmos-session-neighbors", type=int, default=4)
     parser.add_argument("--pragmos-answer-context-tokens", type=int, default=1300)
+    parser.add_argument(
+        "--pragmos-answer-suffix-format",
+        choices=["compact", "legacy"],
+        default="compact",
+    )
     parser.add_argument("--pragmos-chunk-words", type=int, default=160)
     parser.add_argument("--pragmos-chunk-overlap-words", type=int, default=32)
     parser.add_argument("--pragmos-embedding-batch-size", type=int, default=64)
@@ -1172,6 +1177,15 @@ def main():
                         "context_token_budget": pragmos_result[
                             "context_token_budget"
                         ],
+                        "answer_suffix_format": pragmos_result[
+                            "answer_suffix_format"
+                        ],
+                        "answer_suffix_tokens_estimate": pragmos_result[
+                            "answer_suffix_tokens_estimate"
+                        ],
+                        "context_packing_diagnostics": pragmos_result[
+                            "context_packing_diagnostics"
+                        ],
                         "memory_count": pragmos_result["memory_count"],
                         "graph_node_count": pragmos_result["graph_node_count"],
                         "graph_edge_count": pragmos_result["graph_edge_count"],
@@ -1201,6 +1215,10 @@ def main():
                         "query_profile": pragmos_result["query_profile"],
                         "query_intent": pragmos_result["query_intent"],
                         "actor_grounding": pragmos_result["actor_grounding"],
+                        "candidate_extraction_diagnostics": pragmos_result[
+                            "candidate_extraction_diagnostics"
+                        ],
+                        "llm_call_counts": pragmos_result["llm_call_counts"],
                         "retrieval_candidate_pool": pragmos_result[
                             "retrieval_candidate_pool"
                         ],

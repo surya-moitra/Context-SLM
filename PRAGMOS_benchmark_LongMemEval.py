@@ -24,7 +24,7 @@ import os
 import re
 import statistics
 import time
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 
 from Phi3_raw_baseline import (
@@ -42,6 +42,7 @@ from Phi3_raw_baseline import (
 
 DEFAULT_OUTPUT_DIR = "benchmark_outputs"
 DEFAULT_BENCHMARK_MAX_TOKENS = 64
+DEFAULT_PRAGMOS_ANSWER_SUFFIX_FORMAT = "legacy"
 LONGMEMEVAL_RETRIEVAL_KS = (1, 5, 10)
 RUN_MANIFEST_SCHEMA_VERSION = 1
 PRAGMOS_ABLATION_CHOICES = (
@@ -471,6 +472,9 @@ PREFERENCE_RECOMMENDATION_INTENT = "preference_recommendation"
 EVIDENCE_SYNTHESIS_INTENT = "evidence_synthesis"
 KNOWLEDGE_UPDATE_INTENT = "knowledge_update"
 USER_MEMORY_INTENT = "user_memory"
+SOURCE_ROLE_TARGET_ASSISTANT = "assistant"
+SOURCE_ROLE_TARGET_USER = "user"
+SOURCE_ROLE_TARGET_MIXED = "mixed"
 
 
 def pragmos_ablation_set(args):
@@ -492,26 +496,56 @@ def counter_delta(after, before):
 def infer_query_intent(question):
     """Infer source-role and answer behavior from question text only."""
     normalized = re.sub(r"\s+", " ", (question or "").strip().lower())
-    assistant_patterns = (
+    explicit_user_patterns = (
+        r"\bi\s+(?:mentioned|said|shared|provided|used|wrote)\b",
+        r"\bi\s+told\s+you\b",
+        r"\bi\s+gave\s+you\s+(?:an?\s+)?(?:example|name|number|detail|fact)\b",
+        r"\bmy\s+(?:example|request|question|comment|description)\b",
+    )
+    if any(re.search(pattern, normalized) for pattern in explicit_user_patterns):
+        return {
+            "intent": USER_MEMORY_INTENT,
+            "preferred_source_roles": ["user"],
+            "source_role_target": SOURCE_ROLE_TARGET_USER,
+            "answer_mode": "fact_recall",
+        }
+
+    explicit_assistant_patterns = (
         r"\byou\s+(?:called|described|explained|gave|identified|listed|"
-        r"made|mentioned|outlined|provided|recommended|said|suggested|told)\b",
+        r"made|mentioned|outlined|provided|recommended|said|suggested|told|"
+        r"wrote|created)\b",
         r"\bdid you\s+(?:call|describe|explain|give|identify|list|make|mention|"
-        r"outline|provide|recommend|say|suggest|tell)\b",
+        r"outline|provide|recommend|say|suggest|tell|write|create)\b",
         r"\b(?:list|options?|recommendations?|answer|name|number|process|"
         r"colou?r|objectives?)\s+(?:that\s+)?you\s+(?:described|gave|listed|"
-        r"mentioned|outlined|provided|recommended|said|suggested)\b",
+        r"mentioned|outlined|provided|recommended|said|suggested|wrote|created)\b",
+    )
+    if any(
+        re.search(pattern, normalized) for pattern in explicit_assistant_patterns
+    ):
+        return {
+            "intent": ASSISTANT_MEMORY_INTENT,
+            "preferred_source_roles": ["assistant"],
+            "source_role_target": SOURCE_ROLE_TARGET_ASSISTANT,
+            "answer_mode": "recall_assistant_content",
+        }
+
+    neutral_conversation_patterns = (
         r"\b(?:previous|earlier|last)\s+(?:chat|conversation|discussion)\b"
-        r".*\b(?:you|your)\b",
+        r".*\b(?:you|your|we|our)\b",
         r"\b(?:our|the)\s+(?:previous|earlier|last)\s+"
         r"(?:chat|conversation|discussion|game)\b",
         r"\bwe\s+(?:discussed|talked)\b.*\b(?:before|earlier|last time|previously)\b",
         r"\bremind me of (?:the name of )?that\b",
     )
-    if any(re.search(pattern, normalized) for pattern in assistant_patterns):
+    if any(
+        re.search(pattern, normalized) for pattern in neutral_conversation_patterns
+    ):
         return {
             "intent": ASSISTANT_MEMORY_INTENT,
-            "preferred_source_roles": ["assistant"],
-            "answer_mode": "recall_assistant_content",
+            "preferred_source_roles": ["assistant", "user"],
+            "source_role_target": SOURCE_ROLE_TARGET_MIXED,
+            "answer_mode": "recall_conversation_content",
         }
     if (
         re.search(r"\bremind me what (?:is|was|were)\b", normalized)
@@ -519,17 +553,23 @@ def infer_query_intent(question):
     ):
         return {
             "intent": ASSISTANT_MEMORY_INTENT,
-            "preferred_source_roles": ["assistant"],
-            "answer_mode": "recall_assistant_content",
+            "preferred_source_roles": ["assistant", "user"],
+            "source_role_target": SOURCE_ROLE_TARGET_MIXED,
+            "answer_mode": "recall_conversation_content",
         }
-    if re.search(
+    preference_patterns = (
         r"\b(?:(?:can|could|would) you (?:recommend|suggest)|"
         r"what (?:do|would) you recommend)\b",
-        normalized,
-    ):
+        r"\b(?:any|some)\s+(?:recommendations?|suggestions?|tips?|advice|ideas)\b",
+        r"\bwhat should (?:i|we)\b",
+        r"\bwhat (?:would|could) be (?:a )?good\b",
+        r"\bnot sure (?:which|what) (?:one|option) to choose\b",
+    )
+    if any(re.search(pattern, normalized) for pattern in preference_patterns):
         return {
             "intent": PREFERENCE_RECOMMENDATION_INTENT,
             "preferred_source_roles": ["user"],
+            "source_role_target": SOURCE_ROLE_TARGET_USER,
             "answer_mode": "preference_synthesis",
         }
     synthesis_patterns = (
@@ -543,6 +583,7 @@ def infer_query_intent(question):
         return {
             "intent": EVIDENCE_SYNTHESIS_INTENT,
             "preferred_source_roles": ["user"],
+            "source_role_target": SOURCE_ROLE_TARGET_USER,
             "answer_mode": "premise_based_inference",
             "requires_session_diversity": True,
         }
@@ -554,11 +595,13 @@ def infer_query_intent(question):
         return {
             "intent": KNOWLEDGE_UPDATE_INTENT,
             "preferred_source_roles": ["user"],
+            "source_role_target": SOURCE_ROLE_TARGET_USER,
             "answer_mode": "fact_recall",
         }
     return {
         "intent": USER_MEMORY_INTENT,
         "preferred_source_roles": ["user"],
+        "source_role_target": SOURCE_ROLE_TARGET_USER,
         "answer_mode": "fact_recall",
     }
 
@@ -691,13 +734,24 @@ def preference_constraint_matches(source_quote):
         (
             re.compile(
                 r"\b(?:i|we)\s+(?:(?:now|currently|really)\s+)?"
-                r"(?:would\s+)?(?:prefer|like|love|enjoy)\s+"
+                r"(?:would\s+)?(?:prefer|like|love|enjoy|value|prioritize)\s+"
                 r"(?P<value>.+?)(?=[.!?;]|,\s*(?:but|please)|$)",
                 flags=re.IGNORECASE,
             ),
             "include",
             "soft",
             0.95,
+        ),
+        (
+            re.compile(
+                r"\b(?:i am|i'm|we are|we're)\s+"
+                r"(?:interested in|into|a fan of|passionate about)\s+"
+                r"(?P<value>.+?)(?=[.!?;]|$)",
+                flags=re.IGNORECASE,
+            ),
+            "include",
+            "soft",
+            0.92,
         ),
         (
             re.compile(
@@ -752,7 +806,7 @@ def preference_constraint_matches(source_quote):
         (
             re.compile(
                 r"\b(?:i|we)\s+(?:do not|don't|cannot|can't|must not)\s+"
-                r"(?:like|want|need|have|eat|use|accept)\s+"
+                r"(?:like|want|need|have|eat|use|accept|tolerate)\s+"
                 r"(?P<value>.+?)(?=[.!?;]|$)",
                 flags=re.IGNORECASE,
             ),
@@ -1090,9 +1144,29 @@ def select_temporal_fact_candidates(
     return candidates[: max(0, limit)]
 
 
-def format_temporal_fact_candidates(candidates, query_time_scope):
+def format_temporal_fact_candidates(
+    candidates,
+    query_time_scope,
+    format_style=DEFAULT_PRAGMOS_ANSWER_SUFFIX_FORMAT,
+):
     if not candidates:
         return ""
+    if format_style == "compact":
+        lines = [
+            f"Temporal candidates ({query_time_scope}): row; turn; fact."
+        ]
+        for index, candidate in enumerate(candidates, start=1):
+            fact = (
+                f"{candidate.get('head')} -[{candidate.get('relation')}]-> "
+                f"{candidate.get('tail')}"
+            )
+            lines.append(
+                f"- {index}; {candidate.get('source_turn_id')}; {fact}"
+            )
+        return "\n".join(lines)
+    if format_style != "legacy":
+        raise ValueError(f"Unsupported answer suffix format: {format_style}")
+
     lines = [
         "Structured temporal candidates extracted from quoted evidence; verify "
         "the selected value against that evidence:"
@@ -1309,6 +1383,39 @@ QUERY_ANCHOR_NON_ENTITY_TERMS = {
     "thread",
     "update",
 }
+QUERY_ANCHOR_GENERIC_POSSESSED_HEADS = {
+    "activity",
+    "answer",
+    "conversation",
+    "detail",
+    "information",
+    "message",
+    "note",
+    "notes",
+    "plan",
+    "project",
+    "record",
+    "role",
+    "status",
+    "title",
+    "update",
+    "work",
+}
+QUERY_ANCHOR_LEADING_FUNCTION_WORDS = {
+    "after",
+    "before",
+    "during",
+    "following",
+    "given",
+    "regarding",
+    "since",
+    "under",
+    "using",
+    "with",
+    "without",
+}
+ANCHOR_ENFORCEMENT_HARD = "hard"
+ANCHOR_ENFORCEMENT_SOFT = "soft"
 QUERY_ANCHOR_GENERIC_COUNT_TARGETS = {
     "amount",
     "day",
@@ -1466,18 +1573,36 @@ def query_anchor_tokens(value):
 
 
 def extract_query_anchor_groups(question):
-    """Extract identity-bearing query phrases used as hard evidence constraints."""
+    """Extract query phrases with explicit hard/soft grounding confidence."""
     question = re.sub(r"\s+", " ", question or "").strip()
     groups = []
     seen = set()
 
-    def add_group(label, value):
+    def add_group(
+        label,
+        value,
+        *,
+        enforcement=ANCHOR_ENFORCEMENT_HARD,
+        confidence=1.0,
+        extraction_rule=None,
+    ):
         text = re.sub(r"\s+", " ", value).strip(" ?.,\"'")
         tokens = query_anchor_tokens(value)
         if tokens and tokens.issubset(QUERY_ANCHOR_NON_ENTITY_TERMS):
             return
         key = tuple(sorted(tokens))
-        if not tokens or key in seen:
+        if not tokens:
+            return
+        if key in seen:
+            if enforcement == ANCHOR_ENFORCEMENT_HARD:
+                for existing in groups:
+                    if tuple(sorted(existing.get("tokens", []))) == key:
+                        existing["enforcement"] = ANCHOR_ENFORCEMENT_HARD
+                        existing["confidence"] = max(
+                            float(existing.get("confidence", 0.0)),
+                            float(confidence),
+                        )
+                        break
             return
         seen.add(key)
         groups.append(
@@ -1486,6 +1611,9 @@ def extract_query_anchor_groups(question):
                 "kind": ANCHOR_KIND_BY_LABEL.get(label, "event"),
                 "text": text,
                 "tokens": sorted(tokens),
+                "enforcement": enforcement,
+                "confidence": float(confidence),
+                "extraction_rule": extraction_rule or label.replace(" ", "_"),
                 "match_policy": (
                     "ordered_phrase"
                     if label == "named entity"
@@ -1513,16 +1641,59 @@ def extract_query_anchor_groups(question):
         while words and (
             words[0].lower() in QUERY_ANCHOR_MODIFIERS
             or re.fullmatch(r"\d+(?:-[a-z]+)?", words[0], flags=re.IGNORECASE)
+            or (
+                len(words) > 1
+                and re.fullmatch(r"[a-z]+(?:ed|ing)", words[0], re.IGNORECASE)
+            )
         ):
             words.pop(0)
         if not words:
             continue
+        auxiliary_index = next(
+            (
+                index
+                for index, word in enumerate(words)
+                if word.lower()
+                in {
+                    "am",
+                    "are",
+                    "did",
+                    "do",
+                    "does",
+                    "had",
+                    "has",
+                    "have",
+                    "is",
+                    "was",
+                    "were",
+                    "will",
+                }
+            ),
+            len(words),
+        )
+        words = words[:auxiliary_index]
+        if not words:
+            continue
         value = re.sub(r"['’]s$", "", words[0], flags=re.IGNORECASE)
+        enforcement = ANCHOR_ENFORCEMENT_HARD
+        confidence = 0.9
+        if (
+            len(words) > 2
+            or value.lower() in QUERY_ANCHOR_GENERIC_POSSESSED_HEADS
+        ):
+            enforcement = ANCHOR_ENFORCEMENT_SOFT
+            confidence = 0.55
         if (
             value.lower() not in QUERY_ANCHOR_MODIFIERS
             and value.lower() not in QUERY_ANCHOR_NON_ENTITY_TERMS
         ):
-            add_group("possessed entity", value)
+            add_group(
+                "possessed entity",
+                value,
+                enforcement=enforcement,
+                confidence=confidence,
+                extraction_rule="possessive_head",
+            )
 
     composite_pattern = re.compile(
         r"\b(?:combined|total|sum)\b.*?\b(?:cost|price|amount|duration)?\s*of\s+"
@@ -1593,7 +1764,27 @@ def extract_query_anchor_groups(question):
         value = match.group(0).strip()
         if value.split()[0] in QUERY_ANCHOR_IGNORED_NAMES:
             continue
-        add_group("named entity", value)
+        single_token_at_question_start = bool(
+            match.start() == 0 and len(value.split()) == 1
+        )
+        leading_function_word = (
+            value.split()[0].lower() in QUERY_ANCHOR_LEADING_FUNCTION_WORDS
+        )
+        add_group(
+            "named entity",
+            value,
+            enforcement=(
+                ANCHOR_ENFORCEMENT_SOFT
+                if single_token_at_question_start or leading_function_word
+                else ANCHOR_ENFORCEMENT_HARD
+            ),
+            confidence=(
+                0.35
+                if single_token_at_question_start or leading_function_word
+                else 0.95
+            ),
+            extraction_rule="capitalized_phrase",
+        )
 
     return groups
 
@@ -1684,6 +1875,9 @@ def build_query_profile(
         for group in groups:
             if normalize_actor_key(group.get("text")) == requested_key:
                 group["kind"] = "subject"
+                group["enforcement"] = ANCHOR_ENFORCEMENT_HARD
+                group["confidence"] = 1.0
+                group["extraction_rule"] = "known_speaker"
                 actor_group_found = True
         if not actor_group_found:
             groups.insert(
@@ -1694,6 +1888,9 @@ def build_query_profile(
                     "text": requested_speaker,
                     "tokens": sorted(query_anchor_tokens(requested_speaker)),
                     "match_policy": "token_set",
+                    "enforcement": ANCHOR_ENFORCEMENT_HARD,
+                    "confidence": 1.0,
+                    "extraction_rule": "known_speaker",
                 },
             )
         existing_attribute_tokens = {
@@ -1715,8 +1912,23 @@ def build_query_profile(
                     "kind": "attribute",
                     "text": term,
                     "tokens": [term],
+                    "enforcement": ANCHOR_ENFORCEMENT_HARD,
+                    "confidence": 1.0,
+                    "extraction_rule": "actor_attribute",
                 }
             )
+
+    required_groups = [
+        group
+        for group in groups
+        if group.get("enforcement", ANCHOR_ENFORCEMENT_HARD)
+        == ANCHOR_ENFORCEMENT_HARD
+    ]
+    soft_groups = [
+        group
+        for group in groups
+        if group.get("enforcement") == ANCHOR_ENFORCEMENT_SOFT
+    ]
 
     content_tokens = retrieval_content_tokens(question)
     speaker_tokens = {
@@ -1732,7 +1944,9 @@ def build_query_profile(
     return {
         "question": question,
         "content_tokens": sorted(content_tokens),
-        "required_anchor_groups": groups,
+        "anchor_groups": groups,
+        "required_anchor_groups": required_groups,
+        "soft_anchor_groups": soft_groups,
         "known_speakers": known_speakers,
         "mentioned_speakers": mentioned_speakers,
         "requested_speakers": requested_speakers,
@@ -2414,6 +2628,282 @@ OPERATION_FILLER_TOKENS = {
     "unique",
 }
 
+TYPED_FACT_SCHEMA_VERSION = 1
+HARD_TYPED_MEASUREMENT_REJECTIONS = {
+    "cadence_interval_not_duration",
+    "conflicting_event_role",
+    "event_status_mismatch",
+    "explicit_operand_not_uniquely_bound",
+    "measurement_dimension_mismatch",
+    "negated_event",
+    "quantity_unit_not_bound",
+    "temporal_scope_mismatch",
+    "typed_category_mismatch",
+    "wrong_source_role",
+    "year_identifier_not_quantity",
+}
+OPERATION_ACTION_FAMILIES = {
+    "attend": r"\b(?:attend|attended|attending)\b",
+    "camp": r"\b(?:camp|camped|camping)\b",
+    "collect": r"\b(?:collect|collected|collecting|collection)\b",
+    "complete": r"\b(?:complete|completed|finish|finished|finishing)\b",
+    "drive": r"\b(?:drive|driving|drove|travel|traveled|travelled)\b",
+    "lead": r"\b(?:lead|leading|led|manage|managed|managing)\b",
+    "purchase": r"\b(?:acquire|acquired|buy|bought|cost|costs|paid|pay|"
+    r"paying|price|priced|purchase|purchased|spend|spent)\b",
+    "play": r"\b(?:game|games|play|played|playing)\b",
+    "practice": r"\b(?:practice|practiced|practising)\b",
+    "raise": r"\b(?:collect(?:ed|ing)? donations?|donat(?:e|ed|ing|ions?)|"
+    r"fundrais(?:e|ed|ing)|raise|raised|raising)\b",
+    "read": r"\b(?:read|reading|pages?)\b",
+    "stay": r"\b(?:live|lived|living|stay|stayed|staying)\b",
+    "use": r"\b(?:use|used|using)\b",
+    "visit": r"\b(?:go|going|went|visit|visited|visiting)\b",
+    "watch": r"\b(?:episode|episodes|film|films|movie|movies|watch|watched|watching)\b",
+    "work": r"\b(?:build|built|job|project|projects|role|work|worked|working)\b",
+}
+MEASUREMENT_SEMANTIC_STOP_TOKENS = {
+    "amount",
+    "centimeter",
+    "day",
+    "distance",
+    "dollar",
+    "duration",
+    "euro",
+    "foot",
+    "hour",
+    "inch",
+    "kilometer",
+    "meter",
+    "mile",
+    "minute",
+    "money",
+    "month",
+    "number",
+    "percent",
+    "percentage",
+    "pound",
+    "quantity",
+    "second",
+    "start",
+    "time",
+    "total",
+    "value",
+    "week",
+    "year",
+    "yard",
+}
+
+
+def canonical_operation_actions(text):
+    """Map surface predicates to a small, benchmark-independent action set."""
+    normalized = normalized_evidence_text(text)
+    return {
+        action
+        for action, pattern in OPERATION_ACTION_FAMILIES.items()
+        if re.search(pattern, normalized, flags=re.IGNORECASE)
+    }
+
+
+def typed_entity_value_type(value):
+    value = str(value or "").strip()
+    normalized = normalized_evidence_text(value)
+    if normalized in {"speaker user", "speaker assistant", "user", "assistant"}:
+        return "speaker"
+    if re.search(r"\bhttps?://|\bwww\.", value, flags=re.IGNORECASE):
+        return "url"
+    if re.search(r"\b[^\s@]+@[^\s@]+\.[^\s@]+\b", value):
+        return "email"
+    if re.search(
+        rf"(?:[$£€]\s*\d[\d,]*(?:\.\d+)?|"
+        rf"(?:{NUMERIC_VALUE_PATTERN}|{NUMBER_WORD_PATTERN})\s*-?\s*"
+        r"(?:%|percent|seconds?|minutes?|hours?|days?|weeks?|months?|years?|"
+        r"millimeters?|centimeters?|meters?|kilometers?|inches?|feet|yards?|"
+        r"miles?|dollars?|usd|gbp|eur)\b)",
+        value,
+        flags=re.IGNORECASE,
+    ):
+        return "measurement"
+    if re.search(
+        r"\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b|"
+        r"\b(?:january|february|march|april|may|june|july|august|"
+        r"september|october|november|december)\b",
+        value,
+        flags=re.IGNORECASE,
+    ):
+        return "temporal"
+    if parse_number_value(value) is not None:
+        return "quantity"
+    return "entity"
+
+
+def typed_relation_family(relation, source_quote=""):
+    normalized = normalized_evidence_text(relation)
+    actions = canonical_operation_actions(relation)
+    if re.search(r"\b(?:prefer|like|love|enjoy|avoid|dislike|hate)\b", normalized):
+        return "preference"
+    if re.search(r"\b(?:change|changed|switch|switched|update|updated)\b", normalized):
+        return "state_update"
+    if re.search(r"\b(?:is|are|was|were|has|have|located|works?)\b", normalized):
+        return "state"
+    if actions:
+        return "event"
+    if temporal_event_status(source_quote) == "planned":
+        return "planned_event"
+    return "relationship"
+
+
+def build_typed_graph_facts(extraction):
+    """Add stable types and provenance without replacing the original triples."""
+    typed_facts = []
+    source_quote = str(extraction.get("source_quote") or "")
+    for index, triple in enumerate(extraction.get("triples") or [], start=1):
+        if not isinstance(triple, (list, tuple)) or len(triple) != 3:
+            continue
+        subject, relation, object_value = (str(value).strip() for value in triple)
+        if not subject or not relation or not object_value:
+            continue
+        subject_type = typed_entity_value_type(subject)
+        object_type = typed_entity_value_type(object_value)
+        relation_family = typed_relation_family(relation, source_quote)
+        fact_type = relation_family
+        if "measurement" in {subject_type, object_type}:
+            fact_type = "measurement"
+        typed_facts.append(
+            {
+                "typed_fact_id": (
+                    f"{extraction.get('source_turn_id', 'turn')}:{index}"
+                ),
+                "schema_version": TYPED_FACT_SCHEMA_VERSION,
+                "source_triple_index": index - 1,
+                "fact_type": fact_type,
+                "subject": subject,
+                "subject_type": subject_type,
+                "predicate": relation,
+                "predicate_family": relation_family,
+                "predicate_actions": sorted(canonical_operation_actions(relation)),
+                "object": object_value,
+                "object_type": object_type,
+                "event_status": temporal_event_status(source_quote),
+                "provenance": {
+                    "source_turn_id": extraction.get("source_turn_id"),
+                    "source_session_id": extraction.get("source_session_id"),
+                    "source_role": extraction.get("source_role"),
+                    "source_speaker": extraction.get("source_speaker"),
+                    "source_timestamp": extraction.get("source_timestamp"),
+                    "source_quote": source_quote,
+                },
+            }
+        )
+    return typed_facts
+
+
+def operation_predicate_tokens(question, target_tokens=None):
+    """Extract predicate-bearing query tokens separately from answer nouns."""
+    tokens = retrieval_content_tokens(question)
+    tokens.difference_update(set(target_tokens or []))
+    tokens.difference_update(OPERATION_FILLER_TOKENS)
+    for group in extract_query_anchor_groups(question):
+        tokens.difference_update(group.get("tokens") or [])
+    return tokens
+
+
+def build_operation_semantic_contract(question, operation_plan):
+    """Represent the requested calculation as typed slots and role constraints."""
+    operation = operation_plan.get("operation", "none")
+    target_tokens = set(operation_plan.get("target_tokens") or [])
+    target_tokens.difference_update(MEASUREMENT_SEMANTIC_STOP_TOKENS)
+    predicate_tokens = operation_predicate_tokens(question, target_tokens)
+    action_concepts = canonical_operation_actions(question)
+    if operation_plan.get("answer_dimension") in {
+        "distance",
+        "duration",
+        "percent",
+        "time",
+    }:
+        action_concepts.discard("purchase")
+    semantic_role_tokens = target_tokens.union(predicate_tokens)
+    semantic_role_tokens.difference_update(MEASUREMENT_SEMANTIC_STOP_TOKENS)
+    semantic_role_tokens = {
+        token
+        for token in semantic_role_tokens
+        if not canonical_operation_actions(token)
+    }
+    operands = []
+    for index, operand in enumerate(operation_plan.get("operands") or []):
+        operands.append(
+            {
+                "operand_index": index,
+                "label": operand,
+                "anchor_tokens": sorted(query_anchor_tokens(operand)),
+                "required_role": "event_or_entity_bound_measurement",
+            }
+        )
+    expected_event_status = operation_plan.get("expected_event_status")
+    if expected_event_status is None and operation in {
+        "argmax",
+        "argmin",
+        "average",
+        "count",
+        "count_distinct",
+        "difference",
+        "ratio",
+        "sum",
+    }:
+        normalized = normalized_evidence_text(question)
+        if re.search(r"\b(?:plan|planning|intend|scheduled|will)\b", normalized):
+            expected_event_status = "planned"
+        elif re.search(
+            r"\b(?:did|had|has|have|spent|completed|finished|visited|attended|"
+            r"bought|paid|raised|collected|played|watched|read)\b",
+            normalized,
+        ):
+            expected_event_status = "completed"
+    operation_family = (
+        "aggregation"
+        if operation in {"average", "count", "count_distinct", "sum"}
+        else "comparison"
+        if operation in {"argmax", "argmin", "difference", "ratio"}
+        else "set"
+        if operation in COLLECTION_OPERATIONS
+        else "temporal"
+        if operation.startswith("temporal_")
+        else "direct"
+    )
+    confidence_signals = []
+    if operation != "none":
+        confidence_signals.append("recognized_operation_form")
+    if operation_plan.get("answer_dimension"):
+        confidence_signals.append("typed_answer_dimension")
+    if target_tokens:
+        confidence_signals.append("target_tokens")
+    if action_concepts:
+        confidence_signals.append("canonical_action")
+    if operands:
+        confidence_signals.append("explicit_operands")
+    return {
+        "schema_version": 1,
+        "operation_family": operation_family,
+        "operator": operation,
+        "answer_dimension": operation_plan.get("answer_dimension"),
+        "target_unit": operation_plan.get("target_unit"),
+        "target_tokens": sorted(target_tokens),
+        "predicate_tokens": sorted(predicate_tokens),
+        "semantic_role_tokens": sorted(semantic_role_tokens),
+        "generic_target_category": bool(
+            re.search(r"\b(?:items?|objects?|things?)\b", question, re.IGNORECASE)
+        ),
+        "action_concepts": sorted(action_concepts),
+        "expected_event_status": expected_event_status,
+        "operands": operands,
+        "confidence": min(1.0, 0.2 * len(confidence_signals)),
+        "confidence_signals": confidence_signals,
+        "policy": (
+            "query_structure_defines_typed_slots; evidence must bind values to "
+            "those slots before deterministic execution"
+        ),
+    }
+
 
 def clean_operation_operand(value):
     value = re.sub(r"^[\s'\"]+|[\s?'\"]+$", "", str(value or ""))
@@ -2632,6 +3122,116 @@ COLLECTION_NON_TARGETS = {
 }
 
 
+def parse_operation_question_frame(question, question_type=None):
+    """Parse explicit operator semantics independently of evidence wording."""
+    normalized = normalized_evidence_text(question)
+    token_sequence = retrieval_content_token_sequence(question)
+    token_set = set(token_sequence)
+    ngrams = {
+        " ".join(token_sequence[index : index + width])
+        for width in (2, 3, 4)
+        for index in range(max(0, len(token_sequence) - width + 1))
+    }
+    operands = split_operation_operands(question)
+    dimension = infer_operation_answer_dimension(normalized)
+    candidates = []
+
+    def add(operator, signal, confidence=1.0):
+        candidates.append(
+            {
+                "operator": operator,
+                "signal": signal,
+                "confidence": confidence,
+            }
+        )
+
+    if {"average", "mean"}.intersection(token_set) or "on average" in ngrams:
+        add("average", "average_semantics")
+    if (
+        {"altogether", "cumulative", "combined", "sum", "total"}.intersection(
+            token_set
+        )
+        or "add up" in ngrams
+        or "in all" in ngrams
+    ):
+        add("sum", "aggregation_semantics")
+    if (
+        "difference" in token_set
+        or "gap between" in ngrams
+        or "how many more" in ngrams
+        or "how much more" in ngrams
+        or "how many fewer" in ngrams
+        or "how much less" in ngrams
+    ):
+        add("difference", "comparison_delta_semantics")
+    if "ratio" in token_set or "proportion of" in ngrams:
+        add("ratio", "ratio_semantics")
+    if "which" in token_set and {
+        "highest",
+        "largest",
+        "maximum",
+        "most",
+    }.intersection(token_set):
+        add("argmax", "maximum_semantics")
+    if "which" in token_set and {
+        "cheapest",
+        "least",
+        "lowest",
+        "minimum",
+    }.intersection(token_set):
+        add("argmin", "minimum_semantics")
+    count_form = bool(
+        normalized.startswith("how many ")
+        or " number of " in f" {normalized} "
+        or normalized.startswith("count ")
+    )
+    direct_scalar_state = bool(
+        count_form
+        and dimension == "duration"
+        and re.search(
+            r"\b(?:normally|per\s+(?:day|week|month|year)|typical|usually|weekly)\b",
+            normalized,
+        )
+        and not {
+            "altogether",
+            "combined",
+            "sum",
+            "total",
+        }.intersection(token_set)
+        and len(operands) < 2
+    )
+    if direct_scalar_state:
+        add("direct_scalar", "recurring_state_semantics")
+    elif count_form and not candidates:
+        if dimension == "duration" and question_type == "multi-session":
+            add("sum", "duration_count_aggregation")
+        elif {"different", "distinct", "unique"}.intersection(token_set):
+            add("count_distinct", "distinct_count_semantics")
+        elif question_type == "multi-session":
+            add("count", "count_semantics")
+
+    operators = {item["operator"] for item in candidates}
+    resolved_operator = next(iter(operators)) if len(operators) == 1 else None
+    return {
+        "schema_version": 1,
+        "resolved_operator": resolved_operator,
+        "operator_candidates": candidates,
+        "operator_conflict": len(operators) > 1,
+        "operands": operands,
+        "answer_dimension": dimension,
+        "target_unit": infer_operation_target_unit(normalized),
+        "confidence": (
+            max(item["confidence"] for item in candidates)
+            if resolved_operator is not None
+            else 0.0
+        ),
+        "parser_policy": (
+            "semantic frame may recover one explicit unambiguous operator; "
+            "legacy planning wins on conflict"
+        ),
+    }
+
+
 def infer_collection_plan(question, normalized_question, is_multi_session):
     """Infer open-world list and set operations from query wording alone."""
     match = re.match(
@@ -2724,6 +3324,7 @@ def infer_multi_session_operation(question, question_type=None, question_date=No
     operands = split_operation_operands(question)
     explicit_fact_count = infer_explicit_fact_count(question, operands)
     answer_dimension = infer_operation_answer_dimension(normalized)
+    semantic_frame = parse_operation_question_frame(question, question_type)
     plan = {
         "operation": "none",
         "question_type": question_type,
@@ -2737,6 +3338,8 @@ def infer_multi_session_operation(question, question_type=None, question_date=No
         "minimum_sessions": 1,
         "operands": operands,
         "question_date": question_date,
+        "semantic_frame": semantic_frame,
+        "planner_resolution": "legacy",
     }
     collection_plan = infer_collection_plan(
         question,
@@ -2866,6 +3469,31 @@ def infer_multi_session_operation(question, question_type=None, question_date=No
     else:
         operation = "none"
 
+    semantic_operator = semantic_frame.get("resolved_operator")
+    if semantic_operator == "direct_scalar" and operation == "sum":
+        operation = "none"
+        plan["planner_resolution"] = "semantic_direct_scalar_override"
+    elif (
+        operation == "none"
+        and semantic_operator is not None
+        and semantic_operator != "direct_scalar"
+        and semantic_frame.get("confidence", 0.0) >= 1.0
+        and question_type == "multi-session"
+    ):
+        operation = semantic_operator
+        plan["planner_resolution"] = "semantic_frame_recovery"
+        if semantic_frame.get("operands"):
+            plan["operands"] = list(semantic_frame["operands"])
+            operands = list(semantic_frame["operands"])
+        if plan.get("answer_dimension") is None:
+            plan["answer_dimension"] = semantic_frame.get("answer_dimension")
+        if plan.get("target_unit") is None:
+            plan["target_unit"] = semantic_frame.get("target_unit")
+    elif semantic_operator == operation and operation != "none":
+        plan["planner_resolution"] = "legacy_semantic_agreement"
+    elif semantic_operator is not None and semantic_operator != operation:
+        plan["planner_resolution"] = "legacy_conflict_fallback"
+
     if operation == "argmin" and re.search(
         r"\b(?:cheapest|cost|expensive|price)\b",
         normalized,
@@ -2975,6 +3603,8 @@ def infer_multi_session_operation(question, question_type=None, question_date=No
         )
     if operation == "temporal_difference" and len(plan["temporal_event_specs"]) == 1:
         plan["minimum_sessions"] = 1
+    plan["semantic_contract"] = build_operation_semantic_contract(question, plan)
+    plan["planner_version"] = "semantic_contract_v1_with_legacy_fallback"
     return plan
 
 
@@ -3081,6 +3711,22 @@ def local_evidence_sentence(text, start, end):
     ]
     right_end = min(right_boundaries) if right_boundaries else len(right)
     return (left[left_start:] + text[start:end] + right[:right_end]).strip()
+
+
+def local_measurement_role_clause(text, start, end):
+    """Isolate the event role governing one measurement inside a sentence."""
+    left = text[:start]
+    right = text[end:]
+    boundary = re.compile(
+        r"\b(?:after|before|whereas|while)\b",
+        flags=re.IGNORECASE,
+    )
+    left_matches = list(boundary.finditer(left))
+    left_start = left_matches[-1].end() if left_matches else 0
+    right_match = boundary.search(right)
+    right_end = right_match.start() if right_match else len(right)
+    scoped = (left[left_start:] + text[start:end] + right[:right_end]).strip()
+    return local_evidence_clause(scoped, max(0, start - left_start), max(0, end - left_start))
 
 
 def sentence_negates_query_activity(sentence, relevance_tokens):
@@ -3932,6 +4578,7 @@ def operation_relevance_tokens(question, operation_plan):
 
 
 def operation_operand_match(clause, operands):
+    """Preserve the legacy best-overlap binding used by the LLM fallback."""
     clause_tokens = retrieval_content_tokens(clause)
     best = (None, None, 0.0)
     for index, operand in enumerate(operands or []):
@@ -3943,6 +4590,364 @@ def operation_operand_match(clause, operands):
         if overlap and score > best[2]:
             best = (index, operand, score)
     return best
+
+
+def semantic_operation_operand_match(clause, operands):
+    """Bind a value to exactly one explicit operand for symbolic execution."""
+    clause_tokens = retrieval_content_tokens(clause)
+    ranked = []
+    for index, operand in enumerate(operands or []):
+        operand_tokens = query_anchor_tokens(operand)
+        if not operand_tokens:
+            continue
+        overlap = len(operand_tokens.intersection(clause_tokens))
+        coverage = overlap / len(operand_tokens)
+        phrase_supported = ordered_token_sequence_is_present(
+            retrieval_content_token_sequence(operand),
+            retrieval_content_token_sequence(clause),
+        )
+        score = 1.0 if phrase_supported else 0.85 * coverage
+        if overlap:
+            ranked.append((score, index, operand, phrase_supported, coverage))
+    ranked.sort(reverse=True)
+    if not ranked or ranked[0][0] < 0.55:
+        return None, None, 0.0
+    if len(ranked) > 1 and ranked[0][0] - ranked[1][0] < 0.12:
+        return None, None, 0.0
+    score, index, operand, _phrase_supported, _coverage = ranked[0]
+    return index, operand, score
+
+
+def measurement_value_dimension(unit, currency=None):
+    unit = normalized_measurement_unit(unit)
+    if currency or unit == "money":
+        return "money"
+    if unit in DURATION_CONVERSION_SECONDS:
+        return "duration"
+    if unit in DISTANCE_CONVERSION_METERS:
+        return "distance"
+    if unit == "percent":
+        return "percent"
+    if unit in {"time", "times"}:
+        return "frequency"
+    return "quantity"
+
+
+def measurement_event_status(text):
+    normalized = normalized_evidence_text(text)
+    if re.search(
+        r"\b(?:did not|didn t|didn't|never|not|without)\b",
+        normalized,
+    ):
+        return "negated"
+    if re.search(
+        r"\b(?:considering|hope to|intend(?:s|ed|ing)? to|might|"
+        r"plan(?:s|ned|ning)?\b|scheduled|"
+        r"want to|will|would like to)\b",
+        normalized,
+    ):
+        return "planned"
+    return "completed"
+
+
+def measurement_temporal_scope_match(extraction, operation_plan):
+    scope = operation_plan.get("temporal_scope") or {}
+    if not scope:
+        return None
+    source_date = parse_calendar_date(extraction.get("source_timestamp"))
+    question_date = parse_calendar_date(operation_plan.get("question_date"))
+    if source_date is None or question_date is None:
+        return None
+    if source_date > question_date:
+        return False
+    if scope.get("kind") == "year_to_date":
+        return source_date.year == question_date.year
+    if scope.get("kind") != "rolling_window":
+        return None
+    amount = int(scope.get("amount") or 1)
+    unit = scope.get("unit")
+    if unit == "day":
+        start = question_date - datetime.timedelta(days=amount)
+    elif unit == "week":
+        start = question_date - datetime.timedelta(weeks=amount)
+    elif unit == "month":
+        start = shift_calendar_months(question_date, -amount)
+    elif unit == "year":
+        try:
+            start = question_date.replace(year=question_date.year - amount)
+        except ValueError:
+            start = question_date.replace(
+                year=question_date.year - amount,
+                day=28,
+            )
+    else:
+        return None
+    return start <= source_date <= question_date
+
+
+def measurement_event_identity(
+    sentence,
+    action_concepts,
+    extraction,
+    *,
+    clause="",
+    raw_value="",
+):
+    raw_number = parse_number_value(raw_value)
+    clause_tokens = retrieval_content_tokens(clause)
+    typed_labels = []
+    for typed_fact in extraction.get("typed_facts") or []:
+        subject = str(typed_fact.get("subject") or "")
+        predicate = str(typed_fact.get("predicate") or "")
+        object_value = str(typed_fact.get("object") or "")
+        subject_number = parse_number_value(subject)
+        object_number = parse_number_value(object_value)
+        numeric_match = bool(
+            raw_number is not None
+            and any(
+                value is not None and abs(value - raw_number) < 1e-9
+                for value in (subject_number, object_number)
+            )
+        )
+        role_tokens = retrieval_content_tokens(f"{predicate} {object_value}")
+        if not numeric_match and not clause_tokens.intersection(role_tokens):
+            continue
+        for value, value_type in (
+            (subject, typed_fact.get("subject_type")),
+            (predicate, "predicate"),
+            (object_value, typed_fact.get("object_type")),
+        ):
+            normalized = normalized_evidence_text(value)
+            if (
+                not normalized
+                or value_type in {"measurement", "quantity", "speaker"}
+                or is_generic_operation_entity(value)
+                or normalized in {"action", "activity", "event", "relation"}
+            ):
+                continue
+            value_tokens = retrieval_content_tokens(value)
+            if value_type == "predicate":
+                value_tokens.difference_update(set(action_concepts or []))
+            if value_tokens:
+                typed_labels.append(normalized)
+    if typed_labels:
+        return {
+            "identity": "typed:" + "|".join(sorted(set(typed_labels))),
+            "scope": "global",
+            "source": "typed_graph_fact",
+        }
+
+    identity_parts = sorted(set(action_concepts))
+    if identity_parts:
+        return {
+            "identity": "surface:" + "|".join(identity_parts),
+            "scope": "session",
+            "source": "surface_event",
+        }
+    return {
+        "identity": "measurement",
+        "scope": "session",
+        "source": "provenance_fallback",
+    }
+
+
+def typed_measurement_assessment(
+    *,
+    extraction,
+    clause,
+    sentence,
+    unit,
+    currency,
+    raw_value,
+    numeric_value,
+    operand_index,
+    operand_score,
+    operation_plan,
+):
+    contract = operation_plan.get("semantic_contract") or (
+        build_operation_semantic_contract("", operation_plan)
+    )
+    question_actions = set(contract.get("action_concepts") or [])
+    candidate_actions = canonical_operation_actions(clause or sentence)
+    clause_tokens = retrieval_content_tokens(clause)
+    raw_number = parse_number_value(raw_value)
+    typed_bound_tokens = set()
+    for typed_fact in extraction.get("typed_facts") or []:
+        typed_role_tokens = retrieval_content_tokens(
+            f"{typed_fact.get('predicate', '')} {typed_fact.get('object', '')}"
+        )
+        typed_numbers = (
+            parse_number_value(typed_fact.get("subject")),
+            parse_number_value(typed_fact.get("object")),
+        )
+        numeric_match = bool(
+            raw_number is not None
+            and any(
+                value is not None and abs(value - raw_number) < 1e-9
+                for value in typed_numbers
+            )
+        )
+        if numeric_match or clause_tokens.intersection(typed_role_tokens):
+            candidate_actions.update(typed_fact.get("predicate_actions") or [])
+            typed_bound_tokens.update(typed_role_tokens)
+    target_tokens = set(
+        contract.get("semantic_role_tokens")
+        or contract.get("target_tokens")
+        or []
+    )
+    candidate_tokens = clause_tokens.union(typed_bound_tokens)
+    target_overlap = len(target_tokens.intersection(candidate_tokens))
+    source_category_overlap = len(
+        target_tokens.intersection(
+            retrieval_content_tokens(extraction.get("source_quote"))
+        )
+    )
+    value_dimension = measurement_value_dimension(unit, currency)
+    expected_dimension = contract.get("answer_dimension")
+    if expected_dimension in {"distance", "duration", "percent", "time"}:
+        candidate_actions.discard("purchase")
+    action_overlap = len(question_actions.intersection(candidate_actions))
+    # The local clause keeps an adjacent planned event from changing the status
+    # of a completed measurement in the same sentence.
+    event_status = measurement_event_status(clause or sentence)
+    expected_status = contract.get("expected_event_status")
+    temporal_scope_match = measurement_temporal_scope_match(
+        extraction,
+        operation_plan,
+    )
+    normalized_unit_tokens = retrieval_content_tokens(unit)
+    generic_target_category = bool(
+        contract.get("generic_target_category")
+        or target_tokens.intersection({"item", "object", "thing"})
+    )
+    quantity_unit_bound = bool(
+        not target_tokens
+        or generic_target_category
+        or normalized_unit_tokens.intersection(target_tokens)
+        or action_overlap
+    )
+    cadence_value = bool(
+        re.search(
+            r"\b(?:times?|sessions?)\s+(?:a|an|per)\s+"
+            r"(?:day|week|month|year)\b",
+            clause,
+            flags=re.IGNORECASE,
+        )
+        and re.search(
+            r"\b(?:day|week|month|year)s?\b",
+            str(raw_value),
+            flags=re.IGNORECASE,
+        )
+    )
+    year_like_identifier = bool(
+        value_dimension == "quantity"
+        and 1900 <= float(numeric_value or 0) <= 2100
+        and expected_dimension not in {"date", "year"}
+        and normalized_measurement_unit(unit)
+        not in DURATION_CONVERSION_SECONDS
+    )
+    reasons = []
+    if candidate_source_role(extraction) != "user":
+        reasons.append("wrong_source_role")
+    if event_status == "negated":
+        reasons.append("negated_event")
+    if expected_status == "completed" and event_status != "completed":
+        reasons.append("event_status_mismatch")
+    if expected_status == "planned" and event_status != "planned":
+        reasons.append("event_status_mismatch")
+    if expected_dimension and value_dimension != expected_dimension:
+        reasons.append("measurement_dimension_mismatch")
+    if temporal_scope_match is False:
+        reasons.append("temporal_scope_mismatch")
+    if cadence_value:
+        reasons.append("cadence_interval_not_duration")
+    if year_like_identifier:
+        reasons.append("year_identifier_not_quantity")
+    if value_dimension == "quantity" and not quantity_unit_bound:
+        reasons.append("quantity_unit_not_bound")
+    compatible_modifier_actions = {"complete", "use"}
+    conflicting_event_role = bool(
+        question_actions
+        and candidate_actions
+        and not question_actions.intersection(candidate_actions)
+        and candidate_actions.isdisjoint(compatible_modifier_actions)
+    )
+    typed_category_mismatch = bool(
+        target_tokens
+        and not generic_target_category
+        and typed_bound_tokens
+        and not target_tokens.intersection(typed_bound_tokens)
+        and source_category_overlap == 0
+    )
+    money_category_binding = bool(
+        expected_dimension == "money"
+        and (target_overlap > 0 or source_category_overlap > 0)
+    )
+    if typed_category_mismatch:
+        reasons.append("typed_category_mismatch")
+    if question_actions and action_overlap == 0 and not money_category_binding:
+        reasons.append(
+            "conflicting_event_role"
+            if conflicting_event_role
+            else "event_role_not_bound"
+        )
+    if (
+        not question_actions
+        and target_tokens
+        and target_overlap == 0
+        and not typed_category_mismatch
+    ):
+        reasons.append(
+            "target_role_not_bound"
+        )
+    if contract.get("operands") and operand_index is None:
+        reasons.append("explicit_operand_not_uniquely_bound")
+    confidence = 0.35
+    confidence += 0.25 if action_overlap else 0.0
+    confidence += 0.2 if target_overlap else 0.0
+    confidence += 0.15 if operand_index is not None and operand_score >= 0.8 else 0.0
+    confidence += 0.05 if event_status == (expected_status or event_status) else 0.0
+    confidence = min(1.0, confidence)
+    event_identity = measurement_event_identity(
+        sentence,
+        candidate_actions,
+        extraction,
+        clause=clause,
+        raw_value=raw_value,
+    )
+    hard_rejection = bool(
+        set(reasons).intersection(HARD_TYPED_MEASUREMENT_REJECTIONS)
+    )
+    return {
+        "schema_version": TYPED_FACT_SCHEMA_VERSION,
+        "fact_type": "measurement",
+        "semantic_role": (
+            "operation_operand" if not reasons else "context_quantity"
+        ),
+        "value_dimension": value_dimension,
+        "event_status": event_status,
+        "expected_event_status": expected_status,
+        "action_concepts": sorted(candidate_actions),
+        "required_action_concepts": sorted(question_actions),
+        "action_overlap": action_overlap,
+        "target_overlap": target_overlap,
+        "source_category_overlap": source_category_overlap,
+        "operand_binding_confidence": operand_score,
+        "temporal_scope_match": temporal_scope_match,
+        "quantity_unit_bound": quantity_unit_bound,
+        "cadence_value": cadence_value,
+        "year_like_identifier": year_like_identifier,
+        "conflicting_event_role": conflicting_event_role,
+        "typed_category_mismatch": typed_category_mismatch,
+        "typed_bound_tokens": sorted(typed_bound_tokens),
+        "eligible": not reasons and confidence >= 0.55,
+        "eligibility_reasons": reasons,
+        "hard_rejection": hard_rejection,
+        "confidence": confidence,
+        "event_identity": event_identity["identity"],
+        "event_identity_scope": event_identity["scope"],
+        "event_identity_source": event_identity["source"],
+    }
 
 
 def normalized_measurement_unit(unit):
@@ -3989,7 +4994,12 @@ def extract_measurement_facts(graph_extractions, question, operation_plan):
 
     facts = []
     seen = set()
-    for extraction in graph_extractions or []:
+    for raw_extraction in graph_extractions or []:
+        extraction = {
+            **raw_extraction,
+            "typed_facts": raw_extraction.get("typed_facts")
+            or build_typed_graph_facts(raw_extraction),
+        }
         if candidate_source_role(extraction) != "user":
             continue
         source_quote = extraction.get("source_quote", "")
@@ -3997,6 +5007,11 @@ def extract_measurement_facts(graph_extractions, question, operation_plan):
         for match in pattern.finditer(source_quote):
             clause = local_evidence_clause(source_quote, match.start(), match.end())
             sentence = local_evidence_sentence(
+                source_quote,
+                match.start(),
+                match.end(),
+            )
+            semantic_clause = local_measurement_role_clause(
                 source_quote,
                 match.start(),
                 match.end(),
@@ -4076,6 +5091,29 @@ def extract_measurement_facts(graph_extractions, question, operation_plan):
                 clause,
                 operands,
             )
+            (
+                semantic_operand_index,
+                semantic_operand_label,
+                semantic_operand_score,
+            ) = semantic_operation_operand_match(clause, operands)
+            if operands:
+                (
+                    semantic_operand_index,
+                    semantic_operand_label,
+                    semantic_operand_score,
+                ) = semantic_operation_operand_match(semantic_clause, operands)
+            typed_assessment = typed_measurement_assessment(
+                extraction=extraction,
+                clause=semantic_clause,
+                sentence=sentence,
+                unit=raw_unit,
+                currency=currency,
+                raw_value=match.group(0).strip(),
+                numeric_value=number,
+                operand_index=semantic_operand_index,
+                operand_score=semantic_operand_score,
+                operation_plan=operation_plan,
+            )
             facts.append(
                 {
                     "candidate_id": f"M{len(facts) + 1}",
@@ -4085,6 +5123,10 @@ def extract_measurement_facts(graph_extractions, question, operation_plan):
                     "source_quote": compact_candidate_quote(source_quote, max_chars=240),
                     "clause": compact_candidate_quote(clause, max_chars=220),
                     "sentence": compact_candidate_quote(sentence, max_chars=360),
+                    "semantic_clause": compact_candidate_quote(
+                        semantic_clause,
+                        max_chars=220,
+                    ),
                     "raw_value": match.group(0).strip(),
                     "numeric_value": number,
                     "unit": raw_unit,
@@ -4092,6 +5134,21 @@ def extract_measurement_facts(graph_extractions, question, operation_plan):
                     "operand_index": operand_index,
                     "operand_label": operand_label,
                     "operand_match_score": operand_score,
+                    "semantic_operand_index": semantic_operand_index,
+                    "semantic_operand_label": semantic_operand_label,
+                    "semantic_operand_match_score": semantic_operand_score,
+                    "typed_fact": typed_assessment,
+                    "typed_eligible": typed_assessment["eligible"],
+                    "semantic_role": typed_assessment["semantic_role"],
+                    "event_status": typed_assessment["event_status"],
+                    "event_identity": typed_assessment["event_identity"],
+                    "event_identity_scope": typed_assessment[
+                        "event_identity_scope"
+                    ],
+                    "event_identity_source": typed_assessment[
+                        "event_identity_source"
+                    ],
+                    "semantic_confidence": typed_assessment["confidence"],
                     "relevance_overlap": len(
                         relevance_tokens.intersection(clause_tokens)
                     ),
@@ -4249,6 +5306,61 @@ def normalized_count_identity(value):
     return re.sub(r"^(?:a|an|my|the)\s+", "", normalized)
 
 
+def typed_count_fact_assessment(
+    *,
+    extraction,
+    typed_fact,
+    entity,
+    relation,
+    operation_plan,
+    grounded_eligible,
+    requested_role_supported,
+):
+    """Describe why an entity is or is not a valid count operand."""
+    contract = operation_plan.get("semantic_contract") or (
+        build_operation_semantic_contract("", operation_plan)
+    )
+    required_actions = set(contract.get("action_concepts") or [])
+    predicate_actions = set((typed_fact or {}).get("predicate_actions") or [])
+    if not predicate_actions:
+        predicate_actions = canonical_operation_actions(relation)
+    action_overlap = sorted(required_actions.intersection(predicate_actions))
+    role_supported = bool(
+        requested_role_supported is not False
+        and (not required_actions or action_overlap)
+    )
+    reasons = []
+    if not grounded_eligible:
+        reasons.append("legacy_grounding_requirements_not_met")
+    if required_actions and not action_overlap:
+        reasons.append("requested_predicate_role_not_bound")
+    if requested_role_supported is False:
+        reasons.append("requested_count_role_not_supported")
+    return {
+        "schema_version": TYPED_FACT_SCHEMA_VERSION,
+        "fact_type": "count_identity",
+        "semantic_role": "count_operand" if not reasons else "context_entity",
+        "entity": entity,
+        "entity_type": typed_entity_value_type(entity),
+        "predicate": relation,
+        "predicate_family": (typed_fact or {}).get("predicate_family"),
+        "predicate_actions": sorted(predicate_actions),
+        "required_action_concepts": sorted(required_actions),
+        "action_overlap": action_overlap,
+        "role_supported": role_supported,
+        "eligible": not reasons,
+        "eligibility_reasons": reasons,
+        "provenance": (typed_fact or {}).get("provenance") or {
+            "source_turn_id": extraction.get("source_turn_id"),
+            "source_session_id": extraction.get("source_session_id"),
+            "source_role": extraction.get("source_role"),
+            "source_speaker": extraction.get("source_speaker"),
+            "source_timestamp": extraction.get("source_timestamp"),
+            "source_quote": extraction.get("source_quote"),
+        },
+    }
+
+
 def extract_count_fact_candidates(graph_extractions, question, operation_plan):
     query_tokens = set(retrieval_content_tokens(question))
     target_tokens = set(operation_plan.get("target_tokens", []))
@@ -4282,9 +5394,20 @@ def extract_count_fact_candidates(graph_extractions, question, operation_plan):
         }
         if query_tokens and not query_tokens.intersection(source_tokens):
             continue
-        for triple in extraction.get("triples", []):
+        typed_facts = extraction.get("typed_facts") or build_typed_graph_facts(
+            extraction
+        )
+        for triple_index, triple in enumerate(extraction.get("triples", [])):
             if not isinstance(triple, (list, tuple)) or len(triple) != 3:
                 continue
+            typed_fact = next(
+                (
+                    fact
+                    for fact in typed_facts
+                    if fact.get("source_triple_index") == triple_index
+                ),
+                None,
+            )
             head, relation, tail = (str(value).strip() for value in triple)
             triple_text = f"{head} {relation} {tail}"
             triple_tokens = retrieval_content_tokens(triple_text)
@@ -4322,6 +5445,16 @@ def extract_count_fact_candidates(graph_extractions, question, operation_plan):
                     retrieval_content_tokens(relation)
                 )
             )
+            canonical_relation_actions = canonical_operation_actions(relation)
+            required_action_concepts = set(
+                (operation_plan.get("semantic_contract") or {}).get(
+                    "action_concepts"
+                )
+                or []
+            )
+            canonical_action_overlap = len(
+                required_action_concepts.intersection(canonical_relation_actions)
+            )
             entity_is_query_scaffolding = bool(
                 entity_is_anchor
                 or entity_is_bare_target
@@ -4343,7 +5476,10 @@ def extract_count_fact_candidates(graph_extractions, question, operation_plan):
                     role_support_source = "raw_quote_action_object"
                 else:
                     requested_role_supported = bool(
-                        relation_action_overlap > 0
+                        (
+                            relation_action_overlap > 0
+                            or canonical_action_overlap > 0
+                        )
                         and not entity_is_query_language
                     )
                     role_support_source = "graph_relation_fallback"
@@ -4372,6 +5508,15 @@ def extract_count_fact_candidates(graph_extractions, question, operation_plan):
                         or supported_anchor_count == len(anchor_groups)
                     )
                 )
+            typed_assessment = typed_count_fact_assessment(
+                extraction=extraction,
+                typed_fact=typed_fact,
+                entity=entity,
+                relation=relation,
+                operation_plan=operation_plan,
+                grounded_eligible=grounded_eligible,
+                requested_role_supported=requested_role_supported,
+            )
             if strict_grounded:
                 key = (
                     extraction.get("source_turn_id"),
@@ -4410,6 +5555,10 @@ def extract_count_fact_candidates(graph_extractions, question, operation_plan):
                     "requested_role_supported": requested_role_supported,
                     "role_support_source": role_support_source,
                     "relation_action_overlap": relation_action_overlap,
+                    "canonical_relation_actions": sorted(
+                        canonical_relation_actions
+                    ),
+                    "canonical_action_overlap": canonical_action_overlap,
                     "relation_action_tokens": sorted(relation_action_tokens),
                     "role_aware_distinct": role_aware_distinct,
                     "relation_disqualifies_identity": relation_disqualifies_identity,
@@ -4418,6 +5567,9 @@ def extract_count_fact_candidates(graph_extractions, question, operation_plan):
                     "source_action_overlap": source_action_overlap,
                     "target_overlap": target_overlap,
                     "action_overlap": action_overlap,
+                    "typed_fact": typed_assessment,
+                    "typed_eligible": typed_assessment["eligible"],
+                    "semantic_role": typed_assessment["semantic_role"],
                     "selection_score": (
                         2.0 * target_overlap
                         + action_overlap
@@ -4462,6 +5614,15 @@ def extract_count_fact_candidates(graph_extractions, question, operation_plan):
             if key in seen:
                 continue
             seen.add(key)
+            typed_assessment = typed_count_fact_assessment(
+                extraction=extraction,
+                typed_fact=None,
+                entity=entity,
+                relation="raw turn event object",
+                operation_plan=operation_plan,
+                grounded_eligible=grounded_eligible,
+                requested_role_supported=None,
+            )
             candidates.append(
                 {
                     "candidate_id": f"C{len(candidates) + 1}",
@@ -4485,6 +5646,9 @@ def extract_count_fact_candidates(graph_extractions, question, operation_plan):
                     "source_action_overlap": source_action_overlap,
                     "target_overlap": len(target_tokens.intersection(entity_tokens)),
                     "action_overlap": source_action_overlap,
+                    "typed_fact": typed_assessment,
+                    "typed_eligible": typed_assessment["eligible"],
+                    "semantic_role": typed_assessment["semantic_role"],
                     "selection_score": (
                         2.0 * len(target_tokens.intersection(entity_tokens))
                         + source_action_overlap
@@ -5198,6 +6362,150 @@ def select_operation_facts_with_llm(
     return selected, "\n".join(raw_outputs), diagnostics
 
 
+def deterministic_typed_measurement_selection(candidates, operation_plan):
+    """Select measurements only when every required semantic slot is unique."""
+    operation = operation_plan.get("operation")
+    if operation not in {
+        "argmax",
+        "argmin",
+        "average",
+        "difference",
+        "ratio",
+        "sum",
+    }:
+        return None
+    typed_candidates = [
+        candidate for candidate in candidates or [] if candidate.get("typed_fact")
+    ]
+    if not typed_candidates:
+        return None
+    eligible = [
+        candidate
+        for candidate in typed_candidates
+        if candidate.get("typed_eligible")
+    ]
+    if not eligible:
+        return None
+    semantic_contract = operation_plan.get("semantic_contract") or {}
+    retrieval_saturation = operation_plan.get("retrieval_saturation") or {}
+    if (
+        operation in {"average", "sum"}
+        and semantic_contract.get("generic_target_category")
+        and not retrieval_saturation.get("saturated")
+    ):
+        # An open class such as "items" or "things" cannot establish that a
+        # retrieved list is complete. Keep the legacy answer path unless the
+        # retrieval layer has explicitly reached saturation.
+        return None
+    ambiguous_rejections = [
+        candidate
+        for candidate in typed_candidates
+        if not candidate.get("typed_eligible")
+        and not (candidate.get("typed_fact") or {}).get("hard_rejection")
+    ]
+    if ambiguous_rejections:
+        return None
+
+    operands = operation_plan.get("operands") or []
+    if operands:
+        by_operand = defaultdict(list)
+        for candidate in eligible:
+            operand_index = candidate.get("semantic_operand_index")
+            if operand_index is not None:
+                by_operand[int(operand_index)].append(candidate)
+        if any(len(by_operand.get(index, [])) != 1 for index in range(len(operands))):
+            return None
+        selected = [by_operand[index][0] for index in range(len(operands))]
+    else:
+        if operation in {"argmax", "argmin", "difference", "ratio"}:
+            return None
+        expected_count = operation_plan.get("expected_fact_count")
+        if operation == "average" and expected_count is None:
+            return None
+        if expected_count is not None and len(eligible) != int(expected_count):
+            return None
+        minimum_count = int(operation_plan.get("minimum_fact_count") or 1)
+        minimum_sessions = int(operation_plan.get("minimum_sessions") or 1)
+        covered_sessions = {
+            candidate.get("source_session_id")
+            for candidate in eligible
+            if candidate.get("source_session_id") is not None
+        }
+        if len(eligible) < minimum_count or len(covered_sessions) < minimum_sessions:
+            return None
+        if any(
+            candidate.get("event_identity_source") == "provenance_fallback"
+            for candidate in eligible
+        ):
+            return None
+        selected = eligible
+
+    normalized_selected = []
+    for candidate in selected:
+        semantic_operand_index = candidate.get("semantic_operand_index")
+        semantic_operand_label = candidate.get("semantic_operand_label")
+        event_identity = candidate.get("event_identity") or "measurement"
+        if candidate.get("event_identity_scope") == "global":
+            provenance_identity = event_identity
+        else:
+            provenance_identity = "session={};event={}".format(
+                candidate.get("source_session_id"),
+                event_identity,
+            )
+        normalized_selected.append(
+            {
+                **candidate,
+                "operand_index": (
+                    semantic_operand_index
+                    if semantic_operand_index is not None
+                    else candidate.get("operand_index")
+                ),
+                "operand_label": (
+                    semantic_operand_label
+                    if semantic_operand_label is not None
+                    else candidate.get("operand_label")
+                ),
+                "canonical_identity": semantic_operand_label or provenance_identity,
+            }
+        )
+
+    selected_ids = {
+        str(candidate.get("candidate_id"))
+        for candidate in normalized_selected
+        if candidate.get("candidate_id")
+    }
+    diagnostics = {
+        "selection_strategy": "deterministic_typed_measurement",
+        "typed_fact_schema_version": TYPED_FACT_SCHEMA_VERSION,
+        "candidate_count": len(candidates or []),
+        "typed_eligible_count": len(eligible),
+        "reviewed_candidate_ids": sorted(
+            str(candidate.get("candidate_id"))
+            for candidate in candidates or []
+            if candidate.get("candidate_id")
+        ),
+        "rejected_candidate_ids": sorted(
+            str(candidate.get("candidate_id"))
+            for candidate in candidates or []
+            if candidate.get("candidate_id")
+            and str(candidate.get("candidate_id")) not in selected_ids
+        ),
+        "typed_rejections": {
+            str(candidate.get("candidate_id")): list(
+                (candidate.get("typed_fact") or {}).get("eligibility_reasons") or []
+            )
+            for candidate in candidates or []
+            if candidate.get("candidate_id")
+            and str(candidate.get("candidate_id")) not in selected_ids
+        },
+        "missing_candidate_ids": [],
+        "all_candidates_reviewed": True,
+        "batch_count": 0,
+        "retry_batch_count": 0,
+    }
+    return normalized_selected, diagnostics
+
+
 def deterministic_grounded_operation_selection(candidates, operation_plan):
     if not operation_plan.get("strict_grounded_selection"):
         return None
@@ -5236,6 +6544,13 @@ def deterministic_grounded_operation_selection(candidates, operation_plan):
             "batch_count": 0,
             "retry_batch_count": 0,
         }
+
+    typed_selection = deterministic_typed_measurement_selection(
+        candidates,
+        operation_plan,
+    )
+    if typed_selection is not None:
+        return typed_selection
 
     if operation == "average":
         expected_count = operation_plan.get("expected_fact_count")
@@ -5450,7 +6765,26 @@ def deduplicate_operation_facts(facts, operation):
                     )
                     and fact.get("currency") == existing.get("currency")
                 )
-                if same_grounded_event or (
+                fact_actions = set(
+                    (fact.get("typed_fact") or {}).get("action_concepts") or []
+                )
+                existing_actions = set(
+                    (existing.get("typed_fact") or {}).get("action_concepts")
+                    or []
+                )
+                same_session_semantic_event = bool(
+                    fact.get("source_session_id") is not None
+                    and fact.get("source_session_id")
+                    == existing.get("source_session_id")
+                    and fact_actions.intersection(existing_actions)
+                    and token_jaccard(
+                        fact.get("clause", ""),
+                        existing.get("clause", ""),
+                    )
+                    >= 0.12
+                    and fact.get("currency") == existing.get("currency")
+                )
+                if same_grounded_event or same_session_semantic_event or (
                     fact.get("source_turn_id") == existing.get("source_turn_id")
                     and token_jaccard(
                         fact.get("clause", ""),
@@ -7155,6 +8489,14 @@ def execute_operation_plan(
     graph_extractions,
     query_profile,
 ):
+    graph_extractions = [
+        {
+            **extraction,
+            "typed_facts": extraction.get("typed_facts")
+            or build_typed_graph_facts(extraction),
+        }
+        for extraction in graph_extractions or []
+    ]
     operation = operation_plan.get("operation")
     result = {
         "operation": operation,
@@ -7379,9 +8721,48 @@ def execute_operation_plan(
     return result
 
 
-def format_answer_slot_candidates(candidates, requested_slot):
+def format_answer_slot_candidates(
+    candidates,
+    requested_slot,
+    format_style=DEFAULT_PRAGMOS_ANSWER_SUFFIX_FORMAT,
+):
     if not candidates:
         return ""
+    if format_style == "compact":
+        lines = [
+            f"Candidates ({requested_slot}): row; turn; role; value; fact; quote."
+        ]
+        first_candidate_by_source = {}
+        for index, candidate in enumerate(candidates, start=1):
+            source_role = candidate.get("source_role") or "unknown"
+            quote = candidate.get("source_quote_excerpt") or compact_candidate_quote(
+                candidate.get("source_quote") or ""
+            )
+            source_key = (
+                str(candidate.get("source_turn_id")),
+                str(source_role),
+                str(quote),
+            )
+            fact = (
+                f"{candidate.get('head')} -[{candidate.get('relation')}]-> "
+                f"{candidate.get('tail')}"
+            )
+            source_candidate_id = first_candidate_by_source.get(source_key)
+            if source_candidate_id is None:
+                first_candidate_by_source[source_key] = index
+                lines.append(
+                    f"- {index}; {candidate.get('source_turn_id')}; {source_role}; "
+                    f"{candidate.get('value')}; {fact}; \"{quote}\""
+                )
+            else:
+                lines.append(
+                    f"- {index}; same source as {source_candidate_id}; "
+                    f"{candidate.get('value')}; {fact}"
+                )
+        return "\n".join(lines)
+    if format_style != "legacy":
+        raise ValueError(f"Unsupported answer suffix format: {format_style}")
+
     lines = [
         f"Structured {requested_slot} candidates extracted from quoted evidence:"
     ]
@@ -7468,6 +8849,7 @@ def build_pragmos_answer_suffix(
     query_profile=None,
     query_intent=None,
     preference_profile=None,
+    format_style=DEFAULT_PRAGMOS_ANSWER_SUFFIX_FORMAT,
 ):
     requested_slot = infer_requested_answer_slot(question)
     if query_time_scope == "historical":
@@ -7478,12 +8860,14 @@ def build_pragmos_answer_suffix(
     temporal_candidates_text = format_temporal_fact_candidates(
         temporal_fact_candidates,
         query_time_scope,
+        format_style=format_style,
     )
     if temporal_candidates_text:
         temporal_candidates_text = f"{temporal_candidates_text}\n"
     slot_candidates_text = format_answer_slot_candidates(
         answer_slot_candidates,
         requested_slot,
+        format_style=format_style,
     )
     if slot_candidates_text:
         slot_candidates_text = f"{slot_candidates_text}\n"
@@ -7498,11 +8882,24 @@ def build_pragmos_answer_suffix(
         )
     source_role_requirement = ""
     if (query_intent or {}).get("intent") == ASSISTANT_MEMORY_INTENT:
-        source_role_requirement = (
-            "Source target: recall information previously supplied by the assistant. "
-            "Assistant-authored evidence contains the answer; user-authored evidence "
-            "may identify the request but is not itself the recalled answer.\n"
+        source_role_target = (query_intent or {}).get(
+            "source_role_target",
+            SOURCE_ROLE_TARGET_ASSISTANT,
         )
+        if source_role_target == SOURCE_ROLE_TARGET_ASSISTANT:
+            source_role_requirement = (
+                "Source target: recall information explicitly attributed to the "
+                "assistant. Use assistant-authored evidence for the answer; user "
+                "evidence may identify the request but is not itself the recalled "
+                "answer.\n"
+            )
+        else:
+            source_role_requirement = (
+                "Source target: the question refers to a shared conversation without "
+                "unambiguously assigning the answer to one speaker. Follow explicit "
+                "attribution inside the question and evidence; either user- or "
+                "assistant-authored evidence may contain the answer.\n"
+            )
     preference_requirement = ""
     if (query_intent or {}).get("intent") == PREFERENCE_RECOMMENDATION_INTENT:
         formatted_profile = format_preference_profile(preference_profile)
@@ -7758,6 +9155,181 @@ def longmemeval_session_retrieval_metrics(
             }
         )
     return base_result
+
+
+def longmemeval_answer_turn_labels(record):
+    """Return stable, evaluation-only answer-turn labels from the oracle."""
+    answer_turns = []
+    sessions = record.get("haystack_sessions") or []
+    for session_index, session in enumerate(sessions):
+        session_id, _session_date = haystack_session_metadata(record, session_index)
+        if isinstance(session, dict):
+            messages = session.get("messages") or session.get("turns") or []
+        else:
+            messages = session if isinstance(session, list) else []
+        valid_message_index = 0
+        for message in messages:
+            if not isinstance(message, dict):
+                continue
+            text = message.get("content", message.get("text", ""))
+            if not str(text).strip():
+                continue
+            valid_message_index += 1
+            if message.get("has_answer") is True:
+                answer_turns.append(
+                    {
+                        "turn_label": f"{session_id}:message-{valid_message_index}",
+                        "source_session_id": str(session_id),
+                        "role": normalized_source_role(
+                            message.get("role") or message.get("speaker")
+                        ),
+                        "normalized_text": normalized_evidence_text(text),
+                    }
+                )
+    return answer_turns
+
+
+def longmemeval_answer_turn_ids(record):
+    return [
+        item["turn_label"] for item in longmemeval_answer_turn_labels(record)
+    ]
+
+
+def ranked_unique_turn_records(ranked_items):
+    """Collapse chunks/edges to turns while retaining every quote for matching."""
+    records = []
+    records_by_key = {}
+    for item in ranked_items or []:
+        source_turn_ids = item.get("source_turn_ids") or []
+        source_turn_id = item.get("source_turn_id")
+        if source_turn_id is not None and not source_turn_ids:
+            source_turn_ids = [source_turn_id]
+        session_id = str(item.get("source_session_id") or "")
+        turn_key = tuple(str(value) for value in source_turn_ids)
+        if not turn_key:
+            turn_key = (
+                str(item.get("external_turn_id") or ""),
+                normalized_evidence_text(
+                    item.get("source_quote") or item.get("text") or ""
+                ),
+            )
+        key = (session_id, turn_key)
+        record = records_by_key.get(key)
+        if record is None:
+            record = {
+                "turn_id": ",".join(turn_key),
+                "source_session_id": session_id,
+                "role": normalized_source_role(
+                    item.get("source_role")
+                    or item.get("role")
+                    or item.get("source_speaker")
+                    or item.get("speaker")
+                ),
+                "quotes": [],
+            }
+            records_by_key[key] = record
+            records.append(record)
+        quote = normalized_evidence_text(
+            item.get("source_quote") or item.get("text") or ""
+        )
+        if quote and quote not in record["quotes"]:
+            record["quotes"].append(quote)
+    return records
+
+
+def ranked_unique_turn_ids(ranked_items):
+    return [record["turn_id"] for record in ranked_unique_turn_records(ranked_items)]
+
+
+def ranked_turn_matches_gold(ranked_turn, gold_turn):
+    if ranked_turn.get("source_session_id") != gold_turn.get("source_session_id"):
+        return False
+    ranked_role = ranked_turn.get("role")
+    gold_role = gold_turn.get("role")
+    if ranked_role and gold_role and ranked_role != gold_role:
+        return False
+    gold_text = gold_turn.get("normalized_text") or ""
+    if not gold_text:
+        return False
+    return any(
+        len(quote) >= 8 and (quote in gold_text or gold_text in quote)
+        for quote in ranked_turn.get("quotes") or []
+    )
+
+
+def longmemeval_turn_retrieval_metrics(
+    record,
+    ranked_items,
+    ks=LONGMEMEVAL_RETRIEVAL_KS,
+    ranking_name="turn_ranking",
+    question_id=None,
+):
+    """Measure exact answer-turn recall when oracle turn labels are available."""
+    question_id = str(question_id or record.get("question_id") or "")
+    gold_turns = longmemeval_answer_turn_labels(record)
+    gold_turn_ids = [turn["turn_label"] for turn in gold_turns]
+    ranked_turns = ranked_unique_turn_records(ranked_items)
+    ranked_turn_ids = [turn["turn_id"] for turn in ranked_turns]
+    matched_gold_by_rank = [
+        [
+            gold_turn["turn_label"]
+            for gold_turn in gold_turns
+            if ranked_turn_matches_gold(ranked_turn, gold_turn)
+        ]
+        for ranked_turn in ranked_turns
+    ]
+    result = {
+        "eligible": True,
+        "exclusion_reason": None,
+        "question_id": question_id,
+        "question_type": record.get("question_type"),
+        "granularity": "turn",
+        "ranking_name": ranking_name,
+        "ranking_policy": (
+            "First occurrence of each (source_session_id, source_turn_id) in "
+            "ranked evidence; all chunks from that turn are matched to oracle "
+            "answer-turn text by exact normalized source provenance."
+        ),
+        "gold_turn_ids": gold_turn_ids,
+        "ranked_turn_ids": ranked_turn_ids,
+        "gold_turn_ranks": {
+            turn_id: next(
+                rank
+                for rank, matched in enumerate(matched_gold_by_rank, start=1)
+                if turn_id in matched
+            )
+            for turn_id in gold_turn_ids
+            if any(turn_id in matched for matched in matched_gold_by_rank)
+        },
+        "metrics": {},
+    }
+    if "_abs" in question_id:
+        result.update(eligible=False, exclusion_reason="abstention_question")
+        return result
+    if not gold_turn_ids:
+        result.update(eligible=False, exclusion_reason="no_answer_turn_labels")
+        return result
+    ideal_relevances = [1.0] * len(gold_turn_ids)
+    for k in sorted({int(value) for value in ks if int(value) > 0}):
+        recalled = {
+            turn_id
+            for matched in matched_gold_by_rank[:k]
+            for turn_id in matched
+        }
+        recall_all = float(set(gold_turn_ids).issubset(recalled))
+        relevances = [1.0 if matched else 0.0 for matched in matched_gold_by_rank[:k]]
+        ideal_dcg = longmemeval_dcg(ideal_relevances, k)
+        ndcg = longmemeval_dcg(relevances, k) / ideal_dcg if ideal_dcg else 0.0
+        result["metrics"].update(
+            {
+                f"recall@{k}": recall_all,
+                f"recall_all@{k}": recall_all,
+                f"recall_any@{k}": float(bool(recalled)),
+                f"ndcg@{k}": ndcg,
+                f"ndcg_any@{k}": ndcg,
+            }
+        )
+    return result
 
 
 def aggregate_longmemeval_retrieval_metrics(metric_rows):
@@ -8182,6 +9754,282 @@ def merge_memory_evidence(*memory_groups, limit):
             if len(merged) >= limit:
                 return merged
     return merged
+
+
+def evidence_coverage_contract(query_profile, operation_plan):
+    """Describe query-derived evidence requirements without benchmark labels."""
+    operation = operation_plan.get("operation", "none")
+    coverage_operations = {
+        "argmax",
+        "argmin",
+        "average",
+        "count",
+        "count_distinct",
+        "difference",
+        "ratio",
+        "sum",
+        *COLLECTION_OPERATIONS,
+    }
+    operands = [
+        str(value).strip()
+        for value in operation_plan.get("operands") or []
+        if str(value).strip()
+    ]
+    requires_session_diversity = bool(
+        operation_plan.get("requires_session_diversity")
+    )
+    enabled = bool(
+        operation in coverage_operations
+        and (operands or requires_session_diversity)
+    )
+    return {
+        "enabled": enabled,
+        "operation": operation,
+        "anchor_groups": list(query_profile.get("required_anchor_groups") or []),
+        "operands": operands,
+        "minimum_sessions": (
+            max(2, int(operation_plan.get("minimum_sessions") or 2))
+            if requires_session_diversity
+            else 1
+        ),
+        "requires_session_diversity": requires_session_diversity,
+        "actor_binding_enabled": bool(query_profile.get("actor_binding_enabled")),
+        "policy": (
+            "query anchors, explicit operands, and planner-required session "
+            "diversity only; no benchmark answer labels"
+        ),
+    }
+
+
+def evidence_coverage_report(memories, contract, query_profile):
+    memories = list(memories or [])
+    anchor_groups = contract.get("anchor_groups") or []
+    operands = contract.get("operands") or []
+    supported_anchor_indexes = set()
+    supported_operand_indexes = set()
+    session_ids = set()
+    for memory in memories:
+        quote = str(memory.get("source_quote") or memory.get("text") or "")
+        if not quote.strip():
+            continue
+        if not evidence_is_bound_to_requested_actor(
+            evidence_envelope(memory),
+            query_profile,
+        ):
+            continue
+        for index, group in enumerate(anchor_groups):
+            if anchor_group_is_supported(group, quote):
+                supported_anchor_indexes.add(index)
+        operand_index, _operand, _score = semantic_operation_operand_match(
+            quote,
+            operands,
+        )
+        if operand_index is not None:
+            supported_operand_indexes.add(int(operand_index))
+        session_id = memory.get("source_session_id")
+        if session_id is not None:
+            session_ids.add(str(session_id))
+    missing_anchor_indexes = [
+        index
+        for index in range(len(anchor_groups))
+        if index not in supported_anchor_indexes
+    ]
+    missing_operand_indexes = [
+        index
+        for index in range(len(operands))
+        if index not in supported_operand_indexes
+    ]
+    minimum_sessions = int(contract.get("minimum_sessions") or 1)
+    return {
+        "complete": bool(
+            not contract.get("enabled")
+            or (
+            not missing_anchor_indexes
+            and not missing_operand_indexes
+            and len(session_ids) >= minimum_sessions
+            )
+        ),
+        "missing_anchor_indexes": missing_anchor_indexes,
+        "missing_anchor_labels": [
+            anchor_groups[index].get("text") for index in missing_anchor_indexes
+        ],
+        "missing_operand_indexes": missing_operand_indexes,
+        "missing_operands": [operands[index] for index in missing_operand_indexes],
+        "covered_session_ids": sorted(session_ids),
+        "covered_session_count": len(session_ids),
+        "minimum_sessions": minimum_sessions,
+    }
+
+
+def candidate_coverage_gain(memory, report, contract, query_profile):
+    quote = str(memory.get("source_quote") or memory.get("text") or "")
+    if not quote.strip() or not evidence_is_bound_to_requested_actor(
+        evidence_envelope(memory),
+        query_profile,
+    ):
+        return (0, 0, 0)
+    anchor_groups = contract.get("anchor_groups") or []
+    anchor_gain = sum(
+        anchor_group_is_supported(anchor_groups[index], quote)
+        for index in report.get("missing_anchor_indexes") or []
+    )
+    operand_gain = 0
+    operand_index, _operand, _score = semantic_operation_operand_match(
+        quote,
+        contract.get("operands") or [],
+    )
+    if operand_index in set(report.get("missing_operand_indexes") or []):
+        operand_gain = 1
+    session_id = memory.get("source_session_id")
+    session_gain = int(
+        report.get("covered_session_count", 0) < report.get("minimum_sessions", 1)
+        and session_id is not None
+        and str(session_id) not in set(report.get("covered_session_ids") or [])
+        and (anchor_gain or operand_gain or memory_query_alignment(memory, query_profile) > 0.5)
+    )
+    return anchor_gain, operand_gain, session_gain
+
+
+def preserve_required_evidence_memories(
+    context_layer,
+    selected_memories,
+    candidate_memories,
+    query_profile,
+    operation_plan,
+    *,
+    structural_radius=1,
+    max_additions=4,
+):
+    """Conditionally add evidence needed by a query-derived coverage contract.
+
+    Complete selections are returned in exactly their original order. Expansion
+    is bounded and uses only retrieved evidence or same-session structural
+    neighbors; it never consults answer sessions or oracle annotations.
+    """
+    selected = list(selected_memories or [])
+    contract = evidence_coverage_contract(query_profile, operation_plan)
+    initial_report = evidence_coverage_report(selected, contract, query_profile)
+    diagnostics = {
+        "applicable": bool(
+            contract.get("enabled") and not initial_report["complete"]
+        ),
+        "status": (
+            "not_applicable"
+            if not contract.get("enabled")
+            else "already_complete"
+            if initial_report["complete"]
+            else "incomplete"
+        ),
+        "initial": initial_report,
+        "final": initial_report,
+        "added_count": 0,
+        "added_provenance": [],
+        "structural_neighbor_candidate_count": 0,
+        "max_additions": max(0, int(max_additions)),
+        "contract": contract,
+    }
+    if initial_report["complete"] or max_additions <= 0:
+        return selected, [], diagnostics
+
+    seen = {evidence_provenance_identity(memory) for memory in selected}
+    candidates = []
+    for memory in candidate_memories or []:
+        identity = evidence_provenance_identity(memory)
+        if not identity[-1] or identity in seen:
+            continue
+        seen.add(identity)
+        candidates.append(memory)
+
+    anchor_turn_ids = [
+        turn_id
+        for memory in selected
+        for turn_id in memory.get("source_turn_ids") or []
+    ]
+    if (
+        structural_radius > 0
+        and anchor_turn_ids
+        and hasattr(context_layer, "structural_neighbor_turn_ids")
+        and hasattr(context_layer, "raw_memories_for_turn_ids")
+    ):
+        neighbor_turn_ids = context_layer.structural_neighbor_turn_ids(
+            anchor_turn_ids,
+            radius=structural_radius,
+        )
+        structural_candidates = context_layer.raw_memories_for_turn_ids(
+            neighbor_turn_ids
+        )
+        diagnostics["structural_neighbor_candidate_count"] = len(
+            structural_candidates
+        )
+        for memory in structural_candidates:
+            identity = evidence_provenance_identity(memory)
+            if not identity[-1] or identity in seen:
+                continue
+            seen.add(identity)
+            candidates.append(
+                {
+                    **memory,
+                    "retrieval_sources": sorted(
+                        set(memory.get("retrieval_sources") or []).union(
+                            {"structural_neighbor"}
+                        )
+                    ),
+                }
+            )
+
+    added = []
+    current = list(selected)
+    report = initial_report
+    while candidates and len(added) < max_additions and not report["complete"]:
+        ranked = []
+        for position, memory in enumerate(candidates):
+            gain = candidate_coverage_gain(
+                memory,
+                report,
+                contract,
+                query_profile,
+            )
+            ranked.append(
+                (
+                    sum(gain),
+                    gain,
+                    memory_query_alignment(memory, query_profile),
+                    float(memory.get("score", 0.0)),
+                    -position,
+                    memory,
+                )
+            )
+        ranked.sort(key=lambda item: item[:-1], reverse=True)
+        best = ranked[0]
+        if best[0] <= 0:
+            break
+        chosen = best[-1]
+        candidates.remove(chosen)
+        added.append(chosen)
+        current.append(chosen)
+        report = evidence_coverage_report(current, contract, query_profile)
+
+    if added:
+        # Preserve the legacy top hit, then place required evidence before lower
+        # ranked context so token trimming cannot silently discard it.
+        current = merge_memory_evidence(
+            selected[:1],
+            added,
+            selected[1:],
+            limit=len(selected) + len(added),
+        )
+        report = evidence_coverage_report(current, contract, query_profile)
+    diagnostics.update(
+        {
+            "status": "complete" if report["complete"] else "bounded_incomplete",
+            "final": report,
+            "added_count": len(added),
+            "added_provenance": [
+                list(evidence_provenance_identity(memory)) for memory in added
+            ],
+        }
+    )
+    return current, added, diagnostics
 
 
 OPERATION_ACTION_QUERY_EXPANSIONS = (
@@ -8696,6 +10544,326 @@ def session_neighbor_priority(memory, question):
     )
 
 
+def structured_recall_excerpt(source_quote, question, plan, max_characters=1800):
+    """Keep complete answer-bearing units instead of prefix-truncating a long turn."""
+    source_quote = str(source_quote or "")
+    if len(source_quote) <= max_characters:
+        return source_quote
+
+    units = structured_evidence_units(source_quote)
+    scored = []
+    for index, unit in enumerate(units):
+        score = structured_unit_score(unit, question)
+        if plan.get("ordinal") is not None and re.match(
+            rf"\s*{int(plan['ordinal'])}(?:st|nd|rd|th)?[.):]\s+",
+            unit,
+            flags=re.IGNORECASE,
+        ):
+            score += 20
+        if plan.get("last_item") and re.match(r"\s*\d{1,3}[.):]\s+", unit):
+            score += 5
+        if plan.get("table_hint") and "|" in unit:
+            score += 8
+        if plan.get("identifier_kind") and structured_identifier_candidates(
+            unit,
+            question,
+            plan["identifier_kind"],
+        ):
+            score += 12
+        if plan.get("sequence_anchor") and normalized_evidence_text(
+            plan["sequence_anchor"]
+        ) in normalized_evidence_text(unit):
+            score += 12
+        scored.append((score, index, unit))
+
+    selected_indices = {
+        index
+        for score, index, _unit in sorted(scored, reverse=True)[:4]
+        if score > 0
+    }
+    for _score, index, unit in scored:
+        if index in selected_indices and "|" in unit:
+            table_start = index
+            while table_start > 0 and "|" in units[table_start - 1]:
+                table_start -= 1
+            selected_indices.add(table_start)
+        if index in selected_indices and re.fullmatch(
+            r"[A-Za-z][A-Za-z0-9 /_-]{0,40}:",
+            unit,
+        ):
+            if index + 1 < len(units):
+                selected_indices.add(index + 1)
+    selected = [
+        unit for index, unit in enumerate(units) if index in selected_indices
+    ]
+    if not selected:
+        selected = units[:2]
+    bounded = []
+    used_characters = 0
+    for unit in selected:
+        added_characters = len(unit) + int(bool(bounded))
+        if bounded and used_characters + added_characters > max_characters:
+            continue
+        bounded.append(unit)
+        used_characters += added_characters
+    if not bounded and selected:
+        bounded = [selected[0]]
+    return "\n".join(bounded).rstrip()
+
+
+def retrieve_structured_recall_evidence(
+    turns,
+    question,
+    query_intent,
+    limit=6,
+):
+    """Rank full conversation turns for role-aware structured recall."""
+    applicable = (query_intent or {}).get("intent") == ASSISTANT_MEMORY_INTENT
+    diagnostics = {
+        "applicable": applicable,
+        "source_role_target": (query_intent or {}).get("source_role_target"),
+        "selected_turn_count": 0,
+        "selected_turn_ids": [],
+        "policy": (
+            "query_overlap_plus_previous_request_plus_structure_then_full_turn_parse"
+        ),
+    }
+    if not applicable or limit <= 0:
+        return [], [], diagnostics
+
+    plan = structured_recall_plan(question)
+    source_role_target = (query_intent or {}).get(
+        "source_role_target",
+        SOURCE_ROLE_TARGET_ASSISTANT,
+    )
+    allowed_roles = (
+        {"assistant"}
+        if source_role_target == SOURCE_ROLE_TARGET_ASSISTANT
+        else {"assistant", "user"}
+    )
+    session_turns = {}
+    for turn in turns or []:
+        session_turns.setdefault(str(turn.session_id), []).append(turn)
+
+    ranked = []
+    query_tokens = structured_recall_query_tokens(question)
+    topic_tokens = structured_recall_topic_tokens(question)
+    query_bigrams = structured_recall_query_bigrams(question)
+    ordinal_noun_tokens = retrieval_content_tokens(plan.get("ordinal_noun"))
+    ordinal_response_targets = set()
+    ordinal = plan.get("ordinal")
+    if ordinal is not None and 1 <= ordinal <= 10:
+        session_response_candidates = []
+        for session_id, values in session_turns.items():
+            matching_responses = []
+            session_overlap = 0
+            session_phrase_overlap = 0
+            for index, turn in enumerate(values):
+                role = normalized_source_role(turn.role or turn.speaker)
+                if role != "assistant":
+                    continue
+                pair_text = str(turn.text or "")
+                if index > 0:
+                    previous = values[index - 1]
+                    if normalized_source_role(
+                        previous.role or previous.speaker
+                    ) == "user":
+                        pair_text += " " + str(previous.text or "")
+                pair_overlap = len(
+                    query_tokens.intersection(retrieval_content_tokens(pair_text))
+                )
+                pair_sequence = retrieval_content_token_sequence(pair_text)
+                pair_bigrams = set(zip(pair_sequence, pair_sequence[1:]))
+                phrase_overlap = len(query_bigrams.intersection(pair_bigrams))
+                session_overlap = max(session_overlap, pair_overlap)
+                session_phrase_overlap = max(
+                    session_phrase_overlap,
+                    phrase_overlap,
+                )
+                noun_bound = bool(
+                    not ordinal_noun_tokens
+                    or ordinal_noun_tokens.intersection(
+                        retrieval_content_tokens(pair_text)
+                    )
+                )
+                if pair_overlap >= 2 and noun_bound:
+                    matching_responses.append(turn)
+            if len(matching_responses) >= ordinal:
+                session_response_candidates.append(
+                    (
+                        session_phrase_overlap,
+                        session_overlap,
+                        session_id,
+                        matching_responses[ordinal - 1],
+                    )
+                )
+        if session_response_candidates:
+            best_session_score = max(
+                candidate[:2] for candidate in session_response_candidates
+            )
+            if best_session_score[0] > 0 or best_session_score[1] >= 3:
+                ordinal_response_targets.update(
+                    (session_id, str(target.turn_id))
+                    for phrase_overlap, overlap, session_id, target
+                    in session_response_candidates
+                    if (phrase_overlap, overlap) == best_session_score
+                )
+    for values in session_turns.values():
+        for index, turn in enumerate(values):
+            role = normalized_source_role(turn.role or turn.speaker)
+            if role not in allowed_roles:
+                continue
+            quote_tokens = retrieval_content_tokens(turn.text)
+            overlap = len(query_tokens.intersection(quote_tokens))
+            previous_overlap = 0
+            pair_text = str(turn.text or "")
+            if role == "assistant" and index > 0:
+                previous = values[index - 1]
+                if normalized_source_role(previous.role or previous.speaker) == "user":
+                    pair_text += " " + str(previous.text or "")
+                    previous_overlap = len(
+                        query_tokens.intersection(retrieval_content_tokens(previous.text))
+                    )
+            pair_sequence = retrieval_content_token_sequence(pair_text)
+            pair_bigrams = set(zip(pair_sequence, pair_sequence[1:]))
+            phrase_overlap = len(query_bigrams.intersection(pair_bigrams))
+            topic_overlap = len(
+                topic_tokens.intersection(retrieval_content_tokens(pair_text))
+            )
+            structure_bonus = 0
+            numbered = assistant_numbered_list_items(turn.text)
+            previous_text = ""
+            if index > 0:
+                previous_text = str(values[index - 1].text or "")
+            ordinal_noun_bound = bool(
+                not ordinal_noun_tokens
+                or ordinal_noun_tokens.intersection(
+                    retrieval_content_tokens(str(turn.text or "") + " " + previous_text)
+                )
+            )
+            if (
+                plan.get("ordinal") is not None
+                and plan["ordinal"] in numbered
+                and ordinal_noun_bound
+            ):
+                structure_bonus += 20
+            elif plan.get("last_item") and numbered and ordinal_noun_bound:
+                structure_bonus += 12
+            if plan.get("table_hint") and markdown_table_candidates(
+                turn.text,
+                question,
+            ):
+                structure_bonus += 20
+            if plan.get("identifier_kind") and structured_identifier_candidates(
+                turn.text,
+                question,
+                plan["identifier_kind"],
+            ):
+                structure_bonus += 12
+            if plan.get("sequence_anchor") and sequence_successor_candidates(
+                turn.text,
+                plan["sequence_anchor"],
+            ):
+                structure_bonus += 20
+            if plan.get("quote_hint") and quoted_span_candidates(turn.text, question):
+                structure_bonus += 10
+            if plan.get("plural_list_hint") and delimited_list_candidates(
+                turn.text,
+                question,
+                expected_count=plan.get("expected_count"),
+            ):
+                structure_bonus += 10
+            if (str(turn.session_id), str(turn.turn_id)) in ordinal_response_targets:
+                structure_bonus += 30
+            if plan.get("final_choice_hint") and (
+                topic_overlap > 0 or phrase_overlap > 0
+            ):
+                structure_bonus += 6
+                if re.search(
+                    r"\b(?:love|loved|like|liked|really\s+cool|great\s+(?:one|name|choice)|"
+                    r"perfect\s+(?:one|name|choice))\b",
+                    str(turn.text or ""),
+                    flags=re.IGNORECASE,
+                ):
+                    structure_bonus += 16
+            if plan.get("final_choice_hint") and final_choice_candidates(
+                turn.text,
+                question,
+            ) and (overlap > 0 or previous_overlap > 0):
+                structure_bonus += 16
+            role_bonus = int(
+                source_role_target == SOURCE_ROLE_TARGET_ASSISTANT
+                and role == "assistant"
+            )
+            score = (
+                3 * overlap
+                + 4 * previous_overlap
+                + 6 * phrase_overlap
+                + structure_bonus
+                + role_bonus
+            )
+            if score <= 0:
+                continue
+            ranked.append((score, overlap, previous_overlap, turn))
+
+    ranked.sort(
+        key=lambda item: (item[0], item[1], item[2], item[3].turn_id),
+        reverse=True,
+    )
+    selected = ranked[:limit]
+    evidence_rows = []
+    memories = []
+    for score, overlap, previous_overlap, turn in selected:
+        excerpt = structured_recall_excerpt(turn.text, question, plan)
+        evidence_rows.append(
+            {
+                "source_turn_id": turn.turn_id,
+                "source_session_id": turn.session_id,
+                "source_role": turn.role,
+                "source_speaker": turn.speaker,
+                "source_timestamp": turn.timestamp,
+                "external_turn_id": turn.external_turn_id,
+                "evidence_type": turn.evidence_type,
+                "parent_turn_id": turn.parent_turn_id,
+                "source_quote": turn.text,
+                "structured_score": float(score),
+                "query_overlap": overlap,
+                "previous_user_overlap": previous_overlap,
+                "topic_overlap": topic_overlap,
+            }
+        )
+        memories.append(
+            {
+                "memory_id": f"structured-recall:{turn.session_id}:{turn.turn_id}",
+                "label": "structured_recall_excerpt",
+                "source_turn_ids": [turn.turn_id],
+                "source_session_id": turn.session_id,
+                "source_quote": excerpt,
+                "timestamp": turn.timestamp,
+                "role": turn.role,
+                "speaker": turn.speaker,
+                "external_turn_id": turn.external_turn_id,
+                "evidence_type": turn.evidence_type,
+                "parent_turn_id": turn.parent_turn_id,
+                "score": min(1.0, 0.5 + score / 100.0),
+                "hybrid_score": min(1.0, 0.5 + score / 100.0),
+                "dense_score": 0.0,
+                "lexical_score": 0.0,
+                "graph_score": 0.0,
+                "retrieval_sources": ["structured_recall"],
+                "structured_score": float(score),
+            }
+        )
+    diagnostics.update(
+        {
+            "selected_turn_count": len(evidence_rows),
+            "selected_turn_ids": [row["source_turn_id"] for row in evidence_rows],
+            "plan": plan,
+        }
+    )
+    return memories, evidence_rows, diagnostics
+
+
 def evidence_provenance_key(
     source_turn_id,
     source_quote,
@@ -8829,9 +10997,17 @@ def format_selected_evidence_block(record, source_quote=None):
     )
 
 
-def parse_selected_evidence_triples(raw_output, records):
+def parse_selected_evidence_triples(
+    raw_output,
+    records,
+    relationship_limits=None,
+):
     """Parse evidence-scoped triples and reject unknown IDs or ungrounded rows."""
     records_by_id = {record["evidence_id"]: record for record in records}
+    relationship_limits = {
+        str(evidence_id).upper(): max(1, int(limit))
+        for evidence_id, limit in (relationship_limits or {}).items()
+    }
     triples_by_id = {evidence_id: [] for evidence_id in records_by_id}
     seen = set()
     counts = {evidence_id: 0 for evidence_id in records_by_id}
@@ -8844,7 +11020,7 @@ def parse_selected_evidence_triples(raw_output, records):
         record = records_by_id.get(evidence_id)
         if record is None or not head or not relation or not tail:
             continue
-        if counts[evidence_id] >= 6:
+        if counts[evidence_id] >= relationship_limits.get(evidence_id, 6):
             continue
         source_quote = record["source_quote"]
         if not evidence_entity_is_grounded(record, head):
@@ -8863,6 +11039,21 @@ def parse_selected_evidence_triples(raw_output, records):
         counts[evidence_id] += 1
         triples_by_id[evidence_id].append([head, relation, tail])
     return triples_by_id
+
+
+def selected_evidence_completion_ids(raw_output, records):
+    """Return evidence IDs explicitly confirmed complete by the extractor."""
+    allowed = {record["evidence_id"].upper() for record in records}
+    completed = set()
+    for line in (raw_output or "").splitlines():
+        match = re.fullmatch(
+            r"\s*EXTRACTION_COMPLETE\s*\|\s*([A-Za-z]\d+)\s*",
+            line,
+            flags=re.IGNORECASE,
+        )
+        if match and match.group(1).upper() in allowed:
+            completed.add(match.group(1).upper())
+    return completed
 
 
 def evidence_entity_is_grounded(record, entity):
@@ -8923,10 +11114,13 @@ ORDINAL_WORD_VALUES = {
 
 def requested_list_ordinal(question):
     normalized = re.sub(r"\s+", " ", (question or "").strip().lower())
+    ordinal_nouns = (
+        r"answer|bottle|choice|entry|idea|item|job|method|name|option|"
+        r"parameter|point|process|recommendation|resource|song|step|venue"
+    )
     numeric_patterns = (
         r"\bitem\s+(?:number\s+)?(\d{1,3})(?:st|nd|rd|th)?\b",
-        r"\b(\d{1,3})(?:st|nd|rd|th)\s+"
-        r"(?:answer|entry|idea|item|job|option|parameter|recommendation|step)\b",
+        rf"\b(\d{{1,3}})(?:st|nd|rd|th)\s+(?:{ordinal_nouns})\b",
     )
     for pattern in numeric_patterns:
         match = re.search(pattern, normalized)
@@ -8935,17 +11129,36 @@ def requested_list_ordinal(question):
     for word, value in ORDINAL_WORD_VALUES.items():
         if re.search(
             rf"\b{re.escape(word)}\s+"
-            r"(?:answer|entry|idea|item|job|option|parameter|recommendation|step)\b",
+            rf"(?:{ordinal_nouns})\b",
             normalized,
         ):
             return value
     return None
 
 
+def requested_list_ordinal_noun(question):
+    normalized = re.sub(r"\s+", " ", (question or "").strip().lower())
+    ordinal_nouns = (
+        r"answer|bottle|choice|entry|idea|item|job|method|name|option|"
+        r"parameter|point|process|recommendation|resource|song|step|venue"
+    )
+    match = re.search(
+        rf"\b(?:\d{{1,3}}(?:st|nd|rd|th)|{'|'.join(ORDINAL_WORD_VALUES)})\s+"
+        rf"(?P<noun>{ordinal_nouns})\b",
+        normalized,
+    )
+    if match:
+        return match.group("noun")
+    if re.search(r"\bitem\s+(?:number\s+)?\d{1,3}\b", normalized):
+        return "item"
+    return None
+
+
 def assistant_numbered_list_items(source_quote):
     pattern = re.compile(
         r"(?:^|(?<=\s))(\d{1,3})(?:st|nd|rd|th)?(?:[.)]|:)\s+(.+?)"
-        r"(?=(?:\s+\d{1,3}(?:st|nd|rd|th)?(?:[.)]|:)\s+)|\Z)",
+        r"(?=(?:\s+\d{1,3}(?:st|nd|rd|th)?(?:[.)]|:)\s+)|"
+        r"(?:\n\s*\n)|\Z)",
         flags=re.IGNORECASE | re.DOTALL,
     )
     items = {}
@@ -8957,6 +11170,8 @@ def assistant_numbered_list_items(source_quote):
         short_value = re.split(r"\s+(?:-|:)\s+", value, maxsplit=1)[0].strip()
         if short_value and len(short_value.split()) <= 16:
             value = short_value
+        elif len(value.split()) > 16:
+            continue
         if value:
             items[int(match.group(1))] = value
     return items
@@ -9063,11 +11278,636 @@ def extract_requested_list_values(source_quote, expected_count):
     return bullet_values if len(bullet_values) == expected_count else []
 
 
+STRUCTURED_RECALL_FILLER_TOKENS = {
+    "again",
+    "about",
+    "back",
+    "can",
+    "chat",
+    "conversation",
+    "creat",
+    "discuss",
+    "discussed",
+    "earlier",
+    "going",
+    "last",
+    "look",
+    "looking",
+    "mention",
+    "mentioned",
+    "previous",
+    "previou",
+    "provid",
+    "recall",
+    "recommend",
+    "remember",
+    "remind",
+    "said",
+    "talk",
+    "talked",
+    "think",
+    "told",
+    "wonder",
+    "wondering",
+}
+STRUCTURED_RECALL_STRUCTURE_TOKENS = {
+    "answer",
+    "choice",
+    "decide",
+    "decid",
+    "final",
+    "finally",
+    "give",
+    "item",
+    "list",
+    "name",
+    "number",
+    "provide",
+    "recommend",
+    "remember",
+}
+
+
+def structured_recall_plan(question):
+    """Describe high-precision structures explicitly requested by a recall query."""
+    normalized = re.sub(r"\s+", " ", str(question or "")).strip().lower()
+    ordinal = requested_list_ordinal(question)
+    ordinal_noun = requested_list_ordinal_noun(question)
+    ordinal_terms = "|".join(
+        [re.escape(value) for value in ORDINAL_WORD_VALUES]
+    )
+    ordinal_is_container = bool(
+        ordinal is not None
+        and ordinal_noun
+        and re.search(
+            rf"\b(?:in|from|within)\s+(?:the\s+)?"
+            rf"(?:\d{{1,3}}(?:st|nd|rd|th)|{ordinal_terms})\s+"
+            rf"{re.escape(ordinal_noun)}\b",
+            normalized,
+        )
+    )
+    last_item_match = re.search(
+            r"\b(?:last|final)\s+(?:answer|bottle|choice|entry|idea|item|job|"
+            r"method|name|option|parameter|point|process|recommendation|resource|"
+            r"song|step|venue)\b",
+            normalized,
+        )
+    last_item = bool(last_item_match)
+    if ordinal_noun is None and last_item_match:
+        ordinal_noun = last_item_match.group(0).split()[-1]
+    sequence_match = re.search(
+        r"\bafter\s+(?P<anchor>[^?]+?)(?:\?|$)",
+        str(question or ""),
+        flags=re.IGNORECASE,
+    )
+    identifier_kind = None
+    identifier_patterns = (
+        ("phone", r"\b(?:phone|telephone|contact)\s+(?:number|no\.?|details?)\b"),
+        ("email", r"\b(?:email|e-mail)\s+(?:address)?\b"),
+        ("url", r"\b(?:url|website|web\s+address|link)\b"),
+        ("handle", r"\b(?:instagram|social media|twitter|x)\s+handle\b"),
+        ("year", r"\bwhat\s+year\b"),
+        ("percentage", r"\b(?:percentage|percent|framerate improvement)\b"),
+        ("amount", r"\b(?:how much|budget|allocated|allocation|cost)\b"),
+    )
+    for kind, pattern in identifier_patterns:
+        if re.search(pattern, normalized):
+            identifier_kind = kind
+            break
+    table_hint = bool(
+        re.search(r"\b(?:table|sheet|schedule|rotation|row|column)\b", normalized)
+    )
+    quote_hint = bool(
+        re.search(
+            r"\b(?:exact(?:ly)?\s+)?(?:quote|quotation|wording)\b|"
+            r"\bwhat\s+did\s+[A-Z][\w'-]*(?:\s+[A-Z][\w'-]*)?\s+say\b",
+            str(question or ""),
+        )
+    )
+    plural_list_hint = bool(
+        requested_list_count(question) is not None
+        or re.search(
+            r"\b(?:languages|methods|processes|companies|options|alternatives|"
+            r"objectives|recommendations|resources|examples)\b",
+            normalized,
+        )
+    )
+    final_choice_hint = bool(
+        re.search(
+            r"\b(?:finally|ultimately)\s+(?:decide(?:d)?|chose|picked|settled)\b|"
+            r"\b(?:final|eventual)\s+(?:choice|name|decision)\b|"
+            r"\b(?:decided|settled)\s+(?:on\s+)?(?:the\s+)?name\b",
+            normalized,
+        )
+    )
+    return {
+        "applicable": bool(
+            ordinal is not None
+            or last_item
+            or sequence_match
+            or identifier_kind
+            or table_hint
+            or quote_hint
+            or plural_list_hint
+            or final_choice_hint
+        ),
+        "ordinal": ordinal,
+        "ordinal_noun": ordinal_noun,
+        "ordinal_is_container": ordinal_is_container,
+        "last_item": last_item,
+        "sequence_anchor": (
+            clean_state_history_span(sequence_match.group("anchor"))
+            if sequence_match
+            else None
+        ),
+        "identifier_kind": identifier_kind,
+        "table_hint": table_hint,
+        "quote_hint": quote_hint,
+        "plural_list_hint": plural_list_hint,
+        "final_choice_hint": final_choice_hint,
+        "expected_count": requested_list_count(question),
+    }
+
+
+def structured_recall_query_tokens(question):
+    return retrieval_content_tokens(question).difference(
+        STRUCTURED_RECALL_FILLER_TOKENS
+    )
+
+
+def structured_recall_query_bigrams(question):
+    sequence = [
+        token
+        for token in retrieval_content_token_sequence(question)
+        if token not in STRUCTURED_RECALL_FILLER_TOKENS
+    ]
+    return set(zip(sequence, sequence[1:]))
+
+
+def structured_recall_topic_tokens(question):
+    return structured_recall_query_tokens(question).difference(
+        STRUCTURED_RECALL_STRUCTURE_TOKENS
+    )
+
+
+def structured_recall_focus_tokens(question):
+    """Return the requested event/attribute clause after a typed answer cue."""
+    normalized = re.sub(r"\s+", " ", str(question or "")).strip()
+    cue = re.search(
+        r"\b(?:what\s+year|how\s+much|what\s+percentage|what\s+percent|"
+        r"phone\s+number|email\s+address|instagram\s+handle|website|url)\b"
+        r"(?P<focus>[^?]*)",
+        normalized,
+        flags=re.IGNORECASE,
+    )
+    if not cue:
+        return set()
+    return retrieval_content_tokens(cue.group("focus")).difference(
+        STRUCTURED_RECALL_FILLER_TOKENS
+    )
+
+
+def structured_evidence_units(source_quote):
+    """Return complete lines/sentences; never split an identifier or table row."""
+    units = []
+    seen = set()
+    for line in str(source_quote or "").splitlines():
+        line = re.sub(r"\s+", " ", line).strip()
+        if not line:
+            continue
+        candidates = [line]
+        if "|" not in line and not re.match(
+            r"(?:[-*]\s+|\d{1,3}(?:st|nd|rd|th)?[.):]\s+)",
+            line,
+            flags=re.IGNORECASE,
+        ):
+            candidates = [
+                value.strip()
+                for value in re.split(r"(?<=[.!?])\s+", line)
+                if value.strip()
+            ]
+        for value in candidates:
+            key = normalized_evidence_text(value)
+            if key and key not in seen:
+                seen.add(key)
+                units.append(value)
+    return units
+
+
+def structured_unit_score(unit, question):
+    query_tokens = structured_recall_query_tokens(question)
+    unit_tokens = retrieval_content_tokens(unit)
+    overlap = len(query_tokens.intersection(unit_tokens))
+    phrase_bonus = sum(
+        1
+        for token in query_tokens
+        if len(token) >= 5 and re.search(rf"\b{re.escape(token)}\b", unit, re.I)
+    )
+    focus_overlap = len(
+        structured_recall_focus_tokens(question).intersection(unit_tokens)
+    )
+    return 3 * overlap + phrase_bonus + 4 * focus_overlap
+
+
+def markdown_table_candidates(source_quote, question):
+    lines = [line.strip() for line in str(source_quote or "").splitlines()]
+    tables = []
+    current = []
+    for line in lines + [""]:
+        if line.count("|") >= 2:
+            current.append(line)
+        elif current:
+            if len(current) >= 3:
+                tables.append(current)
+            current = []
+
+    normalized_question = normalized_evidence_text(question)
+    candidates = []
+    for table in tables:
+        parsed = [
+            [cell.strip() for cell in line.strip().strip("|").split("|")]
+            for line in table
+        ]
+        parsed = [
+            row
+            for row in parsed
+            if not row
+            or not all(re.fullmatch(r":?-{3,}:?", cell or "---") for cell in row)
+        ]
+        if len(parsed) < 2:
+            continue
+        header = parsed[0]
+        for row in parsed[1:]:
+            if len(row) != len(header):
+                continue
+            row_label = normalized_evidence_text(row[0])
+            row_label_matches = bool(row_label and row_label in normalized_question)
+            for index in range(1, len(row)):
+                cell = row[index].strip()
+                column = header[index].strip()
+                if not cell or not column:
+                    continue
+                cell_matches = normalized_evidence_text(cell) in normalized_question
+                column_matches = normalized_evidence_text(column) in normalized_question
+                if row_label_matches and cell_matches:
+                    candidates.append(
+                        {
+                            "value": column,
+                            "support": " | ".join((row[0], cell, column)),
+                            "method": "table_row_entity_to_column",
+                        }
+                    )
+                elif row_label_matches and column_matches:
+                    candidates.append(
+                        {
+                            "value": cell,
+                            "support": " | ".join((row[0], column, cell)),
+                            "method": "table_row_column_to_cell",
+                        }
+                    )
+    return candidates
+
+
+def structured_identifier_candidates(source_quote, question, kind):
+    patterns = {
+        "phone": re.compile(
+            r"(?<!\w)(?:\+\d{1,3}[\s.-]*)?(?:\(\d{1,4}\)[\s./-]*)?"
+            r"\d{1,4}(?:[\s./-]+\d{1,4}){2,5}(?!\w)"
+        ),
+        "email": re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.I),
+        "url": re.compile(r"https?://[^\s<>\]\[\"']+", re.I),
+        "handle": re.compile(r"(?<!\w)@[A-Za-z0-9.\\_]{2,}(?<!\\)\b"),
+        "year": re.compile(r"\b(?:18|19|20)\d{2}\b"),
+        "percentage": re.compile(r"(?<!\w)(?:\d+(?:\.\d+)?)\s*%"),
+        "amount": re.compile(
+            r"(?<!\w)(?:[$€£]\s*\d[\d,]*(?:\.\d+)?|"
+            r"\d[\d,]*(?:\.\d+)?\s*(?:dollars?|euros?|pounds?))(?!\w)",
+            re.I,
+        ),
+    }
+    pattern = patterns.get(kind)
+    if pattern is None:
+        return []
+    candidates = []
+    for unit in structured_evidence_units(source_quote):
+        unit_score = structured_unit_score(unit, question)
+        for match in pattern.finditer(unit):
+            value = match.group(0).replace(r"\_", "_").strip(" ,.;")
+            candidates.append(
+                {
+                    "value": value,
+                    "support": unit,
+                    "method": f"exact_{kind}",
+                    "unit_score": unit_score,
+                }
+            )
+    return candidates
+
+
+def sequence_successor_candidates(source_quote, anchor):
+    if not anchor:
+        return []
+    anchor_pattern = re.escape(anchor).replace(r"\ ", r"\s+")
+    candidates = []
+    for match in re.finditer(anchor_pattern, str(source_quote or ""), re.I):
+        remainder = str(source_quote or "")[match.end() :]
+        successor = re.match(
+            r"\s*(?:[,;|>-]\s*)?(?P<value>\d{1,3}\.\s*"
+            r"(?:O-O-O|O-O|[KQRBN]?[a-h][1-8](?:=[QRBN])?[+#]?))",
+            remainder,
+            re.I,
+        )
+        if successor:
+            candidates.append(
+                {
+                    "value": re.sub(r"\s+", " ", successor.group("value")).strip(),
+                    "support": anchor + remainder[: successor.end()],
+                    "method": "sequence_successor",
+                }
+            )
+    return candidates
+
+
+def quoted_span_candidates(source_quote, question):
+    query_tokens = structured_recall_query_tokens(question)
+    candidates = []
+    for match in re.finditer(
+        r"(?P<quote>[\"“](?:[^\"”]|\"(?!\s))*[\"”])",
+        str(source_quote or ""),
+    ):
+        value = match.group("quote").strip()[1:-1].strip()
+        if len(value.split()) < 4:
+            continue
+        value_tokens = retrieval_content_tokens(value)
+        score = len(query_tokens.intersection(value_tokens))
+        candidates.append(
+            {
+                "value": value,
+                "support": value,
+                "method": "exact_quotation",
+                "unit_score": score,
+            }
+        )
+    return candidates
+
+
+def delimited_list_candidates(source_quote, question, expected_count=None):
+    if not expected_count and not structured_recall_plan(question)["plural_list_hint"]:
+        return []
+    candidates = []
+    cue_pattern = re.compile(
+        r"\b(?:include|includes|included|including|such as|examples? (?:are|include)|"
+        r"methods? (?:are|include)|processes? (?:are|include)|"
+        r"recommend(?:ed|ing)?(?: learning| using)?|options? (?:are|include))\s+"
+        r"(?P<values>[^.!?]+)",
+        re.I,
+    )
+    for unit in structured_evidence_units(source_quote):
+        for match in cue_pattern.finditer(unit):
+            value_text = match.group("values").strip(" ,;:")
+            parts = [
+                re.sub(r"\s+", " ", value).strip(" -*_`.,;:\"'")
+                for value in re.split(r"\s*,\s*|\s+and\s+|\s+or\s+", value_text)
+            ]
+            parts = [value for value in parts if value and len(value.split()) <= 12]
+            if len(parts) < 2 or len(parts) > 12:
+                continue
+            if expected_count is not None and len(parts) != expected_count:
+                continue
+            rendered = (
+                parts[0]
+                if len(parts) == 1
+                else ", ".join(parts[:-1]) + " and " + parts[-1]
+            )
+            candidates.append(
+                {
+                    "value": rendered,
+                    "items": parts,
+                    "support": unit,
+                    "method": "explicit_delimited_list",
+                    "unit_score": structured_unit_score(unit, question),
+                }
+            )
+    return candidates
+
+
+def final_choice_candidates(source_quote, question):
+    """Extract an explicitly adopted final value, not an option from a proposal list."""
+    candidates = []
+    patterns = (
+        re.compile(
+            r"\b(?:finally|ultimately)\s+(?:decided|chose|picked|settled)\s+"
+            r"(?:on\s+|to\s+(?:call|name)\s+(?:it\s+)?)?"
+            r"(?P<value>[A-Z][A-Za-z0-9_'’-]*(?:\s+[A-Z][A-Za-z0-9_'’-]*){0,4})",
+        ),
+        re.compile(
+            r"\b(?:we|you|I)\s+(?:decided|chose|picked|settled)\s+"
+            r"(?:on\s+|to\s+(?:call|name)\s+(?:it\s+)?)"
+            r"(?P<value>[A-Z][A-Za-z0-9_'’-]*(?:\s+[A-Z][A-Za-z0-9_'’-]*){0,4})",
+        ),
+        re.compile(
+            r"\b(?:call|name|named|called)\s+(?:it|this|the\s+\w+)\s+"
+            r"(?P<value>[A-Z][A-Za-z0-9_'’-]*(?:\s+[A-Z][A-Za-z0-9_'’-]*){0,4})",
+        ),
+    )
+    for unit in structured_evidence_units(source_quote):
+        for pattern in patterns:
+            match = pattern.search(unit)
+            if not match:
+                continue
+            value = match.group("value").strip(" .,:;!?\"'")
+            if not value:
+                continue
+            candidates.append(
+                {
+                    "value": value,
+                    "support": unit,
+                    "method": "explicit_final_choice",
+                    "unit_score": structured_unit_score(unit, question),
+                }
+            )
+    return candidates
+
+
+def select_unique_structured_candidate(candidates):
+    if not candidates:
+        return None, "no_candidate"
+    candidates = sorted(
+        candidates,
+        key=lambda item: (
+            float(item.get("unit_score", 0.0)),
+            int(item.get("previous_user_overlap", 0)),
+            int(item.get("query_overlap", 0)),
+            float(item.get("structured_score", 0.0)),
+        ),
+        reverse=True,
+    )
+    top_score = (
+        float(candidates[0].get("unit_score", 0.0)),
+        int(candidates[0].get("previous_user_overlap", 0)),
+        int(candidates[0].get("query_overlap", 0)),
+        float(candidates[0].get("structured_score", 0.0)),
+    )
+    top = [
+        candidate
+        for candidate in candidates
+        if (
+            float(candidate.get("unit_score", 0.0)),
+            int(candidate.get("previous_user_overlap", 0)),
+            int(candidate.get("query_overlap", 0)),
+            float(candidate.get("structured_score", 0.0)),
+        )
+        == top_score
+    ]
+    values = {}
+    for candidate in top:
+        values.setdefault(normalized_evidence_text(candidate.get("value")), candidate)
+    if len(values) != 1:
+        return None, "ambiguous_top_candidates"
+    return next(iter(values.values())), "complete"
+
+
+def resolve_structured_conversation_answer(
+    question,
+    evidence_rows,
+    query_intent,
+):
+    """Resolve only uniquely grounded structures in conversation-recall turns."""
+    applicable = (query_intent or {}).get("intent") == ASSISTANT_MEMORY_INTENT
+    plan = structured_recall_plan(question)
+    result = {
+        "applicable": applicable and plan["applicable"],
+        "status": "not_applicable",
+        "answer": None,
+        "method": None,
+        "source_turn_id": None,
+        "source_session_id": None,
+        "source_role": None,
+        "source_quote": None,
+        "candidate_count": 0,
+        "plan": plan,
+        "policy": "unique_exact_structure_plus_provenance_else_existing_answer_path",
+    }
+    if not result["applicable"]:
+        return result
+
+    all_candidates = []
+    for row in evidence_rows or []:
+        quote = str(row.get("source_quote") or "")
+        base = {
+            "source_turn_id": row.get("source_turn_id"),
+            "source_session_id": row.get("source_session_id"),
+            "source_role": row.get("source_role") or row.get("source_speaker"),
+            "source_quote": quote,
+            "structured_score": float(row.get("structured_score", 0.0)),
+            "query_overlap": int(row.get("query_overlap", 0)),
+            "previous_user_overlap": int(row.get("previous_user_overlap", 0)),
+            "topic_overlap": int(row.get("topic_overlap", 0)),
+        }
+        row_candidates = []
+        items = assistant_numbered_list_items(quote)
+        ordinal_noun_bound = bool(
+            not plan.get("ordinal_noun")
+            or retrieval_content_tokens(plan["ordinal_noun"]).intersection(
+                retrieval_content_tokens(quote)
+            )
+            or int(row.get("previous_user_overlap", 0)) >= 2
+        )
+        if (
+            plan["ordinal"] is not None
+            and not plan.get("ordinal_is_container")
+            and plan["ordinal"] in items
+            and set(range(1, plan["ordinal"] + 1)).issubset(items)
+            and ordinal_noun_bound
+        ):
+            row_candidates.append(
+                {
+                    "value": items[plan["ordinal"]],
+                    "support": items[plan["ordinal"]],
+                    "method": "numbered_ordinal_item",
+                }
+            )
+        elif plan["last_item"] and items and ordinal_noun_bound:
+            last_index = max(items)
+            row_candidates.append(
+                {
+                    "value": items[last_index],
+                    "support": items[last_index],
+                    "method": "numbered_last_item",
+                }
+            )
+        if plan["table_hint"]:
+            row_candidates.extend(markdown_table_candidates(quote, question))
+        if plan["identifier_kind"]:
+            row_candidates.extend(
+                structured_identifier_candidates(
+                    quote,
+                    question,
+                    plan["identifier_kind"],
+                )
+            )
+        if plan["sequence_anchor"]:
+            row_candidates.extend(
+                sequence_successor_candidates(quote, plan["sequence_anchor"])
+            )
+        if plan["quote_hint"]:
+            row_candidates.extend(quoted_span_candidates(quote, question))
+        # Generic prose lists improve evidence retrieval, but are not precise enough
+        # to bypass the existing answer path deterministically.
+        if plan["final_choice_hint"]:
+            row_candidates.extend(
+                candidate
+                for candidate in final_choice_candidates(quote, question)
+                if int(candidate.get("unit_score", 0)) > 0
+                and int(row.get("topic_overlap", 0)) > 0
+            )
+        all_candidates.extend({**base, **candidate} for candidate in row_candidates)
+
+    result["candidate_count"] = len(all_candidates)
+    if plan["identifier_kind"] == "year":
+        distinct_years = {
+            normalized_evidence_text(candidate.get("value"))
+            for candidate in all_candidates
+            if candidate.get("method") == "exact_year"
+        }
+        if len(distinct_years) > 1:
+            result["status"] = "ambiguous_year_candidates"
+            return result
+    selected, status = select_unique_structured_candidate(all_candidates)
+    result["status"] = status
+    if selected is None:
+        return result
+    grounding_quote = selected["source_quote"].replace(r"\_", "_")
+    if not evidence_contains_value(grounding_quote, selected["value"]):
+        items = selected.get("items") or []
+        if not items or not all(
+            evidence_contains_value(selected["source_quote"], item) for item in items
+        ):
+            result["status"] = "candidate_not_grounded"
+            return result
+    result.update(
+        {
+            "answer": selected["value"],
+            "method": selected["method"],
+            "source_turn_id": selected["source_turn_id"],
+            "source_session_id": selected["source_session_id"],
+            "source_role": selected["source_role"],
+            "source_quote": selected["source_quote"],
+            "support": selected.get("support"),
+            "items": selected.get("items"),
+        }
+    )
+    return result
+
+
 STATE_SELECTOR_NONE = "none"
 STATE_SELECTOR_LATEST = "latest"
+STATE_SELECTOR_PREVIOUS = "previous"
 STATE_SELECTOR_PREDECESSOR = "predecessor_of_value"
 STATE_SELECTOR_EARLIEST = "earliest"
 DETERMINISTIC_STATE_SELECTORS = {
+    STATE_SELECTOR_LATEST,
+    STATE_SELECTOR_PREVIOUS,
     STATE_SELECTOR_PREDECESSOR,
     STATE_SELECTOR_EARLIEST,
 }
@@ -9099,12 +11939,24 @@ def state_history_attribute_tokens(value):
 
 
 def infer_state_history_selector(question):
-    """Parse explicit state-history selectors without enabling broad inference."""
+    """Parse explicit state-history selectors without inferring an unstated one."""
     question = re.sub(r"\s+", " ", str(question or "")).strip()
     normalized = question.lower()
     selector = STATE_SELECTOR_NONE
     target_value = None
     requested_attribute = None
+    multi_state_request = bool(
+        normalized.count("?") > 1
+        or (
+            re.search(r"\b(?:previously|just started|at first|initially)\b", normalized)
+            and re.search(r"\b(?:currently|now)\b", normalized)
+        )
+        or re.search(
+            r"\b(?:compared?\s+(?:with|to)|earliest\s+to\s+latest|"
+            r"order\s+of|from\s+.+?\s+to\s+(?:now|today|currently))\b",
+            normalized,
+        )
+    )
 
     predecessor_match = re.search(
         r"\b(?:immediately|directly|right)\s+before\s+"
@@ -9141,6 +11993,21 @@ def infer_state_history_selector(question):
             requested_attribute = clean_state_history_span(
                 attribute_match.group("attribute")
             )
+    elif re.search(
+        r"\bprevious\b.+?\bbefore\b.+?\bcurrent\b",
+        normalized,
+    ):
+        selector = STATE_SELECTOR_PREVIOUS
+        attribute_match = re.search(
+            r"\bwhat\s+was\s+(?:my|our|the)\s+previous\s+"
+            r"(?P<attribute>.+?)(?=\s+before\b|[?!.]|$)",
+            question,
+            flags=re.IGNORECASE,
+        )
+        if attribute_match:
+            requested_attribute = clean_state_history_span(
+                attribute_match.group("attribute")
+            )
     elif re.search(r"\b(?:current|currently|latest|now)\b", normalized):
         selector = STATE_SELECTOR_LATEST
         latest_attribute_patterns = (
@@ -9160,6 +12027,11 @@ def infer_state_history_selector(question):
                 r"(?:currently|now)\s+(?:have|like|own|prefer|use)\b",
                 flags=re.IGNORECASE,
             ),
+            re.compile(
+                r"\bhow\s+many\s+(?P<attribute>.+?)\s+do\s+(?:i|we)\s+"
+                r"(?:currently\s+|now\s+)?(?:have|own|lead|keep|use)\b",
+                flags=re.IGNORECASE,
+            ),
         )
         for pattern in latest_attribute_patterns:
             attribute_match = pattern.search(question)
@@ -9174,6 +12046,7 @@ def infer_state_history_selector(question):
     )
     deterministic_enabled = (
         selector in DETERMINISTIC_STATE_SELECTORS
+        and not multi_state_request
         and bool(attribute_tokens)
         and (
             selector != STATE_SELECTOR_PREDECESSOR
@@ -9185,10 +12058,11 @@ def infer_state_history_selector(question):
         "target_value": target_value,
         "requested_attribute": requested_attribute,
         "attribute_tokens": attribute_tokens,
+        "multi_state_request": multi_state_request,
         "deterministic_enabled": deterministic_enabled,
         "policy": (
-            "explicit_predecessor_or_earliest_selector_only; latest_is_"
-            "diagnostic_and_preserves_existing_answer_path"
+            "explicit_selector_only; latest_or_previous_requires_a_unique_"
+            "timestamped_user_candidate_timeline_or_a_continuous_state_chain"
         ),
     }
 
@@ -9328,12 +12202,158 @@ def state_history_provenance(event):
     }
 
 
+def resolve_state_candidate_timeline(
+    answer_slot_candidates,
+    query_profile,
+    selector,
+):
+    """Resolve latest/previous only from an unambiguous dated user timeline."""
+    result = {
+        "status": "candidate_timeline_not_applicable",
+        "states": [],
+        "answer": None,
+        "answer_provenance": None,
+        "policy": (
+            "two_or_more_timestamped_user_sessions_plus_grounded_query_bound_"
+            "values_plus_unique_best_value_per_event"
+        ),
+    }
+    if selector not in {STATE_SELECTOR_LATEST, STATE_SELECTOR_PREVIOUS}:
+        return result
+
+    candidates_by_event = {}
+    eligible_quotes = []
+    anchor_groups = list((query_profile or {}).get("required_anchor_groups") or [])
+    subject_groups = [
+        group for group in anchor_groups if group.get("kind") == "subject"
+    ]
+    per_event_profile = {
+        **(query_profile or {}),
+        "required_anchor_groups": subject_groups or anchor_groups,
+    }
+    for candidate in answer_slot_candidates or []:
+        if not source_role_matches(
+            candidate.get("source_role") or candidate.get("source_speaker"),
+            ["user"],
+        ):
+            continue
+        if candidate.get("quote_supported") is False:
+            continue
+        quote = str(candidate.get("source_quote") or "")
+        value = clean_state_history_span(candidate.get("value"))
+        normalized_value = normalized_state_history_value(value)
+        timestamp = candidate.get("source_timestamp") or candidate.get("timestamp")
+        timestamp_key = parse_state_history_timestamp(timestamp)
+        session_id = candidate.get("source_session_id")
+        if (
+            not quote
+            or not value
+            or not normalized_value
+            or timestamp_key is None
+            or session_id is None
+            or not evidence_contains_value(quote, value)
+            or not anchor_coverage(per_event_profile, quote).get("complete", False)
+            or int(candidate.get("query_token_overlap") or 0) <= 0
+            or float(candidate.get("candidate_strength") or 0.0) < 0.25
+        ):
+            continue
+        eligible_quotes.append(quote)
+        event_key = (
+            tuple(timestamp_key),
+            str(session_id),
+            str(candidate.get("source_turn_id") or ""),
+            normalized_evidence_text(quote),
+        )
+        candidates_by_event.setdefault(event_key, []).append(
+            {
+                "value": value,
+                "normalized_value": normalized_value,
+                "score": float(candidate.get("candidate_strength") or 0.0),
+                "provenance": {
+                    "source_turn_id": candidate.get("source_turn_id"),
+                    "source_session_id": session_id,
+                    "source_role": candidate.get("source_role")
+                    or candidate.get("source_speaker"),
+                    "source_timestamp": timestamp,
+                    "source_quote": quote,
+                },
+                "timestamp_key": list(timestamp_key),
+            }
+        )
+
+    if anchor_groups and not anchor_coverage_across_evidence(
+        query_profile or {},
+        eligible_quotes,
+    ).get("complete", False):
+        result["status"] = "candidate_timeline_anchor_coverage_incomplete"
+        return result
+
+    event_states = []
+    for event_key, candidates in candidates_by_event.items():
+        best_by_value = {}
+        for candidate in candidates:
+            previous = best_by_value.get(candidate["normalized_value"])
+            if previous is None or candidate["score"] > previous["score"]:
+                best_by_value[candidate["normalized_value"]] = candidate
+        ranked = sorted(
+            best_by_value.values(),
+            key=lambda candidate: candidate["score"],
+            reverse=True,
+        )
+        if not ranked:
+            continue
+        if len(ranked) > 1 and ranked[0]["score"] - ranked[1]["score"] < 0.12:
+            result["status"] = "ambiguous_value_within_evidence_event"
+            return result
+        event_states.append({**ranked[0], "event_key": event_key})
+
+    event_states.sort(
+        key=lambda state: (
+            tuple(state.get("timestamp_key") or []),
+            str(state.get("provenance", {}).get("source_turn_id") or ""),
+        )
+    )
+    compact_states = []
+    for state in event_states:
+        if (
+            compact_states
+            and compact_states[-1]["normalized_value"]
+            == state["normalized_value"]
+        ):
+            compact_states[-1] = state
+        else:
+            compact_states.append(state)
+    covered_sessions = {
+        state["provenance"].get("source_session_id") for state in compact_states
+    }
+    result["states"] = compact_states
+    result["covered_session_count"] = len(covered_sessions)
+    if len(compact_states) < 2 or len(covered_sessions) < 2:
+        result["status"] = "insufficient_candidate_timeline"
+        return result
+
+    selected_state = (
+        compact_states[-1]
+        if selector == STATE_SELECTOR_LATEST
+        else compact_states[-2]
+    )
+    result.update(
+        {
+            "status": "complete",
+            "answer": selected_state["value"],
+            "answer_provenance": selected_state["provenance"],
+        }
+    )
+    return result
+
+
 def resolve_deterministic_state_history_answer(
     question,
     evidence_rows,
     query_profile,
     query_intent,
     selector_plan=None,
+    answer_slot_candidates=None,
     disabled=False,
 ):
     """Resolve a coherent explicit state chain; otherwise preserve fallback behavior."""
@@ -9349,6 +12369,7 @@ def resolve_deterministic_state_history_answer(
         "answer": None,
         "events": [],
         "states": [],
+        "candidate_timeline": None,
         "answer_provenance": None,
         "fallback_preserved": True,
         "policy": (
@@ -9371,6 +12392,24 @@ def resolve_deterministic_state_history_answer(
         USER_MEMORY_INTENT,
     }:
         result["status"] = "incompatible_source_role_intent"
+        return result
+
+    candidate_timeline = resolve_state_candidate_timeline(
+        answer_slot_candidates=answer_slot_candidates,
+        query_profile=query_profile,
+        selector=selector,
+    )
+    result["candidate_timeline"] = candidate_timeline
+    if candidate_timeline["status"] == "complete":
+        result.update(
+            {
+                "status": "complete",
+                "answer": candidate_timeline["answer"],
+                "states": candidate_timeline["states"],
+                "answer_provenance": candidate_timeline["answer_provenance"],
+                "fallback_preserved": False,
+            }
+        )
         return result
 
     requested_attribute_tokens = set(selector_plan.get("attribute_tokens") or [])
@@ -9493,6 +12532,10 @@ def resolve_deterministic_state_history_answer(
     selected_state = None
     if selector == STATE_SELECTOR_EARLIEST:
         selected_state = states[0]
+    elif selector == STATE_SELECTOR_LATEST:
+        selected_state = states[-1]
+    elif selector == STATE_SELECTOR_PREVIOUS:
+        selected_state = states[-2]
     elif selector == STATE_SELECTOR_PREDECESSOR:
         target = normalized_state_history_value(selector_plan.get("target_value"))
         target_indexes = [
@@ -10039,6 +13082,7 @@ def selected_evidence_extraction_prompt(
     operation_plan,
     evidence_blocks,
     query_intent=None,
+    relationship_limit=6,
 ):
     operation = operation_plan.get("operation", "none")
     operation_note = ""
@@ -10065,11 +13109,19 @@ def selected_evidence_extraction_prompt(
         )
     intent_note = ""
     if (query_intent or {}).get("intent") == ASSISTANT_MEMORY_INTENT:
-        intent_note = (
-            "The question asks what the assistant previously supplied. Treat "
-            "role=assistant text as primary evidence. Preserve numbered-list "
-            "positions, exact names, values, recommendations, and wording. "
-        )
+        if (query_intent or {}).get("source_role_target") == SOURCE_ROLE_TARGET_MIXED:
+            intent_note = (
+                "The question recalls a shared conversation. Preserve facts from "
+                "both roles with their original attribution; do not assume the "
+                "assistant authored the requested value. Preserve numbered-list "
+                "positions, exact names, values, recommendations, and wording. "
+            )
+        else:
+            intent_note = (
+                "The question asks what the assistant previously supplied. Treat "
+                "role=assistant text as primary evidence. Preserve numbered-list "
+                "positions, exact names, values, recommendations, and wording. "
+            )
     elif (query_intent or {}).get("intent") == EVIDENCE_SYNTHESIS_INTENT:
         intent_note = (
             "Preserve each explicit factual premise separately with its original "
@@ -10086,8 +13138,11 @@ def selected_evidence_extraction_prompt(
         f"Planned operation: {operation}\n{operation_note}{intent_note}"
         "For each useful fact, return exactly:\n"
         "evidence_id | entity | relation | entity\n"
-        "Use only the listed evidence IDs. Return at most 6 relationships per "
-        "evidence item. Return no explanation.\n\n"
+        "Use only the listed evidence IDs. Return every useful explicit "
+        f"relationship, up to {int(relationship_limit)} per evidence item. "
+        "After finishing each evidence item, return exactly:\n"
+        "EXTRACTION_COMPLETE | evidence_id\n"
+        "Return no explanation.\n\n"
         + "\n\n".join(evidence_blocks)
         + "\n<|end|>\n<|assistant|>\n"
     )
@@ -10112,23 +13167,84 @@ def extract_candidates_from_selected_evidence(
     pending_records = [
         record for record in records if record["provenance_key"] not in existing_by_key
     ]
-    output_token_budget = 320
     context_length = int(getattr(context_layer, "context_length", 2048))
-    prompt_token_budget = max(512, context_length - output_token_budget - 64)
+    max_evidence_per_batch = 2
+
+    def relationship_limit_for(record, minimum=6, maximum=16):
+        source_quote = str(record.get("source_quote") or "")
+        sentences = len(
+            [
+                sentence
+                for sentence in re.split(
+                    r"(?<=[.!?])\s+|\n+",
+                    source_quote,
+                )
+                if sentence.strip()
+            ]
+        )
+        list_items = len(
+            re.findall(
+                r"(?m)^\s*(?:[-*\u2022]|\d+[.)])\s+",
+                source_quote,
+            )
+        )
+        clause_boundaries = len(re.findall(r"[;:]", source_quote))
+        numeric_mentions = len(
+            re.findall(
+                r"(?<!\w)[+-]?(?:\d+(?:\.\d+)?|\.\d+)",
+                source_quote,
+            )
+        )
+        estimated_relationships = (
+            sentences + list_items + clause_boundaries + numeric_mentions
+        )
+        return min(maximum, max(minimum, estimated_relationships + 2))
+
+    relationship_limits = {
+        record["evidence_id"]: relationship_limit_for(record)
+        for record in pending_records
+    }
+
+    def output_budget_for(batch_records):
+        relationship_count = sum(
+            relationship_limits[record["evidence_id"]]
+            for record in batch_records
+        )
+        return min(
+            768,
+            max(192, 64 + relationship_count * 28),
+        )
+
+    def prompt_relationship_limit(batch_records):
+        return max(
+            (
+                relationship_limits[record["evidence_id"]]
+                for record in batch_records
+            ),
+            default=6,
+        )
+
     batches = []
     current_batch = []
     for record in pending_records:
         proposed = current_batch + [record]
+        proposed_output_budget = output_budget_for(proposed)
+        proposed_prompt_budget = max(
+            512,
+            context_length - proposed_output_budget - 64,
+        )
         proposed_prompt = selected_evidence_extraction_prompt(
             question,
             requested_slot,
             operation_plan,
             [format_selected_evidence_block(item) for item in proposed],
             query_intent=query_intent,
+            relationship_limit=prompt_relationship_limit(proposed),
         )
-        if current_batch and context_layer.count_tokens(
-            proposed_prompt
-        ) > prompt_token_budget:
+        if current_batch and (
+            len(proposed) > max_evidence_per_batch
+            or context_layer.count_tokens(proposed_prompt) > proposed_prompt_budget
+        ):
             batches.append(current_batch)
             current_batch = [record]
         else:
@@ -10139,7 +13255,15 @@ def extract_candidates_from_selected_evidence(
     triples_by_id = {record["evidence_id"]: [] for record in pending_records}
     batch_outputs = []
     batch_errors = []
+    batch_audits = []
+    incomplete_evidence_ids = set()
+    retry_count = 0
     for batch in batches:
+        output_token_budget = output_budget_for(batch)
+        prompt_token_budget = max(
+            512,
+            context_length - output_token_budget - 64,
+        )
         evidence_blocks = []
         for record in batch:
             block = format_selected_evidence_block(record)
@@ -10149,6 +13273,7 @@ def extract_candidates_from_selected_evidence(
                 operation_plan,
                 [block],
                 query_intent=query_intent,
+                relationship_limit=relationship_limits[record["evidence_id"]],
             )
             if context_layer.count_tokens(single_prompt) > prompt_token_budget:
                 fixed_prompt = selected_evidence_extraction_prompt(
@@ -10157,6 +13282,9 @@ def extract_candidates_from_selected_evidence(
                     operation_plan,
                     [format_selected_evidence_block(record, source_quote="")],
                     query_intent=query_intent,
+                    relationship_limit=relationship_limits[
+                        record["evidence_id"]
+                    ],
                 )
                 remaining = max(
                     32,
@@ -10177,6 +13305,7 @@ def extract_candidates_from_selected_evidence(
             operation_plan,
             evidence_blocks,
             query_intent=query_intent,
+            relationship_limit=prompt_relationship_limit(batch),
         )
         try:
             output = context_layer.llm(
@@ -10189,13 +13318,197 @@ def extract_candidates_from_selected_evidence(
                 echo=False,
             )
             raw_output = output["choices"][0]["text"].strip()
-            parsed = parse_selected_evidence_triples(raw_output, batch)
+            parsed = parse_selected_evidence_triples(
+                raw_output,
+                batch,
+                relationship_limits={
+                    record["evidence_id"]: relationship_limits[
+                        record["evidence_id"]
+                    ]
+                    for record in batch
+                },
+            )
             for evidence_id, triples in parsed.items():
                 triples_by_id[evidence_id].extend(triples)
+            completion_ids = selected_evidence_completion_ids(raw_output, batch)
+            finish_reason = (output.get("choices") or [{}])[0].get(
+                "finish_reason"
+            ) or output.get("finish_reason")
+            suspected_ids = {
+                record["evidence_id"]
+                for record in batch
+                if record["evidence_id"] not in completion_ids
+            }
+            incomplete_evidence_ids.update(suspected_ids)
             batch_outputs.append(raw_output)
+            batch_audits.append(
+                {
+                    "evidence_ids": [
+                        record["evidence_id"] for record in batch
+                    ],
+                    "input_token_count": context_layer.count_tokens(prompt),
+                    "output_token_budget": output_token_budget,
+                    "finish_reason": finish_reason,
+                    "completion_ids": sorted(completion_ids),
+                    "suspected_incomplete_ids": sorted(suspected_ids),
+                    "relationship_limits": {
+                        record["evidence_id"]: relationship_limits[
+                            record["evidence_id"]
+                        ]
+                        for record in batch
+                    },
+                    "retry": False,
+                }
+            )
         except Exception as exc:
             batch_errors.append(f"{type(exc).__name__}: {exc}")
             batch_outputs.append("")
+            failed_ids = {record["evidence_id"] for record in batch}
+            incomplete_evidence_ids.update(failed_ids)
+            batch_audits.append(
+                {
+                    "evidence_ids": sorted(failed_ids),
+                    "input_token_count": context_layer.count_tokens(prompt),
+                    "output_token_budget": output_token_budget,
+                    "finish_reason": "exception",
+                    "completion_ids": [],
+                    "suspected_incomplete_ids": sorted(failed_ids),
+                    "relationship_limits": {
+                        record["evidence_id"]: relationship_limits[
+                            record["evidence_id"]
+                        ]
+                        for record in batch
+                    },
+                    "retry": False,
+                }
+            )
+
+    records_by_id = {
+        record["evidence_id"]: record for record in pending_records
+    }
+    recovered_evidence_ids = set()
+    for evidence_id in sorted(incomplete_evidence_ids):
+        record = records_by_id[evidence_id]
+        retry_relationship_limit = min(
+            24,
+            max(
+                relationship_limits[evidence_id] + 4,
+                relationship_limits[evidence_id] * 2,
+            ),
+        )
+        retry_output_budget = min(
+            768,
+            max(256, 64 + retry_relationship_limit * 28),
+        )
+        retry_prompt_budget = max(
+            512,
+            context_length - retry_output_budget - 64,
+        )
+        block = format_selected_evidence_block(record)
+        prompt = selected_evidence_extraction_prompt(
+            question,
+            requested_slot,
+            operation_plan,
+            [block],
+            query_intent=query_intent,
+            relationship_limit=retry_relationship_limit,
+        )
+        if context_layer.count_tokens(prompt) > retry_prompt_budget:
+            fixed_prompt = selected_evidence_extraction_prompt(
+                question,
+                requested_slot,
+                operation_plan,
+                [format_selected_evidence_block(record, source_quote="")],
+                query_intent=query_intent,
+                relationship_limit=retry_relationship_limit,
+            )
+            remaining = max(
+                32,
+                retry_prompt_budget - context_layer.count_tokens(fixed_prompt),
+            )
+            block = format_selected_evidence_block(
+                record,
+                source_quote=context_layer.trim_text_to_token_budget(
+                    record["source_quote"],
+                    remaining,
+                ),
+            )
+            prompt = selected_evidence_extraction_prompt(
+                question,
+                requested_slot,
+                operation_plan,
+                [block],
+                query_intent=query_intent,
+                relationship_limit=retry_relationship_limit,
+            )
+        try:
+            output = context_layer.llm(
+                prompt,
+                max_tokens=retry_output_budget,
+                temperature=0.0,
+                top_p=1.0,
+                repeat_penalty=1.1,
+                stop=["<|end|>", "<|user|>", "<|system|>"],
+                echo=False,
+            )
+            retry_count += 1
+            raw_output = output["choices"][0]["text"].strip()
+            parsed = parse_selected_evidence_triples(
+                raw_output,
+                [record],
+                relationship_limits={
+                    evidence_id: retry_relationship_limit,
+                },
+            )
+            completion_ids = selected_evidence_completion_ids(
+                raw_output,
+                [record],
+            )
+            retry_triples = parsed.get(evidence_id, [])
+            for triple in retry_triples:
+                if triple not in triples_by_id[evidence_id]:
+                    triples_by_id[evidence_id].append(triple)
+            if evidence_id in completion_ids:
+                recovered_evidence_ids.add(evidence_id)
+            finish_reason = (output.get("choices") or [{}])[0].get(
+                "finish_reason"
+            ) or output.get("finish_reason")
+            batch_outputs.append(raw_output)
+            batch_audits.append(
+                {
+                    "evidence_ids": [evidence_id],
+                    "input_token_count": context_layer.count_tokens(prompt),
+                    "output_token_budget": retry_output_budget,
+                    "finish_reason": finish_reason,
+                    "completion_ids": sorted(completion_ids),
+                    "suspected_incomplete_ids": (
+                        [] if evidence_id in completion_ids else [evidence_id]
+                    ),
+                    "relationship_limits": {
+                        evidence_id: retry_relationship_limit,
+                    },
+                    "retry": True,
+                }
+            )
+        except Exception as exc:
+            retry_count += 1
+            batch_errors.append(
+                f"retry {evidence_id}: {type(exc).__name__}: {exc}"
+            )
+            batch_audits.append(
+                {
+                    "evidence_ids": [evidence_id],
+                    "input_token_count": context_layer.count_tokens(prompt),
+                    "output_token_budget": retry_output_budget,
+                    "finish_reason": "exception",
+                    "completion_ids": [],
+                    "suspected_incomplete_ids": [evidence_id],
+                    "relationship_limits": {
+                        evidence_id: retry_relationship_limit,
+                    },
+                    "retry": True,
+                }
+            )
 
     extraction_rows = []
     reused_count = 0
@@ -10252,6 +13565,9 @@ def extract_candidates_from_selected_evidence(
             row["triples"].append(triple)
             assistant_fallback_triple_count = 1
 
+    for row in extraction_rows:
+        row["typed_facts"] = build_typed_graph_facts(row)
+
     diagnostics = {
         "selected_evidence_count": len(records),
         "represented_evidence_count": len(extraction_rows),
@@ -10259,6 +13575,22 @@ def extract_candidates_from_selected_evidence(
         "reused_graph_extraction_count": reused_count,
         "batch_extracted_evidence_count": len(pending_records),
         "candidate_extraction_batch_count": len(batches),
+        "candidate_extraction_retry_count": retry_count,
+        "candidate_extraction_llm_call_count": len(batches) + retry_count,
+        "max_evidence_per_batch": max_evidence_per_batch,
+        "relationship_limits": relationship_limits,
+        "explicitly_completed_evidence_count": len(
+            {
+                evidence_id
+                for audit in batch_audits
+                for evidence_id in audit.get("completion_ids", [])
+            }
+        ),
+        "suspected_incomplete_evidence_ids": sorted(
+            incomplete_evidence_ids.difference(recovered_evidence_ids)
+        ),
+        "recovered_evidence_ids": sorted(recovered_evidence_ids),
+        "batch_audits": batch_audits,
         "assistant_fallback_triple_count": assistant_fallback_triple_count,
         "assistant_fallback_ambiguous_value_count": (
             len(fallback_values) if len(fallback_values) > 1 else 0
@@ -10266,6 +13598,10 @@ def extract_candidates_from_selected_evidence(
         "evidence_with_triples_count": sum(
             bool(row.get("triples")) for row in extraction_rows
         ),
+        "typed_fact_count": sum(
+            len(row.get("typed_facts") or []) for row in extraction_rows
+        ),
+        "typed_fact_schema_version": TYPED_FACT_SCHEMA_VERSION,
         "batch_errors": batch_errors,
         "batch_outputs": batch_outputs,
         "grounding_policy": (
@@ -10276,7 +13612,7 @@ def extract_candidates_from_selected_evidence(
 
 
 def materialize_candidate_graph(context_layer, candidate_memories, turn_lookup, limit):
-    """Build graph facts only for strong raw-turn candidates on local hardware."""
+    """Lazily materialize and cache graph facts for strong raw-turn candidates."""
     extraction_rows = []
     seen_candidates = set()
     for memory in candidate_memories:
@@ -10307,9 +13643,42 @@ def materialize_candidate_graph(context_layer, candidate_memories, turn_lookup, 
             parent_turn_id=getattr(source_turn, "parent_turn_id", None),
         )
         context_layer.learn_speaker_identity_from_text(candidate_turn)
-        triples = context_layer.extract_entities_and_relationships_with_llm(
-            context_layer.format_turn_for_extraction(candidate_turn)
-        )
+        triples = None
+        if hasattr(context_layer, "get_cached_semantic_facts"):
+            triples = context_layer.get_cached_semantic_facts(
+                candidate_turn,
+                source_quote,
+            )
+        if triples is None:
+            cache_counters = getattr(context_layer, "cache_counters", {})
+            if "semantic_fact_misses" in cache_counters:
+                cache_counters["semantic_fact_misses"] += 1
+            triples = context_layer.extract_entities_and_relationships_with_llm(
+                context_layer.format_turn_for_extraction(candidate_turn)
+            )
+            extraction_diagnostics = dict(
+                getattr(
+                    context_layer,
+                    "last_relationship_extraction_diagnostics",
+                    {},
+                )
+            )
+            if hasattr(context_layer, "cache_semantic_facts"):
+                context_layer.cache_semantic_facts(
+                    candidate_turn,
+                    source_quote,
+                    triples,
+                )
+            extraction_method = "lazy_semantic_materialization"
+        else:
+            extraction_method = "semantic_fact_cache"
+            extraction_diagnostics = {
+                "schema_version": 1,
+                "completion_confirmed": None,
+                "suspected_truncation": False,
+                "source": "semantic_fact_cache",
+                "triple_count": len(triples),
+            }
         context_layer.update_knowledge_graph_from_triples(
             triples,
             source_turn=candidate_turn,
@@ -10328,6 +13697,8 @@ def materialize_candidate_graph(context_layer, candidate_memories, turn_lookup, 
                 "parent_turn_id": candidate_turn.parent_turn_id,
                 "source_quote": source_quote,
                 "triples": [list(triple) for triple in triples],
+                "extraction_method": extraction_method,
+                "extraction_diagnostics": extraction_diagnostics,
             }
         )
     return extraction_rows
@@ -10440,7 +13811,83 @@ def combine_evidence_memories(primary_memories, neighbor_memories, limit):
     return combined
 
 
-def determine_safe_abstention(
+ABSTENTION_STATE_SUPPORTED = "supported"
+ABSTENTION_STATE_DIRECT_EVIDENCE = "direct_evidence_ready"
+ABSTENTION_STATE_PARTIAL = "partial_evidence"
+ABSTENTION_STATE_INSUFFICIENT = "insufficient_evidence"
+ABSTENTION_STATE_MISSING_ANCHOR = "missing_required_anchor"
+ABSTENTION_STATE_MISSING_ANSWER_TYPE = "missing_answer_type"
+
+
+def direct_operation_fallback_support(
+    operation_plan,
+    query_profile,
+    selected_evidence_anchor_coverage,
+    requested_slot,
+    answer_slot_candidates,
+):
+    """Permit generation only for a single anchored direct-date evidence unit."""
+    if (
+        operation_plan.get("operation") != "temporal_date"
+        or requested_slot != "exact date or time"
+        or not selected_evidence_anchor_coverage.get("complete", False)
+    ):
+        return {"supported": False, "reason": "not_a_direct_date_recall"}
+
+    eligible = []
+    for candidate in answer_slot_candidates or []:
+        if not source_role_matches(
+            candidate.get("source_role") or candidate.get("source_speaker"),
+            ["user"],
+        ):
+            continue
+        quote = str(candidate.get("source_quote") or "")
+        value = clean_state_history_span(candidate.get("value"))
+        if (
+            not quote
+            or not value
+            or candidate.get("quote_supported") is False
+            or not evidence_contains_value(quote, value)
+            or not anchor_coverage(query_profile or {}, quote).get("complete", False)
+            or int(candidate.get("source_query_overlap") or 0) < 2
+        ):
+            continue
+        eligible.append(candidate)
+
+    provenance_keys = {
+        evidence_record_provenance_key(candidate) for candidate in eligible
+    }
+    session_ids = {
+        str(candidate.get("source_session_id"))
+        for candidate in eligible
+        if candidate.get("source_session_id") is not None
+    }
+    values = {
+        normalized_state_history_value(candidate.get("value"))
+        for candidate in eligible
+        if normalized_state_history_value(candidate.get("value"))
+    }
+    supported = bool(
+        eligible
+        and len(session_ids) == 1
+        and 1 <= len(provenance_keys) <= 3
+        and 1 <= len(values) <= 2
+    )
+    return {
+        "supported": supported,
+        "reason": (
+            "single_query_bound_user_evidence_unit"
+            if supported
+            else "direct_date_evidence_missing_or_distributed"
+        ),
+        "candidate_count": len(eligible),
+        "provenance_count": len(provenance_keys),
+        "session_count": len(session_ids),
+        "values": [candidate.get("value") for candidate in eligible],
+    }
+
+
+def assess_safe_abstention(
     operation_plan,
     operation_result,
     query_profile,
@@ -10450,16 +13897,67 @@ def determine_safe_abstention(
     selected_evidence_units=None,
     answer_slot_candidates=None,
 ):
-    """Abstain only when required evidence is missing, not parser output alone."""
+    """Classify evidence state before deciding whether generation is safe."""
+    assessment = {
+        "state": ABSTENTION_STATE_SUPPORTED,
+        "abstain": False,
+        "reason": None,
+        "allow_generation": True,
+        "operation": operation_plan.get("operation", "none"),
+        "direct_operation_fallback": None,
+        "policy": (
+            "complete_deterministic_results_or_fully_anchored_direct_recall_"
+            "may_answer; partial_aggregate_or_ambiguous_evidence_must_abstain"
+        ),
+    }
     if operation_plan.get("operation", "none") != "none":
-        if operation_result.get("status") != "complete":
-            return True, "operation_evidence_incomplete"
-        return False, None
+        if operation_result.get("status") == "complete":
+            return assessment
+        direct_support = direct_operation_fallback_support(
+            operation_plan=operation_plan,
+            query_profile=query_profile,
+            selected_evidence_anchor_coverage=selected_evidence_anchor_coverage,
+            requested_slot=requested_slot,
+            answer_slot_candidates=answer_slot_candidates,
+        )
+        assessment["direct_operation_fallback"] = direct_support
+        if direct_support["supported"]:
+            assessment["state"] = ABSTENTION_STATE_DIRECT_EVIDENCE
+            return assessment
+        coverage = operation_result.get("coverage") or {}
+        has_partial_evidence = bool(
+            operation_result.get("candidate_facts")
+            or coverage.get("selected_fact_count")
+            or answer_slot_candidates
+        )
+        assessment.update(
+            {
+                "state": (
+                    ABSTENTION_STATE_PARTIAL
+                    if has_partial_evidence
+                    else ABSTENTION_STATE_INSUFFICIENT
+                ),
+                "abstain": True,
+                "reason": "operation_evidence_incomplete",
+                "allow_generation": False,
+                "operation_status": operation_result.get("status"),
+                "coverage_reasons": list(coverage.get("reasons") or []),
+            }
+        )
+        return assessment
     if (
         query_profile.get("required_anchor_groups")
         and not selected_evidence_anchor_coverage.get("complete", False)
     ):
-        return True, "required_query_anchors_missing_from_evidence"
+        assessment.update(
+            {
+                "state": ABSTENTION_STATE_MISSING_ANCHOR,
+                "abstain": True,
+                "reason": "required_query_anchors_missing_from_evidence",
+                "allow_generation": False,
+            }
+        )
+        return assessment
     if (
         query_profile.get("required_anchor_groups")
         and not answer_slot_candidates
@@ -10475,8 +13973,39 @@ def determine_safe_abstention(
             evidence_units=selected_evidence_units,
         )
     ):
-        return True, "requested_answer_type_missing_from_evidence"
-    return False, None
+        assessment.update(
+            {
+                "state": ABSTENTION_STATE_MISSING_ANSWER_TYPE,
+                "abstain": True,
+                "reason": "requested_answer_type_missing_from_evidence",
+                "allow_generation": False,
+            }
+        )
+    return assessment
+
+
+def determine_safe_abstention(
+    operation_plan,
+    operation_result,
+    query_profile,
+    selected_evidence_anchor_coverage,
+    requested_slot=None,
+    selected_evidence_text="",
+    selected_evidence_units=None,
+    answer_slot_candidates=None,
+):
+    """Compatibility wrapper returning the historical ``(bool, reason)`` tuple."""
+    assessment = assess_safe_abstention(
+        operation_plan=operation_plan,
+        operation_result=operation_result,
+        query_profile=query_profile,
+        selected_evidence_anchor_coverage=selected_evidence_anchor_coverage,
+        requested_slot=requested_slot,
+        selected_evidence_text=selected_evidence_text,
+        selected_evidence_units=selected_evidence_units,
+        answer_slot_candidates=answer_slot_candidates,
+    )
+    return assessment["abstain"], assessment["reason"]
 
 
 def evidence_has_answer_type_signal(
@@ -10568,6 +14097,16 @@ def run_pragmos_record(
         ),
     )
     query_intent = infer_query_intent(question)
+    (
+        structured_recall_memories,
+        structured_recall_evidence_rows,
+        structured_recall_diagnostics,
+    ) = retrieve_structured_recall_evidence(
+        turns=turns,
+        question=question,
+        query_intent=query_intent,
+        limit=6,
+    )
     query_profile = base_query_profile
     state_selector_plan = infer_state_history_selector(question)
     inferred_operation_plan = infer_multi_session_operation(
@@ -10620,6 +14159,12 @@ def run_pragmos_record(
         retrieval_candidate_pool,
         query_intent,
     )
+    if structured_recall_memories:
+        retrieval_candidate_pool = merge_memory_evidence(
+            structured_recall_memories[:4],
+            retrieval_candidate_pool,
+            limit=retrieval_pool_size + min(4, len(structured_recall_memories)),
+        )
     if evidence_synthesis_mode:
         (
             evidence_synthesis_memories,
@@ -10832,6 +14377,25 @@ def run_pragmos_record(
         preliminary_memories = anchor_memories[: args.pragmos_graph_candidates]
         graph_candidate_limit = args.pragmos_graph_candidates
         graph_materialization_limit = args.pragmos_graph_candidates
+    (
+        preliminary_memories,
+        preliminary_preserved_memories,
+        preliminary_evidence_coverage,
+    ) = preserve_required_evidence_memories(
+        context_layer=context_layer,
+        selected_memories=preliminary_memories,
+        candidate_memories=retrieval_candidate_pool,
+        query_profile=query_profile,
+        operation_plan=operation_plan,
+        structural_radius=1,
+        max_additions=4,
+    )
+    if preliminary_preserved_memories:
+        graph_candidate_limit = max(graph_candidate_limit, len(preliminary_memories))
+        graph_materialization_limit = max(
+            graph_materialization_limit,
+            len(preliminary_memories),
+        )
     initial_retrieval_seconds = time.perf_counter() - initial_retrieval_started_at
 
     graph_materialization_started_at = time.perf_counter()
@@ -10956,6 +14520,12 @@ def run_pragmos_record(
         final_memories,
         query_intent,
     )
+    if structured_recall_memories:
+        final_memories = merge_memory_evidence(
+            structured_recall_memories[:4],
+            final_memories,
+            limit=len(final_memories) + min(4, len(structured_recall_memories)),
+        )
     graph_retrieval_seconds = time.perf_counter() - graph_retrieval_started_at
     retrieval_seconds = (
         initial_retrieval_seconds
@@ -11021,6 +14591,42 @@ def run_pragmos_record(
             final_memories[1:],
             limit=len(final_memories) + len(temporal_date_indexed_memories),
         )
+    evidence_preservation_candidates = merge_memory_evidence(
+        retrieval_candidate_pool,
+        operation_targeted_memories,
+        temporal_targeted_memories,
+        collection_memories,
+        temporal_chain_memories,
+        final_memories,
+        limit=(
+            len(retrieval_candidate_pool)
+            + len(operation_targeted_memories)
+            + len(temporal_targeted_memories)
+            + len(collection_memories)
+            + len(temporal_chain_memories)
+            + len(final_memories)
+        ),
+    )
+    (
+        selected_candidate_memories,
+        final_preserved_memories,
+        final_evidence_coverage,
+    ) = preserve_required_evidence_memories(
+        context_layer=context_layer,
+        selected_memories=selected_candidate_memories,
+        candidate_memories=evidence_preservation_candidates,
+        query_profile=query_profile,
+        operation_plan=operation_plan,
+        structural_radius=1,
+        max_additions=4,
+    )
+    if final_preserved_memories:
+        final_memories = merge_memory_evidence(
+            final_memories[:1],
+            final_preserved_memories,
+            final_memories[1:],
+            limit=len(final_memories) + len(final_preserved_memories),
+        )
     candidate_extraction_started_at = time.perf_counter()
     if "candidate_extraction" in ablations:
         candidate_extractions, candidate_extraction_diagnostics = (
@@ -11046,6 +14652,9 @@ def run_pragmos_record(
     )
     candidate_extraction_diagnostics["operation_user_turn_expansion_count"] = len(
         operation_user_turn_memories
+    )
+    candidate_extraction_diagnostics["evidence_preservation_added_count"] = len(
+        final_preserved_memories
     )
 
     actor_grounding = actor_bound_evidence_coverage(
@@ -11230,6 +14839,7 @@ def run_pragmos_record(
         query_profile=query_profile,
         query_intent=query_intent,
         selector_plan=state_selector_plan,
+        answer_slot_candidates=answer_slot_candidates,
         disabled="state_history" in ablations,
     )
     state_attribute_mismatch_result = assess_state_attribute_mismatch(
@@ -11239,7 +14849,35 @@ def run_pragmos_record(
         selector_plan=state_selector_plan,
         disabled="state_history" in ablations,
     )
-    safe_abstention, abstention_reason = determine_safe_abstention(
+    structured_answer_evidence_rows = list(structured_recall_evidence_rows)
+    structured_source_turns = {
+        (
+            str(row.get("source_session_id") or ""),
+            str(row.get("source_turn_id") or ""),
+            normalized_source_role(
+                row.get("source_role") or row.get("source_speaker")
+            ),
+        )
+        for row in structured_answer_evidence_rows
+    }
+    structured_answer_evidence_rows.extend(
+        row
+        for row in answer_candidate_extractions
+        if (
+            str(row.get("source_session_id") or ""),
+            str(row.get("source_turn_id") or ""),
+            normalized_source_role(
+                row.get("source_role") or row.get("source_speaker")
+            ),
+        )
+        not in structured_source_turns
+    )
+    structured_recall_result = resolve_structured_conversation_answer(
+        question=question,
+        evidence_rows=structured_answer_evidence_rows,
+        query_intent=query_intent,
+    )
+    abstention_assessment = assess_safe_abstention(
         operation_plan=operation_plan,
         operation_result=operation_result,
         query_profile=query_profile,
@@ -11249,7 +14887,11 @@ def run_pragmos_record(
         selected_evidence_units=selected_evidence_units,
         answer_slot_candidates=answer_slot_candidates,
     )
+    safe_abstention = abstention_assessment["abstain"]
+    abstention_reason = abstention_assessment["reason"]
     if state_history_result["status"] == "complete":
+        safe_abstention, abstention_reason = False, None
+    elif structured_recall_result["status"] == "complete":
         safe_abstention, abstention_reason = False, None
     elif state_attribute_mismatch_result["abstain"]:
         safe_abstention = True
@@ -11264,6 +14906,11 @@ def run_pragmos_record(
         safe_abstention = True
         abstention_reason = "subject_bound_inference_premises_missing"
 
+    answer_suffix_format = getattr(
+        args,
+        "pragmos_answer_suffix_format",
+        DEFAULT_PRAGMOS_ANSWER_SUFFIX_FORMAT,
+    )
     answer_suffix = build_pragmos_answer_suffix(
         question,
         query_time_scope,
@@ -11272,6 +14919,7 @@ def run_pragmos_record(
         query_profile=query_profile,
         query_intent=query_intent,
         preference_profile=preference_profile,
+        format_style=answer_suffix_format,
     )
     context_build_started_at = time.perf_counter()
     empty_prompt = format_phi3_prompt(answer_suffix, args.pragmos_system_prompt)
@@ -11286,14 +14934,45 @@ def run_pragmos_record(
         available_context_budget,
         max(0, args.pragmos_answer_context_tokens),
     )
-    if evidence_synthesis_mode:
-        bounded_context, included_synthesis_premises = (
-            format_evidence_synthesis_context(
+    def pack_answer_context(token_budget):
+        if evidence_synthesis_mode:
+            packed_context, packed_premises = format_evidence_synthesis_context(
                 context_layer,
                 evidence_synthesis_premises,
-                context_budget,
+                token_budget,
+            )
+            packing_diagnostics = {
+                "schema_version": 1,
+                "policy": "evidence_synthesis_atomic_premises",
+                "token_budget": token_budget,
+                "tokens_used": context_layer.count_tokens(packed_context),
+                "included_premise_ids": [
+                    premise.get("premise_id") for premise in packed_premises
+                ],
+                "included_counts": {
+                    "premise": len(packed_premises),
+                },
+                "final_trim_applied": False,
+            }
+            return packed_context, packed_premises, packing_diagnostics
+
+        packed_context, packing_diagnostics = (
+            context_layer.build_context_with_budget(
+                user_input=query_text,
+                vector_memories=answer_context_memories,
+                graph_evidence=actor_grounded_graph_evidence,
+                recent_turns=[],
+                token_budget=token_budget,
+                query_time_scope=query_time_scope,
+                return_diagnostics=True,
             )
         )
+        return packed_context, [], packing_diagnostics
+
+    bounded_context, included_synthesis_premises, context_packing_diagnostics = (
+        pack_answer_context(context_budget)
+    )
+    if evidence_synthesis_mode:
         evidence_synthesis_result.update(
             {
                 "status": (
@@ -11311,32 +14990,86 @@ def run_pragmos_record(
         if not included_synthesis_premises:
             safe_abstention = True
             abstention_reason = "inference_premises_exceed_context_budget"
-    else:
-        included_synthesis_premises = []
-        bounded_context = context_layer.build_context_with_budget(
-            user_input=query_text,
-            vector_memories=answer_context_memories,
-            graph_evidence=actor_grounded_graph_evidence,
-            recent_turns=[],
-            token_budget=context_budget,
-            query_time_scope=query_time_scope,
-        )
     prompt = format_phi3_prompt(
         bounded_context + answer_suffix,
         args.pragmos_system_prompt,
     )
     max_prompt_tokens = args.n_ctx - args.max_tokens
-    if context_layer.count_tokens(prompt) > max_prompt_tokens:
+    repack_count = 0
+    original_context_budget = context_budget
+    while (
+        bounded_context
+        and context_layer.count_tokens(prompt) > max_prompt_tokens
+        and repack_count < 2
+    ):
         overflow = context_layer.count_tokens(prompt) - max_prompt_tokens
-        bounded_context = context_layer.trim_text_to_token_budget(
-            bounded_context,
-            max(0, context_layer.count_tokens(bounded_context) - overflow - 8),
+        context_budget = max(
+            0,
+            context_budget - overflow - PROMPT_SAFETY_TOKEN_RESERVE,
         )
+        bounded_context, included_synthesis_premises, repacked_diagnostics = (
+            pack_answer_context(context_budget)
+        )
+        repack_count += 1
+        context_packing_diagnostics = repacked_diagnostics
         prompt = format_phi3_prompt(
             bounded_context + answer_suffix,
             args.pragmos_system_prompt,
         )
+    if context_layer.count_tokens(prompt) > max_prompt_tokens:
+        bounded_context = ""
+        included_synthesis_premises = []
+        prompt = format_phi3_prompt(
+            answer_suffix,
+            args.pragmos_system_prompt,
+        )
+        safe_abstention = True
+        abstention_reason = "atomic_context_could_not_fit_model_window"
+        context_packing_diagnostics = {
+            "schema_version": 1,
+            "policy": "atomic_context_omitted_after_repack_failure",
+            "token_budget": 0,
+            "tokens_used": 0,
+            "included_counts": {},
+            "final_trim_applied": False,
+            "context_omitted_to_preserve_atomic_evidence": True,
+        }
+    context_packing_diagnostics["post_prompt_overflow_trim_applied"] = False
+    context_packing_diagnostics["post_prompt_overflow_repack_count"] = repack_count
+    context_packing_diagnostics["original_token_budget"] = original_context_budget
+    context_packing_diagnostics["final_token_budget"] = context_budget
+    if evidence_synthesis_mode:
+        evidence_synthesis_result.update(
+            {
+                "status": (
+                    "complete"
+                    if included_synthesis_premises
+                    else "premises_exceed_context_budget"
+                ),
+                "included_premise_count": len(included_synthesis_premises),
+                "included_premise_ids": [
+                    premise.get("premise_id")
+                    for premise in included_synthesis_premises
+                ],
+            }
+        )
+        if not included_synthesis_premises:
+            safe_abstention = True
+            abstention_reason = "inference_premises_exceed_context_budget"
     context_build_seconds = time.perf_counter() - context_build_started_at
+
+    abstention_assessment.update(
+        {
+            "final_abstain": safe_abstention,
+            "final_reason": abstention_reason,
+            "overridden_by_state_history": (
+                state_history_result["status"] == "complete"
+            ),
+            "overridden_by_state_attribute_mismatch": bool(
+                state_attribute_mismatch_result["abstain"]
+            ),
+        }
+    )
 
     raw_generation_prediction = None
     if operation_result["status"] == "complete":
@@ -11346,6 +15079,10 @@ def run_pragmos_record(
     elif state_history_result["status"] == "complete":
         prediction = state_history_result["answer"]
         answer_decision = "deterministic_state_history"
+        generation_seconds = 0.0
+    elif structured_recall_result["status"] == "complete":
+        prediction = structured_recall_result["answer"]
+        answer_decision = "deterministic_structured_conversation_recall"
         generation_seconds = 0.0
     elif ordinal_list_result["status"] == "complete":
         prediction = ordinal_list_result["answer"]
@@ -11407,6 +15144,18 @@ def run_pragmos_record(
         ranking_name="final_evidence",
         question_id=question_id,
     )
+    candidate_pool_turn_retrieval_metrics = longmemeval_turn_retrieval_metrics(
+        record=record,
+        ranked_items=retrieval_candidate_pool,
+        ranking_name="candidate_pool_turns",
+        question_id=question_id,
+    )
+    final_evidence_turn_retrieval_metrics = longmemeval_turn_retrieval_metrics(
+        record=record,
+        ranked_items=list(final_memories) + list(graph_evidence),
+        ranking_name="final_evidence_turns",
+        question_id=question_id,
+    )
     cache_after = (
         context_layer.cache_stats()
         if hasattr(context_layer, "cache_stats")
@@ -11414,11 +15163,18 @@ def run_pragmos_record(
     )
     cache_activity = counter_delta(cache_after, cache_before)
     llm_call_counts = {
-        "graph_materialization": len(graph_extractions),
+        "graph_materialization": sum(
+            extraction.get("extraction_method")
+            != "semantic_fact_cache"
+            for extraction in graph_extractions
+        ),
         "candidate_extraction": int(
             candidate_extraction_diagnostics.get(
-                "candidate_extraction_batch_count",
-                0,
+                "candidate_extraction_llm_call_count",
+                candidate_extraction_diagnostics.get(
+                    "candidate_extraction_batch_count",
+                    0,
+                ),
             )
         ),
         "operation_selector": (
@@ -11452,6 +15208,9 @@ def run_pragmos_record(
         "completion_tokens_estimate": context_layer.count_tokens(prediction),
         "context_token_budget": context_budget,
         "context_tokens_estimate": context_layer.count_tokens(bounded_context),
+        "answer_suffix_format": answer_suffix_format,
+        "answer_suffix_tokens_estimate": context_layer.count_tokens(answer_suffix),
+        "context_packing_diagnostics": context_packing_diagnostics,
         "requested_answer_slot": requested_answer_slot,
         "query_time_scope": query_time_scope,
         "temporal_fact_candidates": temporal_fact_candidates,
@@ -11479,16 +15238,41 @@ def run_pragmos_record(
         "state_selector_plan": state_selector_plan,
         "state_history_result": state_history_result,
         "state_attribute_mismatch_result": state_attribute_mismatch_result,
+        "structured_recall_result": structured_recall_result,
+        "structured_recall_diagnostics": structured_recall_diagnostics,
+        "structured_recall_memories": [
+            trace_memory_record(memory) for memory in structured_recall_memories
+        ],
         "ordinal_list_result": ordinal_list_result,
         "typed_answer_result": typed_answer_result,
         "safe_abstention": safe_abstention,
         "abstention_reason": abstention_reason,
+        "abstention_assessment": abstention_assessment,
         "answer_decision": answer_decision,
         "raw_generation_prediction": raw_generation_prediction,
         "turn_count": len(turns),
         "memory_count": len(context_layer.vector_memory),
         "graph_node_count": context_layer.G.number_of_nodes(),
         "graph_edge_count": context_layer.G.number_of_edges(),
+        "structural_graph_node_count": getattr(
+            context_layer,
+            "turn_graph",
+            context_layer.G,
+        ).number_of_nodes(),
+        "structural_graph_edge_count": getattr(
+            context_layer,
+            "turn_graph",
+            context_layer.G,
+        ).number_of_edges(),
+        "preliminary_evidence_coverage": preliminary_evidence_coverage,
+        "final_evidence_coverage": final_evidence_coverage,
+        "preliminary_preserved_memories": [
+            trace_memory_record(memory)
+            for memory in preliminary_preserved_memories
+        ],
+        "final_preserved_memories": [
+            trace_memory_record(memory) for memory in final_preserved_memories
+        ],
         "preliminary_memories": [
             trace_memory_record(memory) for memory in preliminary_memories
         ],
@@ -11572,6 +15356,12 @@ def run_pragmos_record(
         ),
         "final_evidence_longmemeval_retrieval_metrics": (
             final_evidence_retrieval_metrics
+        ),
+        "candidate_pool_turn_retrieval_metrics": (
+            candidate_pool_turn_retrieval_metrics
+        ),
+        "final_evidence_turn_retrieval_metrics": (
+            final_evidence_turn_retrieval_metrics
         ),
     }
 
@@ -12067,6 +15857,15 @@ def parse_args():
             "Retrieved evidence remains available in the trace."
         ),
     )
+    parser.add_argument(
+        "--pragmos-answer-suffix-format",
+        choices=["compact", "legacy"],
+        default=DEFAULT_PRAGMOS_ANSWER_SUFFIX_FORMAT,
+        help=(
+            "Serialization for final-answer candidates. Legacy is the validated "
+            "publication default; compact remains available as an explicit ablation."
+        ),
+    )
     parser.add_argument("--pragmos-chunk-words", type=int, default=160)
     parser.add_argument("--pragmos-chunk-overlap-words", type=int, default=32)
     parser.add_argument("--pragmos-embedding-batch-size", type=int, default=64)
@@ -12330,6 +16129,15 @@ def main():
                         "context_tokens_estimate": pragmos_result[
                             "context_tokens_estimate"
                         ],
+                        "answer_suffix_format": pragmos_result[
+                            "answer_suffix_format"
+                        ],
+                        "answer_suffix_tokens_estimate": pragmos_result[
+                            "answer_suffix_tokens_estimate"
+                        ],
+                        "context_packing_diagnostics": pragmos_result[
+                            "context_packing_diagnostics"
+                        ],
                         "requested_answer_slot": pragmos_result[
                             "requested_answer_slot"
                         ],
@@ -12379,6 +16187,15 @@ def main():
                         "state_attribute_mismatch_result": pragmos_result[
                             "state_attribute_mismatch_result"
                         ],
+                        "structured_recall_result": pragmos_result[
+                            "structured_recall_result"
+                        ],
+                        "structured_recall_diagnostics": pragmos_result[
+                            "structured_recall_diagnostics"
+                        ],
+                        "structured_recall_memories": pragmos_result[
+                            "structured_recall_memories"
+                        ],
                         "ordinal_list_result": pragmos_result[
                             "ordinal_list_result"
                         ],
@@ -12395,6 +16212,24 @@ def main():
                         "memory_count": pragmos_result["memory_count"],
                         "graph_node_count": pragmos_result["graph_node_count"],
                         "graph_edge_count": pragmos_result["graph_edge_count"],
+                        "structural_graph_node_count": pragmos_result[
+                            "structural_graph_node_count"
+                        ],
+                        "structural_graph_edge_count": pragmos_result[
+                            "structural_graph_edge_count"
+                        ],
+                        "preliminary_evidence_coverage": pragmos_result[
+                            "preliminary_evidence_coverage"
+                        ],
+                        "final_evidence_coverage": pragmos_result[
+                            "final_evidence_coverage"
+                        ],
+                        "preliminary_preserved_memories": pragmos_result[
+                            "preliminary_preserved_memories"
+                        ],
+                        "final_preserved_memories": pragmos_result[
+                            "final_preserved_memories"
+                        ],
                         "preliminary_memories": pragmos_result[
                             "preliminary_memories"
                         ],
@@ -12459,6 +16294,12 @@ def main():
                                 "final_evidence_longmemeval_retrieval_metrics"
                             ]
                         ),
+                        "candidate_pool_turn_retrieval_metrics": pragmos_result[
+                            "candidate_pool_turn_retrieval_metrics"
+                        ],
+                        "final_evidence_turn_retrieval_metrics": pragmos_result[
+                            "final_evidence_turn_retrieval_metrics"
+                        ],
                     }
                 )
 
@@ -12588,6 +16429,12 @@ def main():
                 row["final_evidence_longmemeval_retrieval_metrics"]
                 for row in run_rows
             )
+        )
+        candidate_pool_turn_metrics = aggregate_longmemeval_retrieval_metrics(
+            row["candidate_pool_turn_retrieval_metrics"] for row in run_rows
+        )
+        final_evidence_turn_metrics = aggregate_longmemeval_retrieval_metrics(
+            row["final_evidence_turn_retrieval_metrics"] for row in run_rows
         )
         operation_rows = [
             row
@@ -12722,6 +16569,26 @@ def main():
                     "candidate_pool": candidate_pool_longmemeval_metrics,
                     "final_evidence": final_evidence_longmemeval_metrics,
                 },
+                "longmemeval_turn_retrieval_metrics": {
+                    "metric_version": 1,
+                    "ks": list(LONGMEMEVAL_RETRIEVAL_KS),
+                    "label_usage": (
+                        "Per-turn has_answer labels are evaluation-only and never "
+                        "influence retrieval. Clean inference files remain eligible "
+                        "for inference but are excluded from this metric."
+                    ),
+                    "candidate_pool": candidate_pool_turn_metrics,
+                    "final_evidence": final_evidence_turn_metrics,
+                },
+                "evidence_preservation_question_count": sum(
+                    bool(row.get("final_preserved_memories")) for row in run_rows
+                ),
+                "avg_structural_graph_node_count": statistics.mean(
+                    row.get("structural_graph_node_count", 0) for row in run_rows
+                ) if run_rows else 0.0,
+                "avg_structural_graph_edge_count": statistics.mean(
+                    row.get("structural_graph_edge_count", 0) for row in run_rows
+                ) if run_rows else 0.0,
                 "operation_question_count": len(operation_rows),
                 "operation_completion_rate": (
                     statistics.mean(
@@ -12843,6 +16710,8 @@ def main():
                         "embedding_misses",
                         "reranker_hits",
                         "reranker_misses",
+                        "semantic_fact_hits",
+                        "semantic_fact_misses",
                     )
                 },
                 "preference_question_count": sum(

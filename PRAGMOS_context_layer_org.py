@@ -42,6 +42,7 @@ MAX_RECENT_TURNS = 2  # N (verbatim conversation turns before summarization)
 NUM_THREADS = 8
 GPU_LAYERS = 40
 DEFAULT_EXTRACTION_CONFIDENCE = 0.75
+GRAPH_FACT_SCHEMA_VERSION = 1
 RETRIEVAL_TOP_K = 4
 RETRIEVAL_SEARCH_MULTIPLIER = 4
 RETRIEVAL_MIN_SCORE = 0.35
@@ -71,9 +72,32 @@ RERANKER_MAX_LENGTH = int(os.environ.get("PRAGMOS_RERANKER_MAX_LENGTH", "512"))
 RERANKER_SCORE_WEIGHT = 0.65
 EMBEDDING_CACHE_SIZE = int(os.environ.get("PRAGMOS_EMBEDDING_CACHE_SIZE", "20000"))
 RERANKER_CACHE_SIZE = int(os.environ.get("PRAGMOS_RERANKER_CACHE_SIZE", "20000"))
+SEMANTIC_FACT_CACHE_SIZE = int(
+    os.environ.get("PRAGMOS_SEMANTIC_FACT_CACHE_SIZE", "4096")
+)
 ACTIVE_STATUS = "active"
 SUPERSEDED_STATUS = "superseded"
 UPDATE_REPLACE_RELATION_KEYS = {"like", "live in", "work at"}
+GRAPH_FACT_ACTION_PATTERNS = {
+    "attend": r"\b(?:attend|attended|attending)\b",
+    "camp": r"\b(?:camp|camped|camping)\b",
+    "collect": r"\b(?:collect|collected|collecting|collection)\b",
+    "complete": r"\b(?:complete|completed|finish|finished|finishing)\b",
+    "drive": r"\b(?:drive|driving|drove|travel|traveled|travelled)\b",
+    "lead": r"\b(?:lead|leading|led|manage|managed|managing)\b",
+    "purchase": r"\b(?:acquire|acquired|buy|bought|cost|costs|paid|pay|"
+    r"paying|price|priced|purchase|purchased|spend|spent)\b",
+    "play": r"\b(?:game|games|play|played|playing)\b",
+    "practice": r"\b(?:practice|practiced|practising)\b",
+    "raise": r"\b(?:collect(?:ed|ing)? donations?|donat(?:e|ed|ing|ions?)|"
+    r"fundrais(?:e|ed|ing)|raise|raised|raising)\b",
+    "read": r"\b(?:read|reading|pages?)\b",
+    "stay": r"\b(?:live|lived|living|stay|stayed|staying)\b",
+    "use": r"\b(?:use|used|using)\b",
+    "visit": r"\b(?:go|going|went|visit|visited|visiting)\b",
+    "watch": r"\b(?:episode|episodes|film|films|movie|movies|watch|watched|watching)\b",
+    "work": r"\b(?:build|built|job|project|projects|role|work|worked|working)\b",
+}
 CURRENT_TIME_SCOPE = "current"
 HISTORICAL_TIME_SCOPE = "historical"
 MIXED_TIME_SCOPE = "mixed"
@@ -223,6 +247,7 @@ class ContextLayer:
         enable_reranker=True,
         embedding_cache_size=EMBEDDING_CACHE_SIZE,
         reranker_cache_size=RERANKER_CACHE_SIZE,
+        semantic_fact_cache_size=SEMANTIC_FACT_CACHE_SIZE,
     ):
         # ---------- LOAD MODEL ----------
         self.model_path = model_path
@@ -267,6 +292,7 @@ class ContextLayer:
         self.enable_reranker = bool(enable_reranker)
         self.embedding_cache_size = max(0, int(embedding_cache_size))
         self.reranker_cache_size = max(0, int(reranker_cache_size))
+        self.semantic_fact_cache_size = max(0, int(semantic_fact_cache_size))
         self.embedding_cache = OrderedDict()
         self.reranker_score_cache = OrderedDict()
         self.cache_counters = {
@@ -274,6 +300,8 @@ class ContextLayer:
             "embedding_misses": 0,
             "reranker_hits": 0,
             "reranker_misses": 0,
+            "semantic_fact_hits": 0,
+            "semantic_fact_misses": 0,
         }
 
         self.reset_memory(session_id=session_id)
@@ -287,6 +315,13 @@ class ContextLayer:
 
         # MultiDiGraph preserves distinct and historical relationships.
         self.G = nx.MultiDiGraph()
+        # Structural provenance is deliberately separate from the semantic graph.
+        # It is complete and deterministic, but cannot affect entity traversal scores.
+        self.turn_graph = nx.MultiDiGraph()
+        self.turn_records = {}
+        self.session_turn_order = {}
+        self.raw_memories_by_turn = {}
+        self.semantic_fact_cache = OrderedDict()
 
         self.session_id = session_id or f"session-{int(time.time() * 1000)}"
         self.turn_counter = 0
@@ -301,6 +336,7 @@ class ContextLayer:
         self.last_person_entity_by_speaker = {}
         self.last_possessive_owner_by_speaker = {}
         self.related_entity_by_owner = {}
+        self.last_relationship_extraction_diagnostics = {}
         return self.session_id
 
     def fork_for_query(self):
@@ -315,6 +351,22 @@ class ContextLayer:
         fork.vector_memory = copy.deepcopy(self.vector_memory)
         fork.lexical_doc_freqs = dict(self.lexical_doc_freqs)
         fork.G = copy.deepcopy(self.G)
+        fork.turn_graph = copy.deepcopy(
+            getattr(self, "turn_graph", nx.MultiDiGraph())
+        )
+        fork.turn_records = copy.deepcopy(getattr(self, "turn_records", {}))
+        fork.session_turn_order = copy.deepcopy(
+            getattr(self, "session_turn_order", {})
+        )
+        fork.raw_memories_by_turn = copy.deepcopy(
+            getattr(self, "raw_memories_by_turn", {})
+        )
+        # Immutable cached triples are safe to reuse across isolated query forks.
+        fork.semantic_fact_cache = getattr(
+            self,
+            "semantic_fact_cache",
+            OrderedDict(),
+        )
         fork.conversation_history = copy.deepcopy(self.conversation_history)
         fork.entity_registry = copy.deepcopy(self.entity_registry)
         fork.alias_to_entity_id = dict(self.alias_to_entity_id)
@@ -329,22 +381,60 @@ class ContextLayer:
         fork.related_entity_by_owner = copy.deepcopy(
             self.related_entity_by_owner
         )
+        fork.last_relationship_extraction_diagnostics = copy.deepcopy(
+            getattr(self, "last_relationship_extraction_diagnostics", {})
+        )
         fork.cache_counters = dict(self.cache_counters)
         return fork
 
     # ---------- FUNCTIONS ----------
 
     def extract_entities_and_relationships_with_llm(self, text):
-        """ Uses local LLM to extract entities and their relationships dynamically.Expected output format:Entity1 | relationship | Entity2 """
+        """Extract grounded triples and expose incomplete-output diagnostics."""
 
-        prompt = f"""<|user|>
+        def relationship_capacity(source_text, minimum=12, maximum=24):
+            source_text = str(source_text or "")
+            sentences = len(
+                [
+                    sentence
+                    for sentence in re.split(r"(?<=[.!?])\s+|\n+", source_text)
+                    if sentence.strip()
+                ]
+            )
+            list_items = len(
+                re.findall(
+                    r"(?m)^\s*(?:[-*\u2022]|\d+[.)])\s+",
+                    source_text,
+                )
+            )
+            clause_boundaries = len(re.findall(r"[;:]", source_text))
+            numeric_mentions = len(
+                re.findall(r"(?<!\w)[+-]?(?:\d+(?:\.\d+)?|\.\d+)", source_text)
+            )
+            estimated_relationships = (
+                sentences + list_items + clause_boundaries + numeric_mentions
+            )
+            return min(maximum, max(minimum, estimated_relationships + 4))
+
+        def extraction_prompt(relationship_limit, retry=False):
+            retry_instruction = (
+                "A previous attempt ended before confirming completion. "
+                "Re-extract every explicit relationship from the source text; "
+                "do not omit facts that appeared late in the text.\n"
+                if retry
+                else ""
+            )
+            return f"""<|user|>
+{retry_instruction}
 From the text below, extract explicit entities and semantic relationships only.
 Use only facts stated in the text. Do not infer or invent relationships.
 Preserve meaningful tense or time wording in the relationship when it is stated, such as liked, used to like, or currently likes.
 When the text uses I, me, my, mine, or Speaker, treat that as the speaker entity.
 When the text uses relational references such as my wife, his manager, or Bob's brother, preserve that reference in the extracted entity text.
-Return at most 8 relationships. Return only one relationship per line as:
+Return every explicit relationship, up to {relationship_limit}. Return only one relationship per line as:
 entity | relation | entity
+After the final relationship, return a separate line containing exactly:
+EXTRACTION_COMPLETE
 Do not add labels such as Entity1, relationship, or Entity2.
 
 Text:
@@ -352,33 +442,139 @@ Text:
 <|end|>
 <|assistant|>
 """
-        llm_output = self.llm(
-            prompt,
-            max_tokens=128,
+
+        def parse_attempt(output, relationship_limit):
+            choice = (output.get("choices") or [{}])[0]
+            raw_text = str(choice.get("text") or "")
+            triples = []
+            malformed_nonempty_lines = []
+            completion_confirmed = False
+            for line in raw_text.splitlines():
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                if stripped == "EXTRACTION_COMPLETE":
+                    completion_confirmed = True
+                    continue
+                parts = [part.strip() for part in line.split("|")]
+                if len(parts) != 3:
+                    malformed_nonempty_lines.append(stripped)
+                    continue
+                cleaned_parts = [
+                    re.sub(
+                        r"^(?:entity\s*\d*|relationship|relation)\s*:\s*",
+                        "",
+                        part,
+                        flags=re.IGNORECASE,
+                    ).strip()
+                    for part in parts
+                ]
+                if all(cleaned_parts):
+                    triple = tuple(cleaned_parts)
+                    if triple not in triples and len(triples) < relationship_limit:
+                        triples.append(triple)
+            finish_reason = choice.get("finish_reason") or output.get(
+                "finish_reason"
+            )
+            suspected_truncation = bool(
+                finish_reason == "length"
+                or not completion_confirmed
+                or len(triples) >= relationship_limit
+                or (
+                    malformed_nonempty_lines
+                    and raw_text.rstrip().endswith(malformed_nonempty_lines[-1])
+                )
+            )
+            return {
+                "triples": triples,
+                "raw_output": raw_text,
+                "completion_confirmed": completion_confirmed,
+                "finish_reason": finish_reason,
+                "malformed_nonempty_lines": malformed_nonempty_lines,
+                "suspected_truncation": suspected_truncation,
+                "relationship_limit": relationship_limit,
+            }
+
+        attempts = []
+        initial_relationship_limit = relationship_capacity(text)
+        initial_output_budget = min(
+            640,
+            max(320, 64 + initial_relationship_limit * 28),
+        )
+        output = self.llm(
+            extraction_prompt(initial_relationship_limit),
+            max_tokens=initial_output_budget,
             temperature=0.0,
             stop=["<|end|>", "<|user|>", "<|system|>"],
             echo=False,
         )
-        llm_output = llm_output['choices'][0]['text']
-        #print("\nLLM output for extracting Entities: " + llm_output)
-        # Parse structured lines into triples
-        triples = []
-        for line in llm_output.splitlines():
-            parts = [p.strip() for p in line.split("|")]
-            if len(parts) == 3:
-                cleaned_parts = []
-                for part in parts:
-                    cleaned_parts.append(
-                        re.sub(
-                            r"^(?:entity\s*\d*|relationship|relation)\s*:\s*",
-                            "",
-                            part,
-                            flags=re.IGNORECASE,
-                        ).strip()
-                    )
-                if all(cleaned_parts):
-                    triples.append(tuple(cleaned_parts))
-        return triples
+        attempts.append(parse_attempt(output, initial_relationship_limit))
+        if attempts[0]["suspected_truncation"]:
+            retry_relationship_limit = min(
+                32,
+                max(
+                    initial_relationship_limit + 6,
+                    initial_relationship_limit * 2,
+                ),
+            )
+            retry_output_budget = min(
+                768,
+                max(448, 64 + retry_relationship_limit * 28),
+            )
+            retry_output = self.llm(
+                extraction_prompt(retry_relationship_limit, retry=True),
+                max_tokens=retry_output_budget,
+                temperature=0.0,
+                stop=["<|end|>", "<|user|>", "<|system|>"],
+                echo=False,
+            )
+            attempts.append(
+                parse_attempt(retry_output, retry_relationship_limit)
+            )
+
+        selected = max(
+            attempts,
+            key=lambda attempt: (
+                bool(attempt["completion_confirmed"]),
+                not bool(attempt["suspected_truncation"]),
+                len(attempt["triples"]),
+                len(attempt["raw_output"]),
+            ),
+        )
+        merged_triples = []
+        for attempt in attempts:
+            for triple in attempt["triples"]:
+                if triple not in merged_triples:
+                    merged_triples.append(triple)
+        completion_confirmed = any(
+            attempt["completion_confirmed"] for attempt in attempts
+        )
+        suspected_truncation = not completion_confirmed or all(
+            attempt["suspected_truncation"] for attempt in attempts
+        )
+        self.last_relationship_extraction_diagnostics = {
+            "schema_version": 1,
+            "attempt_count": len(attempts),
+            "completion_confirmed": completion_confirmed,
+            "suspected_truncation": suspected_truncation,
+            "finish_reason": selected["finish_reason"],
+            "triple_count": len(merged_triples),
+            "malformed_line_count": len(selected["malformed_nonempty_lines"]),
+            "attempts": [
+                {
+                    "completion_confirmed": attempt["completion_confirmed"],
+                    "suspected_truncation": attempt["suspected_truncation"],
+                    "finish_reason": attempt["finish_reason"],
+                    "triple_count": len(attempt["triples"]),
+                    "relationship_limit": attempt["relationship_limit"],
+                    "malformed_line_count": len(
+                        attempt["malformed_nonempty_lines"]
+                    ),
+                }
+                for attempt in attempts
+            ],
+        }
+        return merged_triples
 
     def create_turn(
         self,
@@ -1070,9 +1266,172 @@ Text:
         )
         if append_history:
             self.conversation_history.append(turn)
+        self.register_structural_turns([turn])
         if extract_memory:
             self.extract_memories_from_raw_turn(turn)
         return turn
+
+    @staticmethod
+    def structural_turn_node_id(turn_id):
+        return f"turn:{turn_id}"
+
+    @staticmethod
+    def structural_session_node_id(session_id):
+        return f"session:{session_id}"
+
+    @staticmethod
+    def structural_speaker_node_id(speaker):
+        return f"speaker:{str(speaker or '').strip().lower()}"
+
+    def register_structural_turns(self, turns):
+        """Build a complete deterministic provenance graph without semantic inference."""
+        for turn in turns or []:
+            if turn.turn_id in self.turn_records:
+                continue
+            turn_node = self.structural_turn_node_id(turn.turn_id)
+            session_node = self.structural_session_node_id(turn.session_id)
+            speaker_node = self.structural_speaker_node_id(turn.speaker)
+            self.turn_records[turn.turn_id] = turn
+            self.turn_graph.add_node(
+                turn_node,
+                node_type="turn",
+                turn_id=turn.turn_id,
+                session_id=turn.session_id,
+                role=turn.role,
+                speaker=turn.speaker,
+                timestamp=turn.timestamp,
+                text=turn.text,
+                external_turn_id=turn.external_turn_id,
+                evidence_type=turn.evidence_type,
+                parent_turn_id=turn.parent_turn_id,
+            )
+            self.turn_graph.add_node(
+                session_node,
+                node_type="session",
+                session_id=turn.session_id,
+            )
+            self.turn_graph.add_node(
+                speaker_node,
+                node_type="speaker",
+                speaker=turn.speaker,
+            )
+            self.turn_graph.add_edge(
+                session_node,
+                turn_node,
+                key=f"contains:{turn.turn_id}",
+                relation="contains_turn",
+                source_turn_ids=[turn.turn_id],
+                timestamp=turn.timestamp,
+                confidence=1.0,
+            )
+            self.turn_graph.add_edge(
+                speaker_node,
+                turn_node,
+                key=f"authored:{turn.turn_id}",
+                relation="authored_turn",
+                source_turn_ids=[turn.turn_id],
+                timestamp=turn.timestamp,
+                confidence=1.0,
+            )
+
+            session_order = self.session_turn_order.setdefault(turn.session_id, [])
+            if session_order:
+                previous_turn_id = session_order[-1]
+                previous_node = self.structural_turn_node_id(previous_turn_id)
+                self.turn_graph.add_edge(
+                    previous_node,
+                    turn_node,
+                    key=f"next:{previous_turn_id}:{turn.turn_id}",
+                    relation="next_turn",
+                    source_turn_ids=[previous_turn_id, turn.turn_id],
+                    timestamp=turn.timestamp,
+                    confidence=1.0,
+                )
+                self.turn_graph.add_edge(
+                    turn_node,
+                    previous_node,
+                    key=f"previous:{turn.turn_id}:{previous_turn_id}",
+                    relation="previous_turn",
+                    source_turn_ids=[previous_turn_id, turn.turn_id],
+                    timestamp=turn.timestamp,
+                    confidence=1.0,
+                )
+            session_order.append(turn.turn_id)
+
+    def structural_neighbor_turn_ids(self, turn_ids, radius=1):
+        """Return same-session neighboring turn IDs in stable distance order."""
+        radius = max(0, int(radius))
+        start_ids = [turn_id for turn_id in turn_ids or [] if turn_id in self.turn_records]
+        if not start_ids or radius == 0:
+            return []
+        start_set = set(start_ids)
+        queue = [(turn_id, 0) for turn_id in start_ids]
+        seen = set(start_ids)
+        neighbors = []
+        while queue:
+            turn_id, distance = queue.pop(0)
+            if distance >= radius:
+                continue
+            turn_node = self.structural_turn_node_id(turn_id)
+            adjacent_nodes = list(self.turn_graph.successors(turn_node))
+            adjacent_nodes.extend(self.turn_graph.predecessors(turn_node))
+            for node_id in adjacent_nodes:
+                node = self.turn_graph.nodes.get(node_id, {})
+                neighbor_turn_id = node.get("turn_id")
+                if neighbor_turn_id is None or neighbor_turn_id in seen:
+                    continue
+                if (
+                    node.get("session_id")
+                    != self.turn_records[turn_id].session_id
+                ):
+                    continue
+                seen.add(neighbor_turn_id)
+                queue.append((neighbor_turn_id, distance + 1))
+                if neighbor_turn_id not in start_set:
+                    neighbors.append(neighbor_turn_id)
+        return neighbors
+
+    def raw_memories_for_turn_ids(self, turn_ids):
+        """Return raw chunk memories for structural turn IDs without reranking."""
+        records = []
+        seen = set()
+        for turn_id in turn_ids or []:
+            for memory in self.raw_memories_by_turn.get(turn_id, []):
+                memory_id = memory.get("memory_id")
+                if memory_id in seen:
+                    continue
+                seen.add(memory_id)
+                records.append(memory)
+        return records
+
+    def semantic_fact_cache_key(self, turn, source_quote):
+        return (
+            str(getattr(turn, "session_id", "") or ""),
+            str(getattr(turn, "turn_id", "") or ""),
+            str(getattr(turn, "role", "") or ""),
+            str(getattr(turn, "speaker", "") or ""),
+            self.normalize_text_for_dedup(source_quote),
+        )
+
+    def get_cached_semantic_facts(self, turn, source_quote):
+        cache = getattr(self, "semantic_fact_cache", None)
+        if cache is None:
+            return None
+        key = self.semantic_fact_cache_key(turn, source_quote)
+        cached = self._cache_get(cache, key, "semantic_fact_hits")
+        return copy.deepcopy(cached) if cached is not None else None
+
+    def cache_semantic_facts(self, turn, source_quote, triples):
+        cache = getattr(self, "semantic_fact_cache", None)
+        if cache is None:
+            return
+        key = self.semantic_fact_cache_key(turn, source_quote)
+        self._cache_put(
+            cache,
+            key,
+            tuple(tuple(value for value in triple) for triple in triples or []),
+            getattr(self, "semantic_fact_cache_size", SEMANTIC_FACT_CACHE_SIZE),
+        )
 
     def split_text_for_memory(
         self,
@@ -1124,6 +1483,8 @@ Text:
         batch_size=EMBEDDING_BATCH_SIZE,
     ):
         """Batch-index complete raw turns with provenance and overlapping chunks."""
+        turns = list(turns or [])
+        self.register_structural_turns(turns)
         entries = []
         for turn in turns:
             chunks = self.split_text_for_memory(
@@ -1172,7 +1533,11 @@ Text:
                         },
                     }
                 )
-        return self.embed_and_store_many(entries, batch_size=batch_size)
+        stored_records = self.embed_and_store_many(entries, batch_size=batch_size)
+        for record in stored_records:
+            for turn_id in record.get("source_turn_ids") or []:
+                self.raw_memories_by_turn.setdefault(turn_id, []).append(record)
+        return stored_records
 
     def extract_memories_from_raw_turn(self, turn):
         """Extract vector and graph memories directly from the raw source turn."""
@@ -1274,6 +1639,125 @@ Text:
                 and source_turn.parent_turn_id is not None
                 else {}
             ),
+        }
+
+    def graph_entity_value_type(self, value, entity_id=None):
+        """Classify a graph value without changing its canonical identity."""
+        value = str(value or "").strip()
+        normalized = self.normalize_entity_name(value).lower()
+        entity = self.entity_registry.get(entity_id or value, {})
+        registered_type = entity.get("entity_type")
+        if registered_type == "speaker" or normalized in {
+            "speaker assistant",
+            "speaker user",
+            "assistant",
+            "user",
+        }:
+            return "speaker"
+        if registered_type == "relational":
+            return "relational_entity"
+        if re.search(r"\bhttps?://|\bwww\.", value, flags=re.IGNORECASE):
+            return "url"
+        if re.search(r"\b[^\s@]+@[^\s@]+\.[^\s@]+\b", value):
+            return "email"
+        if re.search(
+            r"(?:[$£€]\s*\d[\d,]*(?:\.\d+)?|"
+            r"(?:\d[\d,]*(?:\.\d+)?|one|two|three|four|five|six|seven|"
+            r"eight|nine|ten)\s*-?\s*(?:%|percent|seconds?|minutes?|hours?|"
+            r"days?|weeks?|months?|years?|millimeters?|centimeters?|meters?|"
+            r"kilometers?|inches?|feet|yards?|miles?|dollars?|usd|gbp|eur)\b)",
+            value,
+            flags=re.IGNORECASE,
+        ):
+            return "measurement"
+        if re.search(
+            r"\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b|"
+            r"\b(?:january|february|march|april|may|june|july|august|"
+            r"september|october|november|december)\b",
+            value,
+            flags=re.IGNORECASE,
+        ):
+            return "temporal"
+        if re.fullmatch(r"\s*\d+(?:\.\d+)?\s*", value):
+            return "quantity"
+        return registered_type or "entity"
+
+    def graph_predicate_actions(self, relation):
+        normalized = self.normalize_relation(relation)
+        return sorted(
+            action
+            for action, pattern in GRAPH_FACT_ACTION_PATTERNS.items()
+            if re.search(pattern, normalized, flags=re.IGNORECASE)
+        )
+
+    def classify_graph_fact(
+        self,
+        head,
+        relation,
+        tail,
+        *,
+        head_entity_id=None,
+        tail_entity_id=None,
+        source_quote=None,
+    ):
+        """Return additive typed metadata for a provenance-backed graph edge."""
+        head_type = self.graph_entity_value_type(head, head_entity_id)
+        tail_type = self.graph_entity_value_type(tail, tail_entity_id)
+        relation_text = self.normalize_relation(relation)
+        relation_key = self.relation_key(relation)
+        actions = self.graph_predicate_actions(relation)
+        if re.search(
+            r"\b(?:prefer|like|love|enjoy|avoid|dislike|hate)\b",
+            relation_text,
+        ):
+            predicate_family = "preference"
+        elif relation_key in UPDATE_REPLACE_RELATION_KEYS and self.has_update_cue(
+            source_quote
+        ):
+            predicate_family = "state_update"
+        elif actions:
+            predicate_family = "event"
+        elif re.search(
+            r"\b(?:is|are|was|were|has|have|located|works?)\b",
+            relation_text,
+        ):
+            predicate_family = "state"
+        else:
+            predicate_family = "relationship"
+
+        if "measurement" in {head_type, tail_type}:
+            fact_type = "measurement"
+        else:
+            fact_type = predicate_family
+
+        evidence_text = f"{relation} {source_quote or ''}".lower()
+        if re.search(
+            r"\b(?:not|never|didn't|did not|don't|do not|won't|will not)\b",
+            evidence_text,
+        ):
+            event_status = "negated"
+        elif re.search(
+            r"\b(?:plan|planning|intend|intending|scheduled|will|would like)\b",
+            evidence_text,
+        ):
+            event_status = "planned"
+        elif actions or re.search(
+            r"\b(?:did|had|has|have|completed|finished|visited|attended|"
+            r"bought|paid|raised|collected|played|watched|read)\b",
+            evidence_text,
+        ):
+            event_status = "completed"
+        else:
+            event_status = "unknown"
+
+        return {
+            "fact_schema_version": GRAPH_FACT_SCHEMA_VERSION,
+            "fact_type": fact_type,
+            "head_type": head_type,
+            "tail_type": tail_type,
+            "predicate_family": predicate_family,
+            "predicate_actions": actions,
+            "event_status": event_status,
         }
 
     def add_node_with_provenance(self, node_name, provenance):
@@ -1634,7 +2118,9 @@ Text:
             return None
         value = cache.pop(key)
         cache[key] = value
-        self.cache_counters[counter_name] += 1
+        self.cache_counters[counter_name] = (
+            self.cache_counters.get(counter_name, 0) + 1
+        )
         return value
 
     def _cache_put(self, cache, key, value, max_size):
@@ -1698,6 +2184,9 @@ Text:
             **self.cache_counters,
             "embedding_cache_entries": len(self.embedding_cache),
             "reranker_cache_entries": len(self.reranker_score_cache),
+            "semantic_fact_cache_entries": len(
+                getattr(self, "semantic_fact_cache", {})
+            ),
         }
 
     def predict_reranker_pairs(self, pairs):
@@ -2845,11 +3334,15 @@ Text:
         recent_turns,
         token_budget=CONTEXT_TOKEN_BUDGET,
         query_time_scope=CURRENT_TIME_SCOPE,
+        return_diagnostics=False,
     ):
-        """Build a bounded, evidence-labeled prompt context."""
+        """Build a bounded prompt from complete, provenance-labeled units."""
+        vector_memories = list(vector_memories or [])
+        graph_evidence = list(graph_evidence or [])
+        recent_turns = list(recent_turns or [])
         actor_envelope_enabled = any(
             self.has_named_or_typed_evidence(item)
-            for item in list(vector_memories or []) + list(graph_evidence or [])
+            for item in vector_memories + graph_evidence
         ) or any(
             self.has_named_or_typed_evidence(
                 {
@@ -2857,7 +3350,7 @@ Text:
                     "evidence_type": getattr(turn, "evidence_type", None),
                 }
             )
-            for turn in recent_turns or []
+            for turn in recent_turns
         )
         actor_instruction = ""
         if actor_envelope_enabled:
@@ -2889,37 +3382,150 @@ Text:
             + "If evidence is missing or conflicting, say what is known from the evidence.\n"
         )
         footer = "\n[/PRAGMOS_CONTEXT]"
-        context = self.trim_text_to_token_budget(header, token_budget)
-
-        sections = [
-            ("CURRENT_USER_INPUT", user_input),
-            (
-                "VECTOR_EVIDENCE",
-                self.format_vector_evidence(vector_memories, compact=True),
+        token_budget = max(0, int(token_budget))
+        footer_tokens = self.count_tokens(footer)
+        header_budget = max(0, token_budget - footer_tokens)
+        context = self.trim_text_to_token_budget(header, header_budget)
+        diagnostics = {
+            "schema_version": 1,
+            "policy": (
+                "whole_evidence_units; primary_vector_then_primary_graph_then_"
+                "rank_interleaving; no_mid_record_truncation"
             ),
-            (
-                "GRAPH_EVIDENCE",
-                self.format_graph_evidence(
-                    graph_evidence,
+            "token_budget": token_budget,
+            "included_units": [],
+            "skipped_units": [],
+            "input_counts": {
+                "vector": len(vector_memories),
+                "graph": len(graph_evidence),
+                "recent_turn": len(recent_turns),
+            },
+        }
+
+        current_input_block = self.format_context_section(
+            "CURRENT_USER_INPUT",
+            user_input,
+        )
+        remaining_tokens = (
+            token_budget
+            - self.count_tokens(context)
+            - footer_tokens
+        )
+        if remaining_tokens > 0:
+            if self.count_tokens(current_input_block) <= remaining_tokens:
+                context += current_input_block
+                diagnostics["current_user_input_status"] = "included"
+            else:
+                context += self.trim_text_to_token_budget(
+                    current_input_block,
+                    remaining_tokens,
+                )
+                diagnostics["current_user_input_status"] = "trimmed"
+        else:
+            diagnostics["current_user_input_status"] = "omitted"
+
+        def provenance_summary(kind, rank, item):
+            if kind == "recent_turn":
+                return {
+                    "kind": kind,
+                    "rank": rank,
+                    "source_session_id": getattr(item, "session_id", None),
+                    "source_turn_ids": [getattr(item, "turn_id", None)],
+                    "role": getattr(item, "role", None),
+                    "speaker": getattr(item, "speaker", None),
+                }
+            return {
+                "kind": kind,
+                "rank": rank,
+                "source_session_id": item.get("source_session_id"),
+                "source_turn_ids": list(item.get("source_turn_ids") or []),
+                "memory_id": item.get("memory_id"),
+                "edge_id": item.get("edge_id"),
+                "role": item.get("role") or item.get("source_role"),
+                "speaker": item.get("speaker") or item.get("source_speaker"),
+            }
+
+        def formatted_unit(kind, rank, item):
+            if kind == "vector":
+                body = self.format_vector_evidence([item], compact=True)
+                body = body.replace("[V1]", f"[V{rank}]", 1)
+                title = f"VECTOR_EVIDENCE_ITEM rank={rank}"
+            elif kind == "graph":
+                body = self.format_graph_evidence(
+                    [item],
                     query_time_scope=query_time_scope,
                     compact=True,
-                ),
-            ),
-            ("RECENT_STRUCTURED_TURNS", self.format_recent_turns_evidence(recent_turns)),
-        ]
+                )
+                body = body.replace("[G1]", f"[G{rank}]", 1)
+                title = f"GRAPH_EVIDENCE_ITEM rank={rank}"
+            else:
+                body = self.format_recent_turns_evidence([item])
+                title = f"RECENT_STRUCTURED_TURN rank={rank}"
+            tag = title.split()[0]
+            body = (body or "").strip() or "None"
+            return f"\n[{title}]\n{body}\n[/{tag}]\n"
 
-        for title, body in sections:
-            context = self.add_section_to_budgeted_context(
-                context=context,
-                title=title,
-                body=body,
-                token_budget=token_budget,
-                footer=footer,
+        ranked_units = []
+        if vector_memories:
+            ranked_units.append(("vector", 1, vector_memories[0]))
+        if graph_evidence:
+            ranked_units.append(("graph", 1, graph_evidence[0]))
+        if recent_turns:
+            ranked_units.append(("recent_turn", 1, recent_turns[0]))
+        max_remaining = max(len(vector_memories), len(graph_evidence))
+        for index in range(1, max_remaining):
+            if index < len(vector_memories):
+                ranked_units.append(("vector", index + 1, vector_memories[index]))
+            if index < len(graph_evidence):
+                ranked_units.append(("graph", index + 1, graph_evidence[index]))
+        for index, turn in enumerate(recent_turns[1:], start=2):
+            ranked_units.append(("recent_turn", index, turn))
+
+        for kind, rank, item in ranked_units:
+            block = formatted_unit(kind, rank, item)
+            block_tokens = self.count_tokens(block)
+            summary = provenance_summary(kind, rank, item)
+            remaining_tokens = (
+                token_budget
+                - self.count_tokens(context)
+                - footer_tokens
             )
+            if block_tokens <= remaining_tokens:
+                context += block
+                diagnostics["included_units"].append(
+                    {**summary, "token_count": block_tokens}
+                )
+            else:
+                diagnostics["skipped_units"].append(
+                    {
+                        **summary,
+                        "token_count": block_tokens,
+                        "reason": "insufficient_remaining_token_budget",
+                        "remaining_tokens": max(0, remaining_tokens),
+                    }
+                )
 
         final_context = context + footer
         if self.count_tokens(final_context) > token_budget:
             final_context = self.trim_text_to_token_budget(final_context, token_budget)
+            diagnostics["final_trim_applied"] = True
+        else:
+            diagnostics["final_trim_applied"] = False
+        diagnostics["tokens_used"] = self.count_tokens(final_context)
+        diagnostics["included_counts"] = {
+            kind: sum(
+                item["kind"] == kind for item in diagnostics["included_units"]
+            )
+            for kind in ("vector", "graph", "recent_turn")
+        }
+        diagnostics["skipped_counts"] = {
+            kind: sum(
+                item["kind"] == kind for item in diagnostics["skipped_units"]
+            )
+            for kind in ("vector", "graph", "recent_turn")
+        }
+        if return_diagnostics:
+            return final_context, diagnostics
         return final_context
 
     def update_knowledge_graph(
@@ -3027,6 +3633,14 @@ Text:
                         "external_turn_id": provenance.get("external_turn_id"),
                         "parent_turn_id": provenance.get("parent_turn_id"),
                     }
+                typed_fact_metadata = self.classify_graph_fact(
+                    head,
+                    relation,
+                    tail,
+                    head_entity_id=head_id,
+                    tail_entity_id=tail_id,
+                    source_quote=provenance["source_quote"],
+                )
 
                 self.G.add_edge(
                     head_id,
@@ -3057,6 +3671,7 @@ Text:
                     ),
                     supersedes_edge_ids=superseded_edge_ids,
                     superseded_by_edge_id=None,
+                    **typed_fact_metadata,
                     **actor_provenance,
                 )
         
@@ -3090,6 +3705,7 @@ Text:
                         ),
                         "supersedes_edge_ids": superseded_edge_ids,
                         "superseded_by_edge_id": None,
+                        **typed_fact_metadata,
                     },
                 )
                 self.remember_entity_mention(

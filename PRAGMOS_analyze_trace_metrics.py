@@ -9,6 +9,10 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, Sequence
 
 from PRAGMOS_benchmark_LoCoMo import canonical_locomo_source_conversation
+from PRAGMOS_benchmark_LongMemEval import (
+    aggregate_longmemeval_retrieval_metrics,
+    longmemeval_turn_retrieval_metrics,
+)
 from PRAGMOS_observability import (
     aggregate_measurement_traces,
     measurement_trace_from_row,
@@ -134,6 +138,57 @@ def derive_measurement_traces(
     return measurements
 
 
+def derive_longmemeval_turn_retrieval_metrics(
+    trace_rows: Sequence[dict[str, Any]],
+    oracle_records: Sequence[dict[str, Any]],
+) -> dict[str, Any]:
+    """Join private answer-turn labels after inference and aggregate retrieval."""
+    oracle_by_id = {
+        str(record.get("question_id") or ""): record
+        for record in oracle_records
+        if record.get("question_id") is not None
+    }
+    candidate_rows = []
+    final_rows = []
+    missing_question_ids = []
+    for trace in trace_rows:
+        question_id = str(trace.get("question_id") or "")
+        oracle_record = oracle_by_id.get(question_id)
+        if oracle_record is None:
+            missing_question_ids.append(question_id)
+            continue
+        candidate_rows.append(
+            longmemeval_turn_retrieval_metrics(
+                oracle_record,
+                trace.get("retrieval_candidate_pool") or [],
+                ranking_name="candidate_pool_turns",
+                question_id=question_id,
+            )
+        )
+        final_rows.append(
+            longmemeval_turn_retrieval_metrics(
+                oracle_record,
+                list(trace.get("final_memories") or [])
+                + list(trace.get("graph_evidence") or []),
+                ranking_name="final_evidence_turns",
+                question_id=question_id,
+            )
+        )
+    if missing_question_ids:
+        raise ValueError(
+            "Turn-retrieval oracle is missing question IDs: "
+            + ", ".join(missing_question_ids[:10])
+        )
+    return {
+        "metric_version": 1,
+        "label_join_stage": "post_inference_analysis_only",
+        "oracle_question_count": len(oracle_by_id),
+        "trace_question_count": len(trace_rows),
+        "candidate_pool": aggregate_longmemeval_retrieval_metrics(candidate_rows),
+        "final_evidence": aggregate_longmemeval_retrieval_metrics(final_rows),
+    }
+
+
 def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--trace", type=Path, required=True)
@@ -144,6 +199,14 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--data-file", type=Path)
     parser.add_argument("--model-path", type=Path)
+    parser.add_argument(
+        "--retrieval-oracle",
+        type=Path,
+        help=(
+            "Optional private LongMemEval oracle used only after inference to "
+            "measure answer-turn retrieval."
+        ),
+    )
     parser.add_argument("--output", type=Path, required=True)
     return parser.parse_args(arguments)
 
@@ -185,6 +248,21 @@ def main(arguments: Sequence[str] | None = None) -> None:
         "processed": len(trace_rows),
         **aggregate,
     }
+    if args.retrieval_oracle is not None:
+        if family != "longmemeval":
+            raise SystemExit(
+                "analysis error: --retrieval-oracle is supported only for LongMemEval"
+            )
+        try:
+            oracle_records = load_json_or_jsonl(args.retrieval_oracle)
+            report["longmemeval_turn_retrieval_metrics"] = (
+                derive_longmemeval_turn_retrieval_metrics(
+                    trace_rows,
+                    oracle_records,
+                )
+            )
+        except (FileNotFoundError, ValueError) as error:
+            raise SystemExit(f"analysis error: {error}") from error
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
         json.dumps(report, indent=2, ensure_ascii=True, sort_keys=True) + "\n",

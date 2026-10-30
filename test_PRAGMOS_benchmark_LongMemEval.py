@@ -7,14 +7,17 @@ from types import SimpleNamespace
 
 from PRAGMOS_benchmark_LongMemEval import (
     ASSISTANT_MEMORY_INTENT,
+    DEFAULT_PRAGMOS_ANSWER_SUFFIX_FORMAT,
     EVIDENCE_SYNTHESIS_INTENT,
     PREFERENCE_RECOMMENDATION_INTENT,
     aggregate_longmemeval_retrieval_metrics,
+    assess_safe_abstention,
     assess_state_attribute_mismatch,
     anchor_group_is_supported,
     anchor_coverage,
     anchor_coverage_across_evidence,
     answer_session_recall,
+    build_typed_graph_facts,
     build_query_profile,
     build_preference_profile,
     build_pragmos_answer_suffix,
@@ -22,6 +25,7 @@ from PRAGMOS_benchmark_LongMemEval import (
     canonicalize_generated_scalar_answer,
     deduplicate_operation_facts,
     determine_safe_abstention,
+    deterministic_typed_measurement_selection,
     evidence_rows_without_candidate_extraction,
     evidence_synthesis_scope_profile,
     execute_operation_plan,
@@ -34,10 +38,14 @@ from PRAGMOS_benchmark_LongMemEval import (
     infer_requested_answer_slot,
     infer_state_history_selector,
     longmemeval_session_retrieval_metrics,
+    longmemeval_turn_retrieval_metrics,
+    materialize_candidate_graph,
     operation_retrieval_queries,
     parse_number_value,
+    parse_operation_question_frame,
     parse_operation_selection,
     parse_selected_evidence_triples,
+    preserve_required_evidence_memories,
     prepare_run_checkpoint,
     format_answer_slot_candidates,
     format_evidence_synthesis_context,
@@ -49,8 +57,11 @@ from PRAGMOS_benchmark_LongMemEval import (
     retrieve_temporal_adjacent_date_memories,
     retrieve_collection_memories_until_saturated,
     retrieve_evidence_synthesis_memories,
+    retrieve_structured_recall_evidence,
     resolve_deterministic_ordinal_list_answer,
     resolve_deterministic_state_history_answer,
+    resolve_structured_conversation_answer,
+    resolve_state_candidate_timeline,
     resolve_temporal_event_chains,
     resolve_temporal_expression,
     resolve_typed_answer_slot,
@@ -58,6 +69,8 @@ from PRAGMOS_benchmark_LongMemEval import (
     select_session_diverse_memories,
     select_operation_user_turn_memories,
     session_neighbor_priority,
+    structured_recall_plan,
+    semantic_operation_operand_match,
     temporal_operation_result,
     temporal_join_result,
     validate_operation_fact_coverage,
@@ -102,6 +115,26 @@ def memory(
         "timestamp": "2026-01-01T10:00:00Z",
         "score": score,
     }
+
+
+def conversation_turn(
+    text,
+    turn_id,
+    role="assistant",
+    session_id="session-1",
+    timestamp="2026-01-01T10:00:00Z",
+):
+    return SimpleNamespace(
+        text=text,
+        turn_id=turn_id,
+        role=role,
+        speaker=role,
+        session_id=session_id,
+        timestamp=timestamp,
+        external_turn_id=None,
+        evidence_type="dialogue",
+        parent_turn_id=None,
+    )
 
 
 class FakeCandidateExtractionContext:
@@ -372,6 +405,33 @@ class QueryRoutingRegressionTests(unittest.TestCase):
 
         self.assertEqual(profile["required_anchor_groups"], [])
 
+    def test_complex_possessive_and_sentence_opener_are_soft_anchors(self):
+        profile = build_query_profile(
+            "Under what title did I record my completed gratitude jar work?"
+        )
+        hard_anchors = {
+            group["text"] for group in profile["required_anchor_groups"]
+        }
+        soft_anchors = {
+            group["text"] for group in profile["soft_anchor_groups"]
+        }
+
+        self.assertNotIn("Under", hard_anchors)
+        self.assertNotIn("gratitude", hard_anchors)
+        self.assertIn("Under", soft_anchors)
+        self.assertIn("gratitude", soft_anchors)
+
+    def test_known_named_speaker_remains_a_hard_anchor(self):
+        profile = build_query_profile(
+            "Under what title did Asha record her gratitude jar work?",
+            known_speakers=["Asha", "Ben"],
+        )
+        hard_anchors = {
+            group["text"] for group in profile["required_anchor_groups"]
+        }
+
+        self.assertIn("Asha", hard_anchors)
+
     def test_composite_question_retains_each_real_operand_anchor(self):
         profile = build_query_profile(
             "What is the total cost of my recently purchased headphones and the iPad?"
@@ -573,6 +633,86 @@ class QueryRoutingRegressionTests(unittest.TestCase):
         )
         self.assertEqual(supported, (False, None))
 
+    def test_abstention_state_allows_one_grounded_direct_date_evidence_unit(self):
+        question = "When did I volunteer at the Harbor fundraiser?"
+        profile = build_query_profile(question)
+        quote = (
+            "I volunteered at the Harbor fundraiser on Valentine's Day in "
+            "February."
+        )
+        candidates = [
+            {
+                "source_turn_id": "turn-8",
+                "source_session_id": "session-2",
+                "source_role": "user",
+                "source_quote": quote,
+                "quote_supported": True,
+                "source_query_overlap": 3,
+                "value": "Valentine's Day",
+            },
+            {
+                "source_turn_id": "turn-8",
+                "source_session_id": "session-2",
+                "source_role": "user",
+                "source_quote": quote,
+                "quote_supported": True,
+                "source_query_overlap": 3,
+                "value": "in February",
+            },
+        ]
+
+        assessment = assess_safe_abstention(
+            {"operation": "temporal_date"},
+            {"status": "insufficient_evidence", "candidate_facts": []},
+            profile,
+            anchor_coverage(profile, quote),
+            requested_slot="exact date or time",
+            selected_evidence_text=quote,
+            selected_evidence_units=[quote],
+            answer_slot_candidates=candidates,
+        )
+
+        self.assertEqual(assessment["state"], "direct_evidence_ready")
+        self.assertFalse(assessment["abstain"])
+        self.assertTrue(assessment["allow_generation"])
+
+    def test_abstention_state_rejects_distributed_direct_date_candidates(self):
+        question = "When did I volunteer at the Harbor fundraiser?"
+        profile = build_query_profile(question)
+        quotes = [
+            "I volunteered at the Harbor fundraiser in February.",
+            "The Harbor fundraiser was discussed again on Valentine's Day.",
+        ]
+        candidates = [
+            {
+                "source_turn_id": f"turn-{index}",
+                "source_session_id": f"session-{index}",
+                "source_role": "user",
+                "source_quote": quote,
+                "quote_supported": True,
+                "source_query_overlap": 3,
+                "value": value,
+            }
+            for index, (quote, value) in enumerate(
+                zip(quotes, ["in February", "Valentine's Day"]),
+                start=1,
+            )
+        ]
+
+        assessment = assess_safe_abstention(
+            {"operation": "temporal_date"},
+            {"status": "insufficient_evidence", "candidate_facts": []},
+            profile,
+            anchor_coverage_across_evidence(profile, quotes),
+            requested_slot="exact date or time",
+            selected_evidence_text=" ".join(quotes),
+            selected_evidence_units=quotes,
+            answer_slot_candidates=candidates,
+        )
+
+        self.assertEqual(assessment["state"], "partial_evidence")
+        self.assertTrue(assessment["abstain"])
+
     def test_intent_router_distinguishes_assistant_and_user_requests(self):
         assistant_questions = [
             "What was the seventh recommendation you gave me?",
@@ -595,6 +735,190 @@ class QueryRoutingRegressionTests(unittest.TestCase):
             )["intent"],
             ASSISTANT_MEMORY_INTENT,
         )
+
+    def test_intent_router_preserves_explicit_speaker_attribution(self):
+        user_intent = infer_query_intent(
+            "I mentioned a show as an example. What show did I use?"
+        )
+        assistant_intent = infer_query_intent(
+            "Which restaurant did you recommend?"
+        )
+        shared_intent = infer_query_intent(
+            "In our previous conversation, what year did construction begin?"
+        )
+
+        self.assertEqual(user_intent["intent"], "user_memory")
+        self.assertEqual(user_intent["source_role_target"], "user")
+        self.assertEqual(assistant_intent["intent"], ASSISTANT_MEMORY_INTENT)
+        self.assertEqual(assistant_intent["source_role_target"], "assistant")
+        self.assertEqual(shared_intent["intent"], ASSISTANT_MEMORY_INTENT)
+        self.assertEqual(shared_intent["source_role_target"], "mixed")
+
+    def test_assistant_structured_retrieval_uses_previous_request_and_full_turn(self):
+        long_noise = " ".join(
+            f"Background sentence {index}." for index in range(120)
+        )
+        turns = [
+            conversation_turn(
+                "Please give me a numbered list of work from home jobs for seniors.",
+                "user-request",
+                role="user",
+            ),
+            conversation_turn(
+                long_noise
+                + "\n1. Bookkeeper\n2. Tutor\n3. Editor\n4. Survey taker\n"
+                "5. Travel agent\n6. Customer support\n7. Transcriptionist",
+                "assistant-list",
+            ),
+        ]
+        question = "What was the seventh job in the list you provided?"
+        intent = infer_query_intent(question)
+
+        memories, evidence_rows, diagnostics = retrieve_structured_recall_evidence(
+            turns,
+            question,
+            intent,
+            limit=3,
+        )
+        result = resolve_structured_conversation_answer(
+            question,
+            evidence_rows,
+            intent,
+        )
+
+        self.assertEqual(diagnostics["selected_turn_ids"][0], "assistant-list")
+        self.assertIn("7. Transcriptionist", memories[0]["source_quote"])
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["answer"], "Transcriptionist")
+        self.assertEqual(result["source_turn_id"], "assistant-list")
+
+    def test_structured_recall_resolves_table_cell_identifier_and_sequence(self):
+        cases = [
+            (
+                "In our previous chat, what was the rotation for Admon on a Sunday in the table?",
+                "| Agent | Sunday | Monday |\n"
+                "|---|---|---|\n"
+                "| Admon | 8 am - 4 pm (Day Shift) | Off |",
+                "8 am - 4 pm (Day Shift)",
+            ),
+            (
+                "What phone number did you provide?",
+                "Tourism office phone: +49 (0) 62 32 / 14 23 - 0.",
+                "+49 (0) 62 32 / 14 23 - 0",
+            ),
+            (
+                "What move did you make after 27. Kg2 Bd5+?",
+                "The game continued 27. Kg2 Bd5+ 28. Kg3 Qxa2.",
+                "28. Kg3",
+            ),
+        ]
+        for question, quote, expected in cases:
+            with self.subTest(question=question):
+                result = resolve_structured_conversation_answer(
+                    question,
+                    [
+                        {
+                            "source_turn_id": "assistant-turn",
+                            "source_session_id": "session-1",
+                            "source_role": "assistant",
+                            "source_quote": quote,
+                            "structured_score": 20,
+                        }
+                    ],
+                    infer_query_intent(question),
+                )
+                self.assertEqual(result["status"], "complete")
+                self.assertEqual(result["answer"], expected)
+
+    def test_structured_recall_resolves_explicit_final_choice(self):
+        question = (
+            "In our previous conversation, what did we finally decide to name the Atlas robot?"
+        )
+        result = resolve_structured_conversation_answer(
+            question,
+            [
+                {
+                    "source_turn_id": "assistant-turn",
+                    "source_session_id": "session-1",
+                    "source_role": "assistant",
+                    "source_quote": "After reviewing the Atlas robot options, we finally decided to name it Fissionator.",
+                    "structured_score": 20,
+                    "query_overlap": 2,
+                    "topic_overlap": 2,
+                }
+            ],
+            infer_query_intent(question),
+        )
+
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["answer"], "Fissionator")
+
+    def test_structured_recall_falls_back_on_ambiguity_and_user_memory(self):
+        question = "What phone number did you provide?"
+        rows = [
+            {
+                "source_turn_id": "turn-a",
+                "source_session_id": "session-a",
+                "source_role": "assistant",
+                "source_quote": "Phone: +1 212 555 0101.",
+                "structured_score": 20,
+            },
+            {
+                "source_turn_id": "turn-b",
+                "source_session_id": "session-b",
+                "source_role": "assistant",
+                "source_quote": "Phone: +1 646 555 0199.",
+                "structured_score": 20,
+            },
+        ]
+
+        ambiguous = resolve_structured_conversation_answer(
+            question,
+            rows,
+            infer_query_intent(question),
+        )
+        user_path = resolve_structured_conversation_answer(
+            "What phone number did I mention?",
+            rows,
+            infer_query_intent("What phone number did I mention?"),
+        )
+
+        self.assertEqual(ambiguous["status"], "ambiguous_top_candidates")
+        self.assertFalse(user_path["applicable"])
+        self.assertEqual(user_path["status"], "not_applicable")
+
+    def test_structured_recall_plan_does_not_claim_ordinary_user_fact(self):
+        self.assertFalse(
+            structured_recall_plan("What is the name of my rabbit?")["applicable"]
+        )
+
+    def test_ordinal_container_guides_retrieval_but_does_not_become_answer(self):
+        question = (
+            "In our previous conversation, what was the chord progression for "
+            "the chorus in the second song?"
+        )
+        plan = structured_recall_plan(question)
+        result = resolve_structured_conversation_answer(
+            question,
+            [
+                {
+                    "source_turn_id": "assistant-turn",
+                    "source_session_id": "session-1",
+                    "source_role": "assistant",
+                    "source_quote": (
+                        '1. "First Song" by Example One '
+                        '2. "The Sound of Silence" by Simon & Garfunkel'
+                    ),
+                    "structured_score": 20,
+                    "query_overlap": 3,
+                    "previous_user_overlap": 2,
+                }
+            ],
+            infer_query_intent(question),
+        )
+
+        self.assertTrue(plan["ordinal_is_container"])
+        self.assertNotEqual(result["status"], "complete")
 
     def test_intent_router_detects_generic_evidence_synthesis_only(self):
         inference_questions = [
@@ -621,6 +945,21 @@ class QueryRoutingRegressionTests(unittest.TestCase):
             )["intent"],
             PREFERENCE_RECOMMENDATION_INTENT,
         )
+
+    def test_intent_router_recognizes_natural_preference_requests(self):
+        questions = [
+            "What should I serve for dinner this weekend?",
+            "My kitchen is a mess again. Any tips for keeping it clean?",
+            "I need a cocktail for a gathering. Any suggestions?",
+            "I am stuck with my paintings. Any ideas for new inspiration?",
+        ]
+
+        for question in questions:
+            with self.subTest(question=question):
+                self.assertEqual(
+                    infer_query_intent(question)["intent"],
+                    PREFERENCE_RECOMMENDATION_INTENT,
+                )
 
     def test_synthesis_scope_does_not_require_the_inferred_attribute(self):
         question = "Which country did Asha visit for the Amber Atlas project?"
@@ -1137,6 +1476,38 @@ class QueryRoutingRegressionTests(unittest.TestCase):
             parsed["E1"],
             [["speaker assistant", "recommended", "Cedar Bistro"]],
         )
+
+    def test_selected_evidence_parser_honors_dynamic_relationship_limit(self):
+        values = [
+            "alpha",
+            "beta",
+            "gamma",
+            "delta",
+            "epsilon",
+            "zeta",
+            "eta",
+            "theta",
+        ]
+        records = [
+            {
+                "evidence_id": "E1",
+                "source_role": "user",
+                "source_speaker": "user",
+                "source_quote": "I recorded " + ", ".join(values) + ".",
+            }
+        ]
+        raw_output = "\n".join(
+            f"E1 | speaker user | recorded | {value}" for value in values
+        )
+
+        parsed = parse_selected_evidence_triples(
+            raw_output,
+            records,
+            relationship_limits={"E1": 8},
+        )
+
+        self.assertEqual(len(parsed["E1"]), 8)
+        self.assertEqual(parsed["E1"][-1][-1], "theta")
 
 
 class PreferenceSynthesisTests(unittest.TestCase):
@@ -1799,6 +2170,107 @@ class StructuredAnswerCandidateTests(unittest.TestCase):
         self.assertIn("source_role: user", formatted)
         self.assertIn('source_quote: "Nova is a Border Collie."', formatted)
 
+    def test_validated_answer_suffix_default_is_legacy(self):
+        self.assertEqual(DEFAULT_PRAGMOS_ANSWER_SUFFIX_FORMAT, "legacy")
+        candidates = [
+            {
+                "source_turn_id": "turn-7",
+                "source_role": "user",
+                "source_quote": "Nova is a Border Collie.",
+                "value": "Border Collie",
+                "head": "Nova",
+                "relation": "breed",
+                "tail": "Border Collie",
+            }
+        ]
+
+        formatted = format_answer_slot_candidates(
+            candidates,
+            "specific fact requested",
+        )
+        suffix = build_pragmos_answer_suffix(
+            "What breed is Nova?",
+            "current",
+            answer_slot_candidates=candidates,
+        )
+
+        self.assertIn("Structured specific fact requested candidates", formatted)
+        self.assertNotIn("row; turn; role; value; fact; quote", formatted)
+        self.assertIn("Structured specific fact requested candidates", suffix)
+
+    def test_compact_candidate_format_deduplicates_only_shared_provenance(self):
+        shared = {
+            "source_turn_id": "turn-7",
+            "source_role": "user",
+            "source_quote": "Nova is a Border Collie and lives in Pune.",
+        }
+        candidates = [
+            {
+                **shared,
+                "value": "Border Collie",
+                "head": "Nova",
+                "relation": "breed",
+                "tail": "Border Collie",
+            },
+            {
+                **shared,
+                "value": "Pune",
+                "head": "Nova",
+                "relation": "lives in",
+                "tail": "Pune",
+            },
+        ]
+
+        compact = format_answer_slot_candidates(
+            candidates,
+            "specific fact requested",
+            format_style="compact",
+        )
+        legacy = format_answer_slot_candidates(
+            candidates,
+            "specific fact requested",
+            format_style="legacy",
+        )
+
+        self.assertEqual(
+            compact.count('"Nova is a Border Collie and lives in Pune."'),
+            1,
+        )
+        self.assertIn("- 1; turn-7; user; Border Collie", compact)
+        self.assertIn("Nova -[breed]-> Border Collie", compact)
+        self.assertIn("- 2; same source as 1; Pune", compact)
+        self.assertIn("Nova -[lives in]-> Pune", compact)
+        self.assertEqual(
+            legacy.count("Nova is a Border Collie and lives in Pune."),
+            2,
+        )
+        self.assertLess(len(compact), len(legacy))
+
+    def test_answer_suffix_legacy_switch_preserves_previous_candidate_format(self):
+        candidates = [
+            {
+                "source_turn_id": "turn-8",
+                "source_role": "assistant",
+                "source_quote": "I suggested Cedar Bistro.",
+                "value": "Cedar Bistro",
+                "head": "assistant",
+                "relation": "suggested",
+                "tail": "Cedar Bistro",
+            }
+        ]
+
+        suffix = build_pragmos_answer_suffix(
+            "Which restaurant did you suggest?",
+            "current",
+            answer_slot_candidates=candidates,
+            query_intent={"intent": ASSISTANT_MEMORY_INTENT},
+            format_style="legacy",
+        )
+
+        self.assertIn("Structured specific fact requested candidates", suffix)
+        self.assertIn("source_role: assistant", suffix)
+        self.assertIn('source_quote: "I suggested Cedar Bistro."', suffix)
+
     def test_place_candidate_can_be_cleaned_from_a_graph_phrase(self):
         rows = [
             extraction(
@@ -1907,6 +2379,77 @@ class StructuredAnswerCandidateTests(unittest.TestCase):
 
 
 class SelectedEvidenceCandidateTests(unittest.TestCase):
+    def test_completion_marker_avoids_recovery_retry(self):
+        memories = [memory("I like mango.", "turn-1")]
+        context = FakeCandidateExtractionContext(
+            extraction_output=(
+                "E1 | speaker user | likes | mango\n"
+                "EXTRACTION_COMPLETE | E1"
+            )
+        )
+
+        rows, diagnostics = extract_candidates_from_selected_evidence(
+            context,
+            "What fruit do I like?",
+            "specific fact requested",
+            infer_multi_session_operation(
+                "What fruit do I like?",
+                "single-session-user",
+            ),
+            memories,
+        )
+
+        self.assertEqual(rows[0]["triples"][0][-1], "mango")
+        self.assertEqual(diagnostics["candidate_extraction_retry_count"], 0)
+        self.assertEqual(diagnostics["suspected_incomplete_evidence_ids"], [])
+        self.assertEqual(diagnostics["explicitly_completed_evidence_count"], 1)
+
+    def test_dense_selected_evidence_uses_small_batches_and_dynamic_capacity(self):
+        memories = [
+            memory(
+                f"Evidence {index}: "
+                "1. alpha; 2. beta; 3. gamma; 4. delta; 5. epsilon.",
+                f"turn-{index}",
+                session_id=f"session-{index}",
+            )
+            for index in range(1, 6)
+        ]
+        context = FakeCandidateExtractionContext(
+            extraction_output="EXTRACTION_COMPLETE | E1"
+        )
+        context.context_length = 4096
+
+        _rows, diagnostics = extract_candidates_from_selected_evidence(
+            context,
+            "Which items were recorded?",
+            "requested list",
+            infer_multi_session_operation(
+                "Which items were recorded?",
+                "multi-session",
+            ),
+            memories,
+        )
+        primary_audits = [
+            audit
+            for audit in diagnostics["batch_audits"]
+            if not audit["retry"]
+        ]
+
+        self.assertTrue(
+            all(len(audit["evidence_ids"]) <= 2 for audit in primary_audits)
+        )
+        self.assertTrue(
+            all(
+                limit > 6
+                for limit in diagnostics["relationship_limits"].values()
+            )
+        )
+        self.assertEqual(
+            diagnostics["candidate_extraction_llm_call_count"],
+            diagnostics["candidate_extraction_batch_count"]
+            + diagnostics["candidate_extraction_retry_count"],
+        )
+
     def test_batched_extraction_visits_every_selected_evidence_id(self):
         memories = [
             memory(
@@ -2080,6 +2623,156 @@ class SelectedEvidenceCandidateTests(unittest.TestCase):
 
 
 class RetrievalSafetyTests(unittest.TestCase):
+    def test_turn_retrieval_metrics_use_oracle_labels_only_for_evaluation(self):
+        record = {
+            "question_id": "turn-question",
+            "question_type": "single-session-user",
+            "haystack_session_ids": ["session-1"],
+            "haystack_sessions": [
+                [
+                    {"role": "user", "content": "Noise."},
+                    {
+                        "role": "assistant",
+                        "content": "The answer is Kyoto.",
+                        "has_answer": True,
+                    },
+                ]
+            ],
+        }
+
+        result = longmemeval_turn_retrieval_metrics(
+            record,
+            [
+                {
+                    "source_turn_ids": [1],
+                    "source_session_id": "session-1",
+                    "source_quote": "Noise.",
+                    "role": "user",
+                },
+                {
+                    "source_turn_ids": [2],
+                    "source_session_id": "session-1",
+                    "source_quote": "The answer is Kyoto.",
+                    "role": "assistant",
+                },
+                {
+                    "source_turn_ids": [2],
+                    "source_session_id": "session-1",
+                    "source_quote": "The answer is Kyoto.",
+                    "role": "assistant",
+                },
+            ],
+            ks=(1, 2),
+        )
+
+        self.assertEqual(result["gold_turn_ids"], ["session-1:message-2"])
+        self.assertEqual(result["ranked_turn_ids"], ["1", "2"])
+        self.assertEqual(result["metrics"]["recall@1"], 0.0)
+        self.assertEqual(result["metrics"]["recall@2"], 1.0)
+
+    def test_complete_evidence_preservation_keeps_exact_legacy_order(self):
+        selected = [
+            memory("My rabbit is named Hazel.", 1),
+            memory("Hazel likes carrots.", 2),
+        ]
+
+        preserved, added, diagnostics = preserve_required_evidence_memories(
+            context_layer=SimpleNamespace(),
+            selected_memories=selected,
+            candidate_memories=list(reversed(selected)),
+            query_profile=build_query_profile("What is the name of my rabbit?"),
+            operation_plan={
+                "operation": "none",
+                "operands": [],
+                "requires_session_diversity": False,
+            },
+        )
+
+        self.assertEqual(preserved, selected)
+        self.assertEqual(added, [])
+        self.assertEqual(diagnostics["status"], "not_applicable")
+
+    def test_structural_neighbor_fills_only_a_missing_operand(self):
+        camera = memory("I bought a camera for $400.", 1)
+        tripod = memory("I bought a tripod for $80.", 2)
+
+        class StructuralContext:
+            @staticmethod
+            def structural_neighbor_turn_ids(turn_ids, radius=1):
+                return [2] if turn_ids == [1] and radius == 1 else []
+
+            @staticmethod
+            def raw_memories_for_turn_ids(turn_ids):
+                return [tripod] if turn_ids == [2] else []
+
+        question = "What was the combined cost of the camera and tripod?"
+        plan = {
+            "operation": "sum",
+            "operands": ["camera", "tripod"],
+            "requires_session_diversity": False,
+        }
+        preserved, added, diagnostics = preserve_required_evidence_memories(
+            context_layer=StructuralContext(),
+            selected_memories=[camera],
+            candidate_memories=[],
+            query_profile=build_query_profile(question),
+            operation_plan=plan,
+            structural_radius=1,
+        )
+
+        self.assertEqual([row["source_turn_ids"][0] for row in added], [2])
+        self.assertEqual(added[0]["retrieval_sources"], ["structural_neighbor"])
+        self.assertEqual([row["source_turn_ids"][0] for row in preserved], [1, 2])
+        self.assertEqual(diagnostics["status"], "complete")
+
+    def test_graph_materialization_reuses_cached_semantic_facts(self):
+        source_turn = SimpleNamespace(
+            session_id="s1",
+            turn_id=1,
+            role="user",
+            speaker="user",
+            timestamp="t1",
+            text="I like cats.",
+            external_turn_id=None,
+            evidence_type=None,
+            parent_turn_id=None,
+        )
+
+        class CacheContext:
+            def __init__(self):
+                self.cached = None
+                self.extract_calls = 0
+                self.cache_counters = {"semantic_fact_misses": 0}
+
+            def learn_speaker_identity_from_text(self, _turn):
+                return None
+
+            def get_cached_semantic_facts(self, _turn, _quote):
+                return self.cached
+
+            def cache_semantic_facts(self, _turn, _quote, triples):
+                self.cached = tuple(tuple(value for value in row) for row in triples)
+
+            def format_turn_for_extraction(self, turn):
+                return turn.text
+
+            def extract_entities_and_relationships_with_llm(self, _text):
+                self.extract_calls += 1
+                return [["speaker user", "likes", "cats"]]
+
+            def update_knowledge_graph_from_triples(self, *_args, **_kwargs):
+                return None
+
+        context = CacheContext()
+        candidate = memory("I like cats.", 1)
+
+        first = materialize_candidate_graph(context, [candidate], {1: source_turn}, 1)
+        second = materialize_candidate_graph(context, [candidate], {1: source_turn}, 1)
+
+        self.assertEqual(context.extract_calls, 1)
+        self.assertEqual(first[0]["extraction_method"], "lazy_semantic_materialization")
+        self.assertEqual(second[0]["extraction_method"], "semantic_fact_cache")
+
     def test_longmemeval_retrieval_metrics_match_official_binary_formulas(self):
         record = {
             "question_id": "question-1",
@@ -2298,6 +2991,228 @@ class RetrievalSafetyTests(unittest.TestCase):
 
 
 class MultiSessionOperationTests(unittest.TestCase):
+    def test_typed_graph_fact_preserves_triple_and_provenance(self):
+        row = extraction(
+            "I completed a 3-day camping trip at Big Sur.",
+            [["speaker user", "completed camping trip", "3 days"]],
+            turn_id="turn-camp",
+            session_id="session-camp",
+            timestamp="2026-04-11T10:00:00Z",
+        )
+
+        typed = build_typed_graph_facts(row)
+
+        self.assertEqual(
+            row["triples"],
+            [["speaker user", "completed camping trip", "3 days"]],
+        )
+        self.assertEqual(len(typed), 1)
+        self.assertEqual(typed[0]["fact_type"], "measurement")
+        self.assertIn("camp", typed[0]["predicate_actions"])
+        self.assertEqual(
+            typed[0]["provenance"]["source_turn_id"],
+            "turn-camp",
+        )
+        self.assertEqual(
+            typed[0]["provenance"]["source_quote"],
+            row["source_quote"],
+        )
+        money = build_typed_graph_facts(
+            extraction(
+                "I raised $5,000 for charity.",
+                [["speaker user", "raised", "$5,000"]],
+            )
+        )
+        self.assertEqual(money[0]["object_type"], "measurement")
+
+    def test_semantic_frame_recovers_explicit_number_of_distinct_form(self):
+        question = "What is the number of unique clinics I visited this year?"
+
+        frame = parse_operation_question_frame(question, "multi-session")
+        plan = infer_multi_session_operation(question, "multi-session")
+
+        self.assertEqual(frame["resolved_operator"], "count_distinct")
+        self.assertEqual(plan["operation"], "count_distinct")
+        self.assertEqual(plan["planner_resolution"], "semantic_frame_recovery")
+        self.assertEqual(
+            plan["semantic_contract"]["operator"],
+            "count_distinct",
+        )
+
+    def test_semantic_operand_binding_rejects_nested_or_tied_anchors(self):
+        self.assertEqual(
+            semantic_operation_operand_match(
+                "Alpha Hall cost 20 dollars",
+                ["Alpha", "Alpha Hall"],
+            ),
+            (None, None, 0.0),
+        )
+        self.assertEqual(
+            semantic_operation_operand_match(
+                "Birch Center cost 20 dollars",
+                ["Alpha Hall", "Birch Center"],
+            )[:2],
+            (1, "Birch Center"),
+        )
+
+    def test_typed_sum_excludes_planned_and_unrelated_measurements(self):
+        question = "How many days did I spend camping this year?"
+        rows = [
+            extraction(
+                "I spent 5 days camping at Yellowstone and am planning another "
+                "10-day camping trip next month.",
+                [["speaker user", "camped at", "Yellowstone"]],
+                session_id="completed-one",
+            ),
+            extraction(
+                "I completed a 3-day camping trip at Big Sur.",
+                [["speaker user", "completed camping trip", "Big Sur"]],
+                turn_id="turn-2",
+                session_id="completed-two",
+            ),
+            extraction(
+                "I spent 7 days visiting Utah.",
+                [["speaker user", "visited", "Utah"]],
+                turn_id="turn-3",
+                session_id="unrelated",
+            ),
+        ]
+        plan = infer_multi_session_operation(question, "multi-session")
+
+        result = execute_operation_plan(
+            SelectAllOperationContext(),
+            question,
+            plan,
+            rows,
+            build_query_profile(question),
+        )
+
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["answer"], "8 days")
+        self.assertEqual(
+            result["selector_diagnostics"]["selection_strategy"],
+            "deterministic_typed_measurement",
+        )
+        self.assertEqual(
+            {fact["event_status"] for fact in result["facts"]},
+            {"completed"},
+        )
+        rejected_reasons = result["selector_diagnostics"]["typed_rejections"]
+        self.assertTrue(
+            any("event_status_mismatch" in reasons for reasons in rejected_reasons.values())
+        )
+        self.assertTrue(
+            any("conflicting_event_role" in reasons for reasons in rejected_reasons.values())
+        )
+
+    def test_typed_difference_rejects_nearby_wrong_role_quantity(self):
+        question = "What is the difference between my train and bus commute times?"
+        rows = [
+            extraction(
+                "I practiced for 25 minutes before my train commute took 60 minutes.",
+                [["train commute", "took", "60 minutes"]],
+                session_id="train-session",
+            ),
+            extraction(
+                "My bus commute took 35 minutes after a 15-minute warmup.",
+                [["bus commute", "took", "35 minutes"]],
+                turn_id="turn-bus",
+                session_id="bus-session",
+            ),
+        ]
+        plan = infer_multi_session_operation(question, "multi-session")
+
+        result = execute_operation_plan(
+            SelectAllOperationContext(),
+            question,
+            plan,
+            rows,
+            build_query_profile(question),
+        )
+
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["answer"], "25 minutes")
+        self.assertEqual(
+            result["selector_diagnostics"]["selection_strategy"],
+            "deterministic_typed_measurement",
+        )
+        self.assertEqual(
+            [fact["raw_value"] for fact in result["facts"]],
+            ["60 minutes", "35 minutes"],
+        )
+
+    def test_recurring_scalar_question_is_not_rewritten_as_a_sum(self):
+        plan = infer_multi_session_operation(
+            "How many hours do I typically practice per week?",
+            "multi-session",
+        )
+
+        self.assertEqual(plan["operation"], "none")
+        self.assertEqual(
+            plan["planner_resolution"],
+            "semantic_direct_scalar_override",
+        )
+
+    def test_cadence_interval_is_not_selected_as_a_duration(self):
+        question = "How many days did I spend practicing this year?"
+        rows = [
+            extraction(
+                "I practiced three times a week for most of the year.",
+                [["speaker user", "practiced", "three times a week"]],
+                session_id="cadence-session",
+            ),
+            extraction(
+                "I completed a 4-day practice retreat in April.",
+                [["speaker user", "completed practice retreat", "4 days"]],
+                turn_id="turn-retreat",
+                session_id="retreat-session",
+            ),
+        ]
+        plan = infer_multi_session_operation(question, "multi-session")
+        facts = extract_measurement_facts(rows, question, plan)
+
+        self.assertTrue(
+            any(
+                "cadence_interval_not_duration"
+                in (fact.get("typed_fact") or {}).get("eligibility_reasons", [])
+                for fact in facts
+            )
+        )
+
+    def test_generic_open_world_sum_requires_retrieval_saturation(self):
+        question = "How many rare items do I have in total?"
+        rows = [
+            extraction(
+                "I have 12 rare figurines in my collection.",
+                [["speaker user", "has", "12 rare figurines"]],
+                session_id="figurines",
+            ),
+            extraction(
+                "I have 25 rare coins stored safely.",
+                [["speaker user", "has", "25 rare coins"]],
+                turn_id="turn-coins",
+                session_id="coins",
+            ),
+        ]
+        plan = infer_multi_session_operation(question, "multi-session")
+        facts = extract_measurement_facts(rows, question, plan)
+
+        self.assertTrue(plan["semantic_contract"]["generic_target_category"])
+        self.assertIsNone(
+            deterministic_typed_measurement_selection(facts, plan)
+        )
+
+        plan["retrieval_saturation"] = {"saturated": True}
+        selected, diagnostics = deterministic_typed_measurement_selection(
+            facts,
+            plan,
+        )
+        self.assertEqual([fact["numeric_value"] for fact in selected], [12.0, 25.0])
+        self.assertEqual(
+            diagnostics["selection_strategy"],
+            "deterministic_typed_measurement",
+        )
+
     def test_planner_distinguishes_count_count_distinct_sum_and_join(self):
         count_plan = infer_multi_session_operation(
             "How many projects did I lead?",
@@ -4032,7 +4947,17 @@ class StateHistoryResolutionTests(unittest.TestCase):
         self.assertTrue(earliest["deterministic_enabled"])
         self.assertEqual(latest["selector"], "latest")
         self.assertEqual(latest["requested_attribute"], "favorite weekend animal")
-        self.assertFalse(latest["deterministic_enabled"])
+        self.assertTrue(latest["deterministic_enabled"])
+
+    def test_discourse_now_without_attribute_preserves_normal_answer_path(self):
+        plan = infer_state_history_selector(
+            "Cross-checking now, can you recover the final title from that note?"
+        )
+
+        self.assertEqual(plan["selector"], "latest")
+        self.assertIsNone(plan["requested_attribute"])
+        self.assertEqual(plan["attribute_tokens"], [])
+        self.assertFalse(plan["deterministic_enabled"])
 
     def test_predecessor_is_resolved_from_a_continuous_provenance_chain(self):
         question = (
@@ -4069,7 +4994,7 @@ class StateHistoryResolutionTests(unittest.TestCase):
             "turn-original",
         )
 
-    def test_current_selector_preserves_the_existing_answer_path(self):
+    def test_current_selector_resolves_latest_continuous_state(self):
         question = (
             "According to my Harbor Lab updates with Maya, what is my current "
             "favorite weekend animal?"
@@ -4077,8 +5002,69 @@ class StateHistoryResolutionTests(unittest.TestCase):
 
         result = self.resolve(question)
 
-        self.assertEqual(result["status"], "selector_not_enabled")
-        self.assertTrue(result["fallback_preserved"])
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["answer"], "parrots")
+        self.assertFalse(result["fallback_preserved"])
+
+    def test_latest_candidate_timeline_requires_two_unambiguous_user_sessions(self):
+        question = "How many Instagram followers do I currently have?"
+        profile = build_query_profile(question)
+        candidates = [
+            {
+                "source_turn_id": "turn-1",
+                "source_session_id": "session-1",
+                "source_role": "user",
+                "source_timestamp": "2028/01/01 (Sat) 10:00",
+                "source_quote": "I reached 500 Instagram followers last week.",
+                "value": "500",
+                "quote_supported": True,
+                "query_token_overlap": 1,
+                "candidate_strength": 0.94,
+            },
+            {
+                "source_turn_id": "turn-2",
+                "source_session_id": "session-2",
+                "source_role": "user",
+                "source_timestamp": "2028/02/01 (Tue) 10:00",
+                "source_quote": "I now have 600 Instagram followers.",
+                "value": "600",
+                "quote_supported": True,
+                "query_token_overlap": 2,
+                "candidate_strength": 0.99,
+            },
+        ]
+
+        timeline = resolve_state_candidate_timeline(
+            candidates,
+            profile,
+            "latest",
+        )
+
+        self.assertEqual(timeline["status"], "complete")
+        self.assertEqual(timeline["answer"], "600")
+        self.assertEqual(timeline["covered_session_count"], 2)
+
+        timeline = resolve_state_candidate_timeline(
+            candidates[-1:],
+            profile,
+            "latest",
+        )
+        self.assertEqual(timeline["status"], "insufficient_candidate_timeline")
+        self.assertIsNone(timeline["answer"])
+
+    def test_compound_historical_and_current_request_keeps_model_path(self):
+        questions = [
+            "How many engineers did I lead when I started? How many do I lead now?",
+            "How much better was the mileage a few months ago compared to now?",
+            "What is the order of the museums from earliest to latest?",
+        ]
+
+        for question in questions:
+            with self.subTest(question=question):
+                plan = infer_state_history_selector(question)
+                self.assertEqual(plan["selector"], "latest")
+                self.assertTrue(plan["multi_state_request"])
+                self.assertFalse(plan["deterministic_enabled"])
 
     def test_incoherent_chain_falls_back_without_guessing(self):
         rows = self.history_rows()

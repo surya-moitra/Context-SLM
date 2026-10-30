@@ -114,6 +114,49 @@ class ObservabilityMetricTests(unittest.TestCase):
 
 
 class TraceAnalyzerTests(unittest.TestCase):
+    def test_answer_turn_retrieval_is_joined_from_oracle_after_inference(self):
+        trace_rows = [
+            {
+                "question_id": "q1",
+                "retrieval_candidate_pool": [
+                    {**memory(1, "Noise."), "source_session_id": "s1"},
+                    {**memory(2, "The answer."), "source_session_id": "s1"},
+                ],
+                "final_memories": [
+                    {**memory(2, "The answer."), "source_session_id": "s1"}
+                ],
+                "graph_evidence": [],
+            }
+        ]
+        oracle = [
+            {
+                "question_id": "q1",
+                "question_type": "single-session-user",
+                "haystack_session_ids": ["s1"],
+                "haystack_sessions": [
+                    [
+                        {"role": "user", "content": "Noise."},
+                        {
+                            "role": "user",
+                            "content": "The answer.",
+                            "has_answer": True,
+                        },
+                    ]
+                ],
+            }
+        ]
+
+        metrics = analyzer.derive_longmemeval_turn_retrieval_metrics(
+            trace_rows,
+            oracle,
+        )
+
+        self.assertEqual(metrics["label_join_stage"], "post_inference_analysis_only")
+        self.assertEqual(
+            metrics["final_evidence"]["metrics"]["recall@1"],
+            1.0,
+        )
+
     def test_legacy_longmemeval_trace_can_be_derived_without_core_changes(self):
         data = [
             {

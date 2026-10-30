@@ -730,6 +730,122 @@ class LoCoMoAdapterTests(unittest.TestCase):
         self.assertNotIn("Bind first-person statements", generic_context)
         self.assertIn("Bind first-person statements", named_context)
 
+    def test_context_packer_keeps_evidence_records_atomic_and_interleaved(self):
+        layer = self.bare_context_layer()
+        layer.count_tokens = lambda text: max(1, (len(str(text)) + 3) // 4)
+        layer.trim_text_to_token_budget = (
+            lambda text, budget: str(text)[: max(0, budget * 4)]
+        )
+        vector_memories = [
+            {
+                "memory_id": f"memory-{index}",
+                "source_turn_ids": [index],
+                "source_session_id": "session-1",
+                "source_quote": f"Vector fact {index}: " + ("detail " * 55),
+                "role": "user",
+                "speaker": "user",
+                "timestamp": "2026-01-01T10:00:00",
+                "score": 0.9,
+                "retrieval_sources": ["dense"],
+            }
+            for index in range(1, 9)
+        ]
+        graph_evidence = [
+            {
+                "edge_id": "edge-1",
+                "head": "Viky",
+                "relation": "likes",
+                "tail": "dogs",
+                "source_turn_ids": [9],
+                "source_session_id": "session-2",
+                "source_quote": "Viky likes dogs now.",
+                "role": "user",
+                "speaker": "Viky",
+                "evidence_type": "dialogue",
+                "timestamp": "2026-01-02T10:00:00",
+                "confidence": 0.9,
+                "status": "active",
+            }
+        ]
+
+        context, diagnostics = layer.build_context_with_budget(
+            "What does Viky like?",
+            vector_memories,
+            graph_evidence,
+            [],
+            token_budget=500,
+            return_diagnostics=True,
+        )
+
+        self.assertGreaterEqual(diagnostics["included_counts"]["vector"], 1)
+        self.assertEqual(diagnostics["included_counts"]["graph"], 1)
+        self.assertGreaterEqual(diagnostics["skipped_counts"]["vector"], 1)
+        self.assertFalse(diagnostics["final_trim_applied"])
+        self.assertLessEqual(diagnostics["tokens_used"], 500)
+        self.assertEqual(
+            context.count("[VECTOR_EVIDENCE_ITEM"),
+            context.count("[/VECTOR_EVIDENCE_ITEM]"),
+        )
+        self.assertEqual(
+            context.count("[GRAPH_EVIDENCE_ITEM"),
+            context.count("[/GRAPH_EVIDENCE_ITEM]"),
+        )
+
+    def test_semantic_extraction_recovers_and_unions_incomplete_output(self):
+        layer = self.bare_context_layer()
+        responses = iter(
+            [
+                {
+                    "choices": [
+                        {
+                            "text": "speaker user | likes | apples",
+                            "finish_reason": "length",
+                        }
+                    ]
+                },
+                {
+                    "choices": [
+                        {
+                            "text": (
+                                "speaker user | likes | pears\n"
+                                "EXTRACTION_COMPLETE"
+                            ),
+                            "finish_reason": "stop",
+                        }
+                    ]
+                },
+            ]
+        )
+        output_budgets = []
+
+        def fake_llm(_prompt, **kwargs):
+            output_budgets.append(kwargs["max_tokens"])
+            return next(responses)
+
+        layer.llm = fake_llm
+
+        triples = layer.extract_entities_and_relationships_with_llm(
+            "I like apples and pears."
+        )
+
+        self.assertIn(("speaker user", "likes", "apples"), triples)
+        self.assertIn(("speaker user", "likes", "pears"), triples)
+        self.assertEqual(
+            layer.last_relationship_extraction_diagnostics["attempt_count"],
+            2,
+        )
+        self.assertTrue(
+            layer.last_relationship_extraction_diagnostics[
+                "completion_confirmed"
+            ]
+        )
+        self.assertFalse(
+            layer.last_relationship_extraction_diagnostics[
+                "suspected_truncation"
+            ]
+        )
+        self.assertGreater(output_budgets[1], output_budgets[0])
+
 
 class ContextLayerQueryForkTests(unittest.TestCase):
     def test_query_fork_isolates_mutable_memory_and_shares_models(self):

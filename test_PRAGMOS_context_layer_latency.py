@@ -1,9 +1,10 @@
 import unittest
 from collections import OrderedDict
 
+import networkx as nx
 import numpy as np
 
-from PRAGMOS_context_layer_org import ContextLayer
+from PRAGMOS_context_layer_org import ContextLayer, ConversationTurn
 
 
 class FakeEmbedder:
@@ -51,6 +52,102 @@ def cache_only_context():
 
 
 class ContextLayerLatencyTests(unittest.TestCase):
+    def test_structural_turn_graph_is_complete_and_semantic_graph_is_untouched(self):
+        context = ContextLayer.__new__(ContextLayer)
+        context.reset_memory(session_id="structural-test")
+        turns = [
+            ConversationTurn("s1", 1, "user", "Viky", "t1", "I like cats."),
+            ConversationTurn("s1", 2, "assistant", "assistant", "t1", "Noted."),
+            ConversationTurn("s2", 3, "user", "Viky", "t2", "I like dogs."),
+        ]
+
+        context.register_structural_turns(turns)
+
+        self.assertEqual(context.G.number_of_nodes(), 0)
+        self.assertEqual(len(context.turn_records), 3)
+        self.assertEqual(context.structural_neighbor_turn_ids([1], radius=1), [2])
+        self.assertEqual(context.structural_neighbor_turn_ids([2], radius=1), [1])
+        relations = {
+            edge[3]["relation"]
+            for edge in context.turn_graph.edges(keys=True, data=True)
+        }
+        self.assertEqual(
+            relations,
+            {"contains_turn", "authored_turn", "next_turn", "previous_turn"},
+        )
+
+    def test_semantic_fact_cache_is_provenance_scoped_and_reusable(self):
+        context = ContextLayer.__new__(ContextLayer)
+        context.semantic_fact_cache_size = 8
+        context.semantic_fact_cache = OrderedDict()
+        context.cache_counters = {
+            "semantic_fact_hits": 0,
+            "semantic_fact_misses": 0,
+        }
+        turn = ConversationTurn("s1", 1, "user", "Viky", "t1", "I like cats.")
+
+        self.assertIsNone(context.get_cached_semantic_facts(turn, turn.text))
+        context.cache_semantic_facts(turn, turn.text, [["Viky", "likes", "cats"]])
+        cached = context.get_cached_semantic_facts(turn, turn.text)
+
+        self.assertEqual(cached, (("Viky", "likes", "cats"),))
+        self.assertEqual(
+            context.get_cached_semantic_facts(turn, turn.text),
+            (("Viky", "likes", "cats"),),
+        )
+        self.assertEqual(context.cache_counters["semantic_fact_hits"], 2)
+
+    def test_graph_edges_and_vector_mirror_store_additive_fact_types(self):
+        context = ContextLayer.__new__(ContextLayer)
+        context.session_id = "typed-test"
+        context.edge_counter = 0
+        context.G = nx.MultiDiGraph()
+        context.entity_registry = {}
+        context.resolve_entity_reference = lambda value, source_turn=None: value
+        context.should_merge_identity_triple = lambda *_args, **_kwargs: False
+        context.add_node_with_provenance = (
+            lambda node, _provenance: context.G.add_node(node)
+        )
+        context.supersede_conflicting_edges = lambda **_kwargs: []
+        context.has_named_or_typed_evidence = lambda _provenance: False
+        context.remember_entity_mention = lambda *_args, **_kwargs: None
+        stored = []
+        context.embed_and_store = lambda text, label, metadata: stored.append(
+            {"text": text, "label": label, "metadata": metadata}
+        )
+
+        context.update_knowledge_graph_from_triples(
+            [["speaker user", "completed camping trip", "3 days"]],
+            source_quote="I completed a 3-day camping trip.",
+        )
+
+        edge = next(iter(context.G.edges(keys=True, data=True)))[3]
+        self.assertEqual(edge["fact_schema_version"], 1)
+        self.assertEqual(edge["fact_type"], "measurement")
+        self.assertEqual(edge["head_type"], "speaker")
+        self.assertEqual(edge["tail_type"], "measurement")
+        self.assertEqual(edge["predicate_family"], "event")
+        self.assertIn("camp", edge["predicate_actions"])
+        self.assertEqual(edge["event_status"], "completed")
+        self.assertEqual(
+            stored[0]["metadata"]["fact_type"],
+            edge["fact_type"],
+        )
+        money_fact = context.classify_graph_fact(
+            "speaker user",
+            "raised",
+            "$5,000",
+            source_quote="I raised $5,000 for charity.",
+        )
+        negated_plan = context.classify_graph_fact(
+            "speaker user",
+            "planning",
+            "a trip",
+            source_quote="I do not plan a trip.",
+        )
+        self.assertEqual(money_fact["fact_type"], "measurement")
+        self.assertEqual(negated_plan["event_status"], "negated")
+
     def test_embedding_cache_returns_identical_normalized_vectors(self):
         context = cache_only_context()
 
