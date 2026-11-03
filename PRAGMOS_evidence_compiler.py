@@ -14,9 +14,18 @@ from __future__ import annotations
 import dataclasses
 import datetime
 import json
+import math
 import re
 from collections import defaultdict
 from typing import Any, Callable, Iterable
+
+from PRAGMOS_temporal_grounding import (
+    calendar_date as grounded_calendar_date,
+    completed_calendar_months,
+    describe_time,
+    shift_date as shift_grounded_date,
+    split_assertions,
+)
 
 
 ALLOWED_OPERATORS = {
@@ -633,6 +642,7 @@ class EvidenceAtom:
     tokens: tuple[str, ...]
     temporal_expression: dict[str, Any] | None = None
     event_status: str | None = None
+    temporal_assertion: dict[str, Any] | None = None
 
     @property
     def provenance_identity(self) -> tuple[Any, ...]:
@@ -771,6 +781,176 @@ def prefer_stricter_more_complete_proof(
         return sessions, len(provenance)
 
     return candidate if coverage(candidate) > coverage(current) else current
+
+
+def _authoritative_numeric_claim(fact, sources):
+    turn = sources.get(str(fact.get("source_turn_id")))
+    if turn is None:
+        return None
+    field = turn.get if isinstance(turn, dict) else lambda key: getattr(turn, key, None)
+    session = field("session_id")
+    if session is None or str(session) != str(fact.get("source_session_id")):
+        return None
+    quote = str(field("text") or "")
+    clause = str(fact.get("clause") or fact.get("source_quote") or "")
+    needle = [token["lower"] for token in _word_tokens(clause)]
+    if not needle:
+        return None
+    matches = []
+    for statement in _evidence_clauses(quote):
+        tokens = _word_tokens(statement)
+        words = [token["lower"] for token in tokens]
+        for start in range(len(words) - len(needle) + 1):
+            if words[start:start + len(needle)] == needle:
+                matches.append((statement, tokens, start, start + len(needle)))
+    if len(matches) != 1:
+        return None
+    statement, tokens, start, end = matches[0]
+    # The executors already validated the selected clause. This guard restores
+    # dropped qualifications only; it must not reinterpret a whole multi-event
+    # sentence's negation as applying to every value in that sentence.
+    status = None
+    tail = tokens[end:]
+    # Extend a compact claim only through an attached, explicitly coreferential
+    # qualification. A different event's negation must not veto this amount.
+    connectors = {"and", "but", "however", "although", "though", "yet"}
+    while tail and tail[0]["lower"] in connectors:
+        tail = tail[1:]
+    reference_nouns = {
+        "amount", "value", "figure", "estimate", "payment", "quantity",
+        "duration", "distance", "cost", "total", "charge", "budget",
+        "price", "time", "length", "number",
+    }
+    words = [token["lower"] for token in tail]
+    attached_reference = bool(words) and (
+        words[0] in {"it", "which"}
+        or (len(words) > 1 and words[0] in {"that", "this", "the"}
+            and words[1] in reference_nouns)
+    )
+    if attached_reference:
+        end_position = len(statement)
+        clause_connectors = connectors | {"because", "whereas", "while", "when"}
+        continuations = {"was", "were", "is", "are", "has", "had", "never", "not"}
+        for index, token in enumerate(tail[1:], 1):
+            if token["lower"] not in clause_connectors:
+                continue
+            following = tail[index + 1:]
+            # Keep an implicit continuation ("and was never spent"), but do
+            # not absorb another subject's event into this qualification.
+            if following and following[0]["lower"] not in continuations:
+                end_position = token["start"]
+                break
+        status = derive_event_status_hint(statement[tail[0]["start"]:end_position])
+    return {
+        "source_turn_id": fact.get("source_turn_id"),
+        "source_session_id": fact.get("source_session_id"),
+        "source_quote": quote,
+        "source_statement": statement,
+        "claim_span": [tokens[start]["start"], tokens[end - 1]["end"]],
+        "status": status,
+        "attached_qualification": attached_reference,
+    }
+
+
+def validate_numeric_operation_proof_sources(
+    plan: SemanticQueryPlan,
+    proof: OperationProof | None,
+    source_turns: dict,
+    *,
+    effective_operation: str,
+) -> tuple[OperationProof | None, dict[str, Any]]:
+    """Veto certified numeric answers with contradicted or missing inputs.
+
+    This is a postcondition on existing proofs, not another planner. It does
+    not infer absent values, recalculate a partial total, or change retrieval.
+    Broad operands may bind many facts; every explicit operand still needs a
+    value-bearing fact. Unknown is not zero.
+    """
+    operation = normalize_text(effective_operation)
+    applicable = bool(
+        plan.valid and proof is not None and proof.executable
+        and proof.status == "COMPLETE"
+        and operation in {"sum", "average", "difference", "argmax", "argmin"}
+    )
+    diagnostics = {
+        "applicable": applicable, "blocked": False,
+        "source_checks": [], "operand_coverage": [],
+        "invalid_input_indexes": [], "missing_operand_ids": [],
+    }
+    if not applicable:
+        return proof, diagnostics
+    provenance = (proof.calculation or {}).get("provenance") or []
+    sources = {str(key): value for key, value in source_turns.items()}
+    eligible = []
+    for index, fact in enumerate(provenance):
+        if not isinstance(fact, dict) or fact.get("value") is None:
+            continue
+        try:
+            if not math.isfinite(float(fact["value"])):
+                continue
+        except (TypeError, ValueError, OverflowError):
+            continue
+        source = _authoritative_numeric_claim(fact, sources)
+        source_status = source.get("status") if source else None
+        status = source_status or normalize_text(fact.get("status"))
+        rejected = bool(
+            status in {"negated", "negated_or_cancelled", "planned", "pending"}
+            and (plan.requested_status == "completed"
+                 or (plan.requested_status in {"any", "unknown"}
+                     and fact.get("status") == "completed"))
+        )
+        diagnostics["source_checks"].append({
+            "input_index": index, "source_resolved": source is not None,
+            "source": source, "rejected": rejected,
+        })
+        if rejected:
+            diagnostics["invalid_input_indexes"].append(index)
+        else:
+            eligible.append((index, fact))
+
+    # These are measurement/type words, not entity aliases or question patterns.
+    controls = content_tokens(" ".join(SEMANTIC_CONTRACT_TOKENS) + " " +
+        "cost price expense fare payment duration distance time session length "
+        "quantity value measurement verified actual named overall")
+    if len(plan.operands) > 1:
+        for operand_index, operand in enumerate(plan.operands):
+            required = content_tokens(" ".join(operand.hard_entities) or operand.text)
+            required.difference_update(controls)
+            covered = []
+            for index, fact in eligible:
+                tokens = content_tokens(fact.get("clause") or fact.get("source_quote"))
+                role_values = [fact.get(role) for role in (
+                    "subject", "object", "instrument", "theme", "location",
+                    "label", "event_identity", "event_context",
+                ) if fact.get(role)]
+                if fact.get("frame_id") and role_values:
+                    # A value for one item's frame cannot price another item
+                    # merely because both are mentioned in the source sentence.
+                    tokens.intersection_update(content_tokens(" ".join(map(str, role_values))))
+                # Existing numeric executors have independently grounded and
+                # disambiguated these bindings, including semantic paraphrases.
+                bound = fact.get("bound_operand_index") == operand_index
+                if bound or (required and required.issubset(tokens)):
+                    covered.append(index)
+            diagnostics["operand_coverage"].append({
+                "operand_id": operand.operand_id,
+                "required_tokens": sorted(required), "input_indexes": covered,
+            })
+            if required and not covered:
+                diagnostics["missing_operand_ids"].append(operand.operand_id)
+    if not diagnostics["invalid_input_indexes"] and not diagnostics["missing_operand_ids"]:
+        return proof, diagnostics
+    diagnostics["blocked"] = True
+    calculation = dict(proof.calculation or {})
+    calculation["source_input_validation"] = diagnostics
+    certificate = dict(calculation.get("proof_certificate") or {})
+    certificate["authoritative_source_status_bound"] = not diagnostics["invalid_input_indexes"]
+    certificate["mandatory_operands_covered"] = not diagnostics["missing_operand_ids"]
+    calculation["proof_certificate"] = certificate
+    return dataclasses.replace(
+        proof, status="PARTIAL", answer=None, executable=False,
+        calculation=calculation, reason="authoritative_numeric_inputs_incomplete",
+    ), diagnostics
 
 
 def normalize_text(value: Any) -> str:
@@ -1855,7 +2035,15 @@ def _frame_candidate_atoms(
             continue
         overlap = len(query_tokens.intersection(set(atom.tokens)))
         has_number = bool(re.search(r"(?<![A-Za-z0-9])\d+(?:\.\d+)?", atom.clause))
-        source_temporal = _source_timestamp_temporal(atom) if temporal_extreme else None
+        source_temporal = (
+            atom.temporal_expression or _source_timestamp_temporal(atom)
+        ) if temporal_extreme else None
+        if temporal_extreme and source_temporal is None:
+            # A reporting date may rank an unresolved claim for review, but it
+            # is never used as that claim's executable event-time value.
+            report_date = grounded_calendar_date(atom.source_timestamp)
+            if report_date:
+                source_temporal = {"value": report_date.isoformat()}
         if overlap == 0 and not (
             (numeric_operation and has_number)
             or (temporal_extreme and source_temporal is not None)
@@ -3028,6 +3216,12 @@ def execute_frame_operation_proof(
     operation = normalize_text(effective_operation)
     if operation not in FRAME_SUPPORTED_OPERATIONS:
         return None, {"applicable": False, "reason": "operation_not_frame_supported"}
+    ledger = list(ledger or [])
+    temporal_extreme = operation in {"temporal_earliest", "temporal_latest"}
+    temporal_grounding = None
+    if temporal_extreme:
+        ledger, temporal_grounding = ground_temporal_ledger(ledger)
+    atoms_by_id = {atom.atom_id: atom for atom in ledger}
     frames, diagnostics = compile_evidence_frames(
         context_layer,
         question,
@@ -3036,6 +3230,8 @@ def execute_frame_operation_proof(
     )
     if not diagnostics.get("applicable"):
         return None, diagnostics
+    if temporal_grounding is not None:
+        diagnostics["temporal_grounding"] = temporal_grounding
     if diagnostics.get("status") != "COMPLETE":
         return OperationProof(
             status="EXTRACTION_FAILED",
@@ -3079,7 +3275,24 @@ def execute_frame_operation_proof(
         )
     count_validation = []
     frames = list(frames)
+    event_intervals = {}
     for frame_index, frame in enumerate(frames):
+        if temporal_extreme:
+            atom = atoms_by_id.get(frame.evidence_id)
+            if atom is not None and atom.event_status == "not_asserted":
+                rejected["not_asserted"] += 1
+                rejected_frame_reasons[frame.frame_id] = "not_asserted"
+                continue
+            if atom is not None and atom.event_status in {"planned", "negated", "negated_or_cancelled", "not_asserted"}:
+                status = "negated" if atom.event_status in {"negated", "negated_or_cancelled"} else atom.event_status
+                frame = dataclasses.replace(frame, status=status)
+                frames[frame_index] = frame
+            expression = atom.temporal_expression if atom is not None else None
+            if expression:
+                start = grounded_calendar_date(expression.get("interval_start"))
+                end = grounded_calendar_date(expression.get("interval_end"))
+                if start is not None and end is not None:
+                    event_intervals[frame.frame_id] = (start, end, expression)
         if operation in {"count", "count_distinct"}:
             atom = EvidenceAtom(
                 atom_id=frame.evidence_id,
@@ -3196,9 +3409,9 @@ def execute_frame_operation_proof(
                 rejected_frame_reasons[frame.frame_id] = "measurement_unit_missing"
                 continue
         if operation in {"temporal_earliest", "temporal_latest"}:
-            if _frame_source_date(frame) is None:
-                rejected["source_date_missing"] += 1
-                rejected_frame_reasons[frame.frame_id] = "source_date_missing"
+            if frame.frame_id not in event_intervals:
+                rejected["event_time_unresolved"] += 1
+                rejected_frame_reasons[frame.frame_id] = "event_time_unresolved"
                 continue
             if not _frame_role_value(frame, "event", scope_tokens):
                 rejected["event_identity_missing"] += 1
@@ -3324,8 +3537,7 @@ def execute_frame_operation_proof(
         >= max(1, int(minimum_sessions or 1)),
     }
     if operation in {"temporal_earliest", "temporal_latest"}:
-        dated = [(_frame_source_date(frame), frame) for frame in selected]
-        dated = [(date, frame) for date, frame in dated if date is not None]
+        dated = [(event_intervals[frame.frame_id][0], frame) for frame in selected]
         chooser = max if operation == "temporal_latest" else min
         extreme_date = chooser(date for date, _frame in dated)
         extreme_frames = [frame for date, frame in dated if date == extreme_date]
@@ -3344,10 +3556,28 @@ def execute_frame_operation_proof(
                 executable=False,
             ), diagnostics
         chosen = extreme_frames[0]
+        start, end, expression = event_intervals[chosen.frame_id]
+        for other in selected:
+            if other.frame_id == chosen.frame_id:
+                continue
+            other_start, other_end, _ = event_intervals[other.frame_id]
+            same_event = (
+                start == other_start and end == other_end
+                and normalize_phrase(_frame_role_value(chosen, "event", scope_tokens))
+                == normalize_phrase(_frame_role_value(other, "event", scope_tokens))
+            )
+            ordered = start > other_end if operation == "temporal_latest" else end < other_start
+            if not same_event and not ordered:
+                return OperationProof(
+                    status="CONFLICTING", operator=plan.operator, answer=None,
+                    calculation=calculation, reason="temporal_event_intervals_overlap",
+                ), diagnostics
         answer = _frame_role_value(chosen, "event", scope_tokens)
         calculation.update(
             {
-                "selected_date": extreme_date.isoformat(),
+                "selected_date": expression.get("value"),
+                "selected_interval": [start.isoformat(), end.isoformat()],
+                "event_time_basis": expression.get("basis"),
                 "selected_frame_id": chosen.frame_id,
                 "selected_event": answer,
             }
@@ -3829,7 +4059,9 @@ def _actor_matches(actor: str | None, atom: EvidenceAtom) -> bool:
 
 def _source_timestamp_temporal(atom: EvidenceAtom) -> dict[str, Any] | None:
     """Use a turn date only after semantic event binding has succeeded."""
-    if atom.event_status in {"planned", "negated_or_cancelled"}:
+    if atom.event_status in {"planned", "negated", "negated_or_cancelled", "not_asserted"}:
+        return None
+    if atom.temporal_assertion and atom.temporal_assertion.get("explicit_time"):
         return None
     match = re.search(
         r"(?<!\d)(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?!\d)",
@@ -3850,6 +4082,112 @@ def _source_timestamp_temporal(atom: EvidenceAtom) -> dict[str, Any] | None:
         "basis": "bound_event_source_timestamp",
         "source_timestamp": atom.source_timestamp,
         "event_status": atom.event_status or "completed",
+    }
+
+
+def ground_temporal_ledger(ledger):
+    """Resolve source-relative assertions before binding query operands.
+
+    Pending event offsets are joined only to a unique, same-speaker reference.
+    An explicit unresolved relation is never replaced by the reporting date.
+    """
+    atoms = []
+    for atom in ledger or []:
+        if atom.temporal_assertion is not None:
+            atoms.append(atom)
+            continue
+        pieces = split_assertions(atom.clause)
+        for index, clause in enumerate(pieces):
+            assertion = describe_time(
+                clause, atom.source_timestamp,
+                existing=atom.temporal_expression if clause == atom.clause else None,
+                default_status=atom.event_status or "completed",
+            )
+            grounded = dataclasses.replace(
+                atom, atom_id=atom.atom_id if len(pieces) == 1 else f"{atom.atom_id}:T{index + 1}",
+                clause=clause, tokens=tuple(sorted(content_tokens(clause))),
+                event_status=assertion["event_status"],
+                temporal_expression=assertion["expression"], temporal_assertion=assertion,
+            )
+            if grounded.temporal_expression is None and not assertion["explicit_time"]:
+                implicit = _source_timestamp_temporal(grounded)
+                if implicit:
+                    assertion = {**assertion, "expression": implicit,
+                                 "resolution": "implicit_report_time"}
+                    grounded = dataclasses.replace(grounded, temporal_expression=implicit,
+                                                   temporal_assertion=assertion)
+            atoms.append(grounded)
+
+    reference_controls = {"that", "this", "its", "the", "it", "event", "activity"}
+    for _depth in range(len(atoms)):
+        progress = False
+        for index, atom in enumerate(atoms):
+            assertion = atom.temporal_assertion
+            relation = assertion.get("relation")
+            if not relation or atom.temporal_expression is not None:
+                continue
+            wanted = content_tokens(relation["reference_text"]).difference(reference_controls)
+            ranked = []
+            for reference in atoms:
+                if reference.atom_id == atom.atom_id or not reference.temporal_expression:
+                    continue
+                if (reference.source_role, reference.source_speaker) != (atom.source_role, atom.source_speaker):
+                    continue
+                if reference.event_status != "completed":
+                    continue
+                expression = reference.temporal_expression
+                if expression.get("granularity") != "day":
+                    continue
+                if atom.atom_id in expression.get("dependency_atom_ids", []):
+                    continue
+                reference_tokens = content_tokens(reference.temporal_assertion["event_text"])
+                overlap = len(wanted.intersection(reference_tokens))
+                coverage = overlap / max(1, len(wanted))
+                if not wanted or coverage < 0.6:
+                    continue
+                ranked.append((coverage, overlap, reference))
+            if not ranked:
+                continue
+            best_score = max((item[0], item[1]) for item in ranked)
+            best = [item[2] for item in ranked if (item[0], item[1]) == best_score]
+            dates = {r.temporal_expression["value"] for r in best}
+            if len(dates) != 1:
+                continue
+            reference = best[0]
+            anchor = grounded_calendar_date(reference.temporal_expression["value"])
+            if anchor is None:
+                continue
+            sign = 1 if relation["direction"] == "after" else -1
+            try:
+                value = shift_grounded_date(anchor, sign * relation["amount"], relation["unit"])
+            except (ValueError, OverflowError):
+                continue
+            provenance = list(reference.temporal_expression.get("provenance_chain") or [{
+                "source_turn_id": reference.source_turn_id,
+                "source_session_id": reference.source_session_id,
+                "source_quote": reference.source_quote,
+            }]) + [{"source_turn_id": atom.source_turn_id,
+                    "source_session_id": atom.source_session_id, "source_quote": atom.source_quote}]
+            expression = {
+                "value": value.isoformat(), "granularity": "day",
+                "interval_start": value.isoformat(), "interval_end": value.isoformat(),
+                "basis": "composed_relative_chain", "time_role": "event",
+                "source_timestamp": atom.source_timestamp, "event_status": atom.event_status,
+                "provenance_chain": provenance,
+                "dependency_atom_ids": list(reference.temporal_expression.get("dependency_atom_ids") or [reference.atom_id]) + [atom.atom_id],
+                "display": f"{value.day} {value.strftime('%B %Y')}",
+            }
+            atoms[index] = dataclasses.replace(atom, temporal_expression=expression,
+                temporal_assertion={**assertion, "expression": expression, "resolution": "resolved_chain"})
+            progress = True
+        if not progress:
+            break
+    return atoms, {
+        "schema_version": 1, "assertion_count": len(atoms),
+        "unresolved_explicit_time_count": sum(
+            bool(a.temporal_assertion["explicit_time"] and a.temporal_expression is None) for a in atoms),
+        "assertions": [{"atom_id": a.atom_id, "source_turn_id": a.source_turn_id,
+                        "source_session_id": a.source_session_id, **a.temporal_assertion} for a in atoms],
     }
 
 
@@ -3895,22 +4233,31 @@ def bind_plan_operands(
     ledger = list(ledger or [])
     bindings: dict[str, list[BoundFact]] = defaultdict(list)
     diagnostics = {"operand_diagnostics": {}, "atom_count": len(ledger)}
+    if require_temporal:
+        ledger, diagnostics["temporal_grounding"] = ground_temporal_ledger(ledger)
     for operand in plan.operands:
         operand_tokens = content_tokens(operand.text)
         hard_entity_groups = _hard_entity_alias_groups(operand.hard_entities)
         candidates = []
         for atom in ledger:
+            if require_temporal and atom.event_status in {"planned", "negated", "negated_or_cancelled", "not_asserted"}:
+                if plan.requested_status != "planned" or atom.event_status != "planned":
+                    continue
             actor_match = _actor_matches(operand.actor or plan.actor, atom)
             if not actor_match:
                 continue
-            clause_text = normalize_phrase(atom.clause)
+            binding_text = (
+                atom.temporal_assertion["event_text"]
+                if require_temporal and atom.temporal_assertion else atom.clause
+            )
+            clause_text = normalize_phrase(binding_text)
             hard_match = all(
                 any(alias in clause_text for alias in alias_group)
                 for alias_group in hard_entity_groups
             )
             if hard_entity_groups and not hard_match:
                 continue
-            atom_tokens = set(atom.tokens)
+            atom_tokens = content_tokens(binding_text) if require_temporal else set(atom.tokens)
             overlap = len(operand_tokens.intersection(atom_tokens))
             coverage = overlap / max(1, len(operand_tokens))
             minimum_coverage = 0.15 if hard_entity_groups else 0.34
@@ -4010,7 +4357,9 @@ def _date_from_binding(binding: BoundFact) -> datetime.date | None:
         return None
 
 
-def execute_temporal_proof(plan: SemanticQueryPlan, ledger: Iterable[EvidenceAtom]) -> tuple[OperationProof, dict[str, Any]]:
+def execute_temporal_proof(
+    plan: SemanticQueryPlan, ledger: Iterable[EvidenceAtom], *, reference_timestamp=None,
+) -> tuple[OperationProof, dict[str, Any]]:
     bindings, diagnostics = bind_plan_operands(plan, ledger, require_temporal=True)
     selected, outcome, reason = select_unique_bindings(plan, bindings)
     if outcome != "COMPLETE":
@@ -4034,31 +4383,50 @@ def execute_temporal_proof(plan: SemanticQueryPlan, ledger: Iterable[EvidenceAto
 
     if (
         plan.operator in {"ELAPSED_TIME", "DIFFERENCE"}
-        and plan.answer_type in {"duration", "elapsed time", "time"}
-        and len(dates) == 2
+        and (plan.operator == "ELAPSED_TIME" or plan.answer_role == "duration"
+             or plan.answer_type in {"duration", "elapsed time", "time"})
+        and len(dates) in {1, 2}
     ):
-        days = abs((dates[1] - dates[0]).days)
-        unit = normalize_text(plan.target_unit or "days").rstrip("s")
-        if unit == "week" and days % 7 == 0:
-            value, answer_unit = days // 7, "week"
-        elif unit == "month":
-            value = abs((dates[1].year - dates[0].year) * 12 + dates[1].month - dates[0].month)
-            answer_unit = "month"
-        elif unit == "year":
-            months = abs((dates[1].year - dates[0].year) * 12 + dates[1].month - dates[0].month)
-            if months % 12:
+        unary = len(dates) == 1
+        if unary:
+            if plan.operator != "ELAPSED_TIME":
+                return OperationProof(
+                    status="PARTIAL", operator=plan.operator, answer=None,
+                    bindings=tuple(selected), reason="binary_time_difference_requires_two_events",
+                ), diagnostics
+            reference_date = grounded_calendar_date(reference_timestamp)
+            if reference_date is None:
+                return OperationProof(
+                    status="PARTIAL", operator=plan.operator, answer=None,
+                    bindings=tuple(selected), reason="question_reference_time_missing",
+                ), diagnostics
+            if dates[0] > reference_date and plan.requested_status == "completed":
                 return OperationProof(
                     status="CONFLICTING", operator=plan.operator, answer=None,
-                    bindings=tuple(selected), reason="non_integral_requested_year_difference",
+                    bindings=tuple(selected), reason="completed_event_after_question_reference",
                 ), diagnostics
-            value, answer_unit = months // 12, "year"
-        else:
+            dates.append(reference_date)
+        days = abs((dates[1] - dates[0]).days)
+        unit = normalize_text(plan.target_unit or "days").rstrip("s")
+        if unit == "week":
+            value, answer_unit = days / 7, "week"
+        elif unit == "month":
+            value = completed_calendar_months(*dates)
+            answer_unit = "month"
+        elif unit == "year":
+            value, answer_unit = completed_calendar_months(*dates) // 12, "year"
+        elif unit in {"day", ""}:
             value, answer_unit = days, "day"
+        else:
+            return OperationProof(
+                status="PARTIAL", operator=plan.operator, answer=None,
+                bindings=tuple(selected), reason="requested_time_unit_requires_another_precision_contract",
+            ), diagnostics
         suffix = answer_unit if value == 1 else answer_unit + "s"
         return OperationProof(
             status="COMPLETE",
             operator=plan.operator,
-            answer=f"{value} {suffix}",
+            answer=f"{_format_number(value)} {suffix}",
             bindings=tuple(selected),
             calculation={
                 "operator": "absolute_calendar_difference",
@@ -4066,11 +4434,18 @@ def execute_temporal_proof(plan: SemanticQueryPlan, ledger: Iterable[EvidenceAto
                 "right": dates[1].isoformat(),
                 "result": value,
                 "unit": answer_unit,
+                "reference_timestamp": reference_timestamp if unary else None,
+                "reference_role": "question_time" if unary else "event_time",
             },
             executable=True,
         ), diagnostics
 
     if plan.operator == "ORDER" and len(dates) >= 2:
+        if len(set(dates)) != len(dates):
+            return OperationProof(
+                status="CONFLICTING", operator=plan.operator, answer=None,
+                bindings=tuple(selected), reason="event_order_not_unique_at_available_precision",
+            ), diagnostics
         ordered = sorted(zip(dates, plan.operands, selected), key=lambda item: item[0])
         answer = ", then ".join(item[1].text for item in ordered)
         return OperationProof(
@@ -4082,6 +4457,11 @@ def execute_temporal_proof(plan: SemanticQueryPlan, ledger: Iterable[EvidenceAto
     if plan.operator in {"LATEST", "EARLIEST"}:
         chooser = max if plan.operator == "LATEST" else min
         index = chooser(range(len(dates)), key=lambda item: dates[item])
+        if dates.count(dates[index]) > 1:
+            return OperationProof(
+                status="CONFLICTING", operator=plan.operator, answer=None,
+                bindings=tuple(selected), reason="temporal_extreme_not_unique_at_available_precision",
+            ), diagnostics
         return OperationProof(
             status="COMPLETE", operator=plan.operator,
             answer=plan.operands[index].text, bindings=(selected[index],),

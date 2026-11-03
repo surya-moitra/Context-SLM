@@ -42,9 +42,11 @@ from PRAGMOS_evidence_compiler import (
     execute_grounded_candidate_operation_proof,
     execute_temporal_proof,
     expand_count_compiler_sources,
+    ground_temporal_ledger,
     normalize_measurement_unit,
     plan_query_with_local_slm,
     prefer_stricter_more_complete_proof,
+    validate_numeric_operation_proof_sources,
     validate_semantic_route,
 )
 
@@ -3125,8 +3127,9 @@ def semantic_plan_to_operation_plan(
     }:
         plan["requires_session_diversity"] = True
     if operation in {"difference", "temporal_difference"}:
-        plan["expected_fact_count"] = 2
-        plan["minimum_fact_count"] = 2
+        fact_count = 1 if operation == "temporal_difference" and len(operands) == 1 else 2
+        plan["expected_fact_count"] = fact_count
+        plan["minimum_fact_count"] = fact_count
     elif operation in {"count", "count_distinct"}:
         plan["minimum_fact_count"] = 1
         plan["target_unit"] = "items"
@@ -3167,6 +3170,19 @@ def should_run_evidence_compiler(semantic_route_validation, mode, ablations):
     if not should_plan_with_evidence_compiler(mode, ablations):
         return False
     return bool((semantic_route_validation or {}).get("eligible"))
+
+
+def state_history_overrides_compiler(selector_plan, semantic_plan):
+    if selector_plan.get("selector") == STATE_SELECTOR_NONE:
+        return False
+    temporal = isinstance(semantic_plan, SemanticQueryPlan) and (
+        semantic_plan.intent_family == "temporal"
+        or (semantic_plan.operator == "DIFFERENCE" and semantic_plan.answer_role == "duration"
+            and all(operand.kind == "event" for operand in semantic_plan.operands))
+    )
+    if not temporal:
+        return True
+    return bool(selector_plan.get("deterministic_enabled") and selector_plan.get("requested_attribute"))
 
 
 def semantic_compiler_retrieval_queries(question, semantic_plan):
@@ -6504,6 +6520,7 @@ def temporal_event_candidates(
         if candidate_source_role(extraction) != "user":
             continue
         quote = extraction.get("source_quote", "")
+        assertion = extraction.get("temporal_assertion")
         sentences = [
             sentence.strip()
             for sentence in re.split(r"(?<=[.!?])\s+|\n+", quote)
@@ -6515,22 +6532,29 @@ def temporal_event_candidates(
                 event_tokens.intersection(retrieval_content_tokens(sentence))
             ),
         )
-        clause_tokens = retrieval_content_tokens(clause)
+        if assertion is not None:
+            clause = extraction.get("clause") or clause
+        binding_text = assertion["event_text"] if assertion is not None else clause
+        clause_tokens = retrieval_content_tokens(binding_text)
         overlap = len(event_tokens.intersection(clause_tokens))
         required_overlap = max(1, math.ceil(len(event_tokens) * 0.6))
         if overlap < required_overlap:
             continue
-        if re.search(
+        if assertion is None and re.search(
             r"\b(?:considering|did not|didn't|forgot|might|never|not booked|"
             r"not confirmed)\b",
             clause,
             flags=re.IGNORECASE,
         ):
             continue
-        temporal_expression = resolve_temporal_expression(
-            clause,
-            extraction.get("source_timestamp"),
+        temporal_expression = (
+            assertion.get("expression") if assertion is not None else
+            resolve_temporal_expression(clause, extraction.get("source_timestamp"))
         )
+        if assertion is not None:
+            wanted_status = expected_event_status or "completed"
+            if assertion.get("event_status") != wanted_status:
+                continue
         if temporal_expression is None:
             continue
         if (
@@ -6568,7 +6592,8 @@ def temporal_event_candidates(
         )
         for candidate in candidates
     }
-    for chain_event in resolve_temporal_event_chains(graph_extractions):
+    legacy_rows = [row for row in graph_extractions or [] if row.get("temporal_assertion") is None]
+    for chain_event in resolve_temporal_event_chains(legacy_rows):
         clause_tokens = retrieval_content_tokens(chain_event.get("clause"))
         overlap = len(event_tokens.intersection(clause_tokens))
         required_overlap = max(1, math.ceil(len(event_tokens) * 0.6))
@@ -8629,6 +8654,17 @@ def restore_count_source_turns(rows, turn_lookup):
             diagnostics["restored_source_turn_ids"].append(str(turn.turn_id))
     diagnostics["output_row_count"] = len(restored)
     return restored, diagnostics
+
+
+def grounded_temporal_evidence_rows(ledger):
+    """Share validated assertion times with the established temporal executor."""
+    return [{
+        "source_turn_id": atom.source_turn_id,
+        "source_session_id": atom.source_session_id,
+        "source_role": atom.source_role, "source_speaker": atom.source_speaker,
+        "source_timestamp": atom.source_timestamp, "source_quote": atom.source_quote,
+        "clause": atom.clause, "temporal_assertion": atom.temporal_assertion,
+    } for atom in ledger]
 
 
 def merge_memory_evidence(*memory_groups, limit):
@@ -11071,7 +11107,7 @@ def run_pragmos_record(
         ablations,
     )
     specialized_route = None
-    if state_selector_plan.get("selector") != STATE_SELECTOR_NONE:
+    if state_history_overrides_compiler(state_selector_plan, semantic_query_plan):
         specialized_route = "state_history"
     elif query_intent.get("intent") == PREFERENCE_RECOMMENDATION_INTENT:
         specialized_route = "preference_synthesis"
@@ -11689,6 +11725,11 @@ def run_pragmos_record(
     compiler_source_rows = list(answer_candidate_extractions) + list(
         selected_candidate_memories
     )
+    compiler_temporal_grounding_active = bool(
+        evidence_compiler_mode == "validated" and evidence_compiler_active
+        and str(operation_plan.get("operation") or "").startswith("temporal_")
+    )
+    compiler_temporal_source_integrity = None
     compiler_count_source_diagnostics = {"applicable": False}
     if (
         evidence_compiler_active
@@ -11714,6 +11755,10 @@ def run_pragmos_record(
             retrieval_candidate_pool,
             limit=max(24, len(compiler_source_rows)),
         )
+    if compiler_temporal_grounding_active:
+        compiler_source_rows, compiler_temporal_source_integrity = restore_count_source_turns(
+            compiler_source_rows, turn_lookup,
+        )
     compiler_ledger = (
         build_evidence_ledger(
             compiler_source_rows,
@@ -11725,6 +11770,10 @@ def run_pragmos_record(
     )
     compiler_temporal_proof = None
     compiler_binding_diagnostics = {}
+    if compiler_temporal_grounding_active:
+        compiler_ledger, grounding = ground_temporal_ledger(compiler_ledger)
+        compiler_binding_diagnostics["temporal_grounding"] = grounding
+        compiler_binding_diagnostics["temporal_source_integrity"] = compiler_temporal_source_integrity
     if compiler_count_source_diagnostics.get("applicable"):
         compiler_binding_diagnostics["count_source_coverage"] = (
             compiler_count_source_diagnostics
@@ -11745,11 +11794,15 @@ def run_pragmos_record(
     ):
         (
             compiler_temporal_proof,
-            compiler_binding_diagnostics,
+            temporal_binding_diagnostics,
         ) = execute_temporal_proof(
             semantic_query_plan,
             compiler_ledger,
+            reference_timestamp=(
+                inference_record.get("question_date") if not args.no_question_date else None
+            ),
         )
+        compiler_binding_diagnostics = {**compiler_binding_diagnostics, **temporal_binding_diagnostics}
 
     temporal_fact_candidates = select_temporal_fact_candidates(
         graph_extractions=answer_candidate_extractions,
@@ -11805,7 +11858,10 @@ def run_pragmos_record(
         context_layer=context_layer,
         question=question,
         operation_plan=operation_plan,
-        graph_extractions=answer_candidate_extractions,
+        graph_extractions=(
+            grounded_temporal_evidence_rows(compiler_ledger)
+            if compiler_temporal_grounding_active else answer_candidate_extractions
+        ),
         query_profile=query_profile,
     )
     frame_candidate_rows = []
@@ -11843,6 +11899,8 @@ def run_pragmos_record(
         compiler_count_source_diagnostics["frame_source_integrity"] = (
             frame_source_integrity
         )
+    if compiler_temporal_grounding_active:
+        compiler_frame_rows, _ = restore_count_source_turns(compiler_frame_rows, turn_lookup)
     compiler_frame_ledger = (
         build_evidence_ledger(
             compiler_frame_rows,
@@ -11853,6 +11911,8 @@ def run_pragmos_record(
         else compiler_ledger
     )
     compiler_operation_proof = compiler_temporal_proof
+    if compiler_temporal_grounding_active:
+        compiler_frame_ledger, _ = ground_temporal_ledger(compiler_frame_ledger)
     compiler_event_diagnostics = {}
     compiler_frame_diagnostics = {}
     compiler_grounded_candidate_diagnostics = {}
@@ -11971,6 +12031,15 @@ def run_pragmos_record(
             semantic_query_plan,
             operation_result,
         )
+    compiler_operation_proof, source_input_validation = (
+        validate_numeric_operation_proof_sources(
+            semantic_query_plan, compiler_operation_proof, turn_lookup,
+            effective_operation=operation_plan.get("operation"),
+        )
+        if evidence_compiler_mode == "validated" and evidence_compiler_active
+        else (compiler_operation_proof, {"applicable": False, "blocked": False})
+    )
+    compiler_binding_diagnostics["source_input_validation"] = source_input_validation
     evidence_compiler_state = (
         compiler_state(
             semantic_query_plan,
@@ -11982,7 +12051,7 @@ def run_pragmos_record(
     )
     operation_seconds = time.perf_counter() - operation_started_at
     frame_proof_guard_active = bool(
-        compiler_frame_diagnostics.get("applicable")
+        (compiler_frame_diagnostics.get("applicable") or source_input_validation["blocked"])
         and compiler_operation_proof is not None
         and not (
             compiler_operation_proof.status == "COMPLETE"
@@ -12052,6 +12121,9 @@ def run_pragmos_record(
         # the evidence-generation fallback instead of manufacturing an abstention.
         safe_abstention = False
         abstention_reason = "evidence_compiler_preserved_generation_fallback"
+    if source_input_validation["blocked"]:
+        safe_abstention = True
+        abstention_reason = "authoritative_numeric_inputs_incomplete"
 
     answer_suffix = build_pragmos_answer_suffix(
         question,
@@ -12128,7 +12200,11 @@ def run_pragmos_record(
     context_build_seconds = time.perf_counter() - context_build_started_at
 
     raw_generation_prediction = None
-    if (
+    if source_input_validation["blocked"]:
+        prediction = "I do not know."
+        answer_decision = "safe_abstention"
+        generation_seconds = 0.0
+    elif (
         evidence_compiler_mode == "validated"
         and evidence_compiler_active
         and compiler_operation_proof is not None
@@ -12558,6 +12634,7 @@ def build_run_manifest(args, data_source, workload):
     if args.mode == "pragmos_context":
         source_files.append(source_dir / "PRAGMOS_context_layer_org.py")
         source_files.append(source_dir / "PRAGMOS_evidence_compiler.py")
+        source_files.append(source_dir / "PRAGMOS_temporal_grounding.py")
     source_identities = {
         path.name: local_file_identity(path) for path in source_files
     }

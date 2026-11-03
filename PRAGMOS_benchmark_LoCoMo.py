@@ -638,6 +638,7 @@ def build_manifest(args, workload):
     if args.mode == "pragmos_context":
         sources.append(root / "PRAGMOS_context_layer_org.py")
         sources.append(root / "PRAGMOS_evidence_compiler.py")
+        sources.append(root / "PRAGMOS_temporal_grounding.py")
     return with_manifest_fingerprint(
         {
             "schema_version": MANIFEST_SCHEMA_VERSION,
