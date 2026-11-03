@@ -19,6 +19,7 @@ from PRAGMOS_benchmark_LongMemEval import (
     build_preference_profile,
     build_pragmos_answer_suffix,
     build_evidence_synthesis_premises,
+    build_raw_phi3_question,
     canonicalize_generated_scalar_answer,
     deduplicate_operation_facts,
     determine_safe_abstention,
@@ -294,6 +295,19 @@ class ResumeCheckpointTests(unittest.TestCase):
 
 
 class QueryRoutingRegressionTests(unittest.TestCase):
+    def test_raw_prompt_does_not_expose_benchmark_question_type(self):
+        prompt = build_raw_phi3_question(
+            {
+                "question_type": "temporal-reasoning",
+                "question_date": "2027-06-10",
+            },
+            "When did I graduate?",
+        )
+        self.assertIn("Current date: 2027-06-10", prompt)
+        self.assertIn("Question: When did I graduate?", prompt)
+        self.assertNotIn("Question type", prompt)
+        self.assertNotIn("temporal-reasoning", prompt)
+
     def test_selector_parser_accepts_common_phi3_variants(self):
         candidates = [
             {"candidate_id": "C1", "value": "alpha"},

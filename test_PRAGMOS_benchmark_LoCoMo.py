@@ -126,14 +126,18 @@ class LoCoMoAdapterTests(unittest.TestCase):
     def test_inference_record_contains_no_gold_fields(self):
         for category in adapter.CATEGORY_NAMES:
             record = adapter.inference_record_for_category(category)
+            self.assertEqual(record, {})
             self.assertNotIn("answer", record)
             self.assertNotIn("evidence", record)
             self.assertNotIn("answer_session_ids", record)
-        self.assertEqual(
-            adapter.inference_record_for_category(1)["question_type"],
-            "multi-session",
-        )
-        self.assertEqual(adapter.inference_record_for_category(5), {})
+
+    def test_category_does_not_change_the_inference_system_prompt(self):
+        base = "same prompt"
+        prompts = {
+            adapter.system_prompt_for_category(base, category)
+            for category in adapter.CATEGORY_NAMES
+        }
+        self.assertEqual(prompts, {base})
 
     def test_dataset_validation_and_workload_selection(self):
         validation = adapter.validate_locomo_dataset([self.sample])

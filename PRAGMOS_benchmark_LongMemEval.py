@@ -27,6 +27,27 @@ import time
 from collections import Counter
 from pathlib import Path
 
+from PRAGMOS_evidence_compiler import (
+    OperationProof,
+    SemanticQueryPlan,
+    adjudicate_operation_candidates,
+    build_evidence_ledger,
+    compiler_state,
+    content_tokens as compiler_content_tokens,
+    derive_event_status_hint,
+    effective_semantic_operator,
+    execute_adjudicated_operation_proof,
+    execute_event_count_proof,
+    execute_frame_operation_proof,
+    execute_grounded_candidate_operation_proof,
+    execute_temporal_proof,
+    expand_count_compiler_sources,
+    normalize_measurement_unit,
+    plan_query_with_local_slm,
+    prefer_stricter_more_complete_proof,
+    validate_semantic_route,
+)
+
 from Phi3_raw_baseline import (
     DEFAULT_CONTEXT_LENGTH,
     DEFAULT_GPU_LAYERS,
@@ -55,6 +76,7 @@ PRAGMOS_ABLATION_CHOICES = (
     "evidence_synthesis",
     "operations",
     "state_history",
+    "evidence_compiler",
 )
 BENCHMARK_ANSWER_POLICY = (
     "Return only the final answer, as one short phrase or at most one short "
@@ -317,6 +339,29 @@ def haystack_session_metadata(record, index):
     return session_id, session_date
 
 
+INFERENCE_RECORD_FIELDS = frozenset(
+    {
+        "haystack_dates",
+        "haystack_session_ids",
+        "haystack_sessions",
+        "question_date",
+    }
+)
+
+
+def label_blind_inference_record(record):
+    """Expose only conversation and clock data to model-facing inference.
+
+    Gold answers, answer-session annotations, benchmark question types, and
+    adapter categories remain available to post-prediction scoring only.
+    """
+    return {
+        field: record[field]
+        for field in INFERENCE_RECORD_FIELDS
+        if field in record
+    }
+
+
 def trim_prompt_text_to_fit(model, text, token_budget):
     if token_budget <= 0:
         return ""
@@ -343,9 +388,6 @@ def build_raw_phi3_question(record, question, include_question_date=True):
     question_date = record.get("question_date")
     if include_question_date and question_date:
         parts.append(f"Current date: {question_date}")
-    question_type = record.get("question_type")
-    if question_type:
-        parts.append(f"Question type: {question_type}")
     parts.append(f"Question: {question}")
     parts.append("Answer:")
     return "\n".join(parts)
@@ -365,9 +407,6 @@ def build_raw_phi3_haystack_question(
     question_date = record.get("question_date")
     if include_question_date and question_date:
         question_parts.append(f"Current date: {question_date}")
-    question_type = record.get("question_type")
-    if question_type:
-        question_parts.append(f"Question type: {question_type}")
     question_parts.append(f"Question: {question}")
     question_parts.append("Answer using the provided conversation history:")
     question_block = "\n".join(question_parts)
@@ -2978,6 +3017,186 @@ def infer_multi_session_operation(question, question_type=None, question_date=No
     return plan
 
 
+SEMANTIC_TO_LEGACY_OPERATION = {
+    "DATE_LOOKUP": "temporal_date",
+    "COUNT": "count",
+    "COUNT_DISTINCT": "count_distinct",
+    "SUM": "sum",
+    "AVERAGE": "average",
+    "ARGMAX": "argmax",
+    "ARGMIN": "argmin",
+    "DIFFERENCE": "difference",
+    "ELAPSED_TIME": "temporal_difference",
+    "RELATIVE_JOIN": "temporal_join",
+    "ORDER": "temporal_order",
+    "LATEST": "temporal_latest",
+    "EARLIEST": "temporal_earliest",
+    "COLLECT": "collect_distinct",
+    "UNION": "set_union",
+    "INTERSECTION": "set_intersection",
+    "COMPARE": "difference",
+}
+
+
+def semantic_plan_to_operation_plan(
+    semantic_plan,
+    legacy_plan,
+    question,
+):
+    """Translate a validated universal plan into the existing executor schema.
+
+    The translation is deliberately additive. Unsupported or invalid semantic
+    plans return the original plan byte-for-byte, preserving the publication
+    baseline path.
+    """
+    if not isinstance(semantic_plan, SemanticQueryPlan) or not semantic_plan.valid:
+        return legacy_plan
+    typed_operator = effective_semantic_operator(semantic_plan)
+    operation = SEMANTIC_TO_LEGACY_OPERATION.get(typed_operator)
+    if typed_operator == "LOOKUP" and semantic_plan.intent_family == "temporal":
+        operation = "temporal_date"
+    if operation is None:
+        return legacy_plan
+    if (
+        typed_operator == "DIFFERENCE"
+        and (
+            semantic_plan.answer_role == "duration"
+            or semantic_plan.answer_type in {"duration", "elapsed time", "time"}
+        )
+        and all(operand.kind == "event" for operand in semantic_plan.operands)
+    ):
+        operation = "temporal_difference"
+    duration_units = {
+        "second", "seconds", "minute", "minutes", "hour", "hours",
+        "day", "days", "week", "weeks", "month", "months", "year", "years",
+    }
+    if (
+        typed_operator == "COUNT"
+        and str(semantic_plan.target_unit or "").lower() in duration_units
+    ):
+        operation = "sum"
+
+    operands = [operand.text for operand in semantic_plan.operands]
+    target_tokens = set()
+    for operand in semantic_plan.operands:
+        target_tokens.update(compiler_content_tokens(operand.text))
+    legacy_target_tokens = list(legacy_plan.get("target_tokens") or [])
+    normalized_semantic_unit = normalize_measurement_unit(
+        semantic_plan.target_unit
+    )
+    translated_target_unit = (
+        "money"
+        if normalized_semantic_unit == "usd"
+        else semantic_plan.target_unit
+    )
+    if translated_target_unit is not None:
+        routed_target_unit = translated_target_unit
+    elif legacy_plan.get("operation") == operation:
+        routed_target_unit = legacy_plan.get("target_unit")
+    else:
+        routed_target_unit = None
+    plan = {
+        **legacy_plan,
+        "operation": operation,
+        "operands": operands,
+        "target_tokens": legacy_target_tokens or sorted(target_tokens),
+        "target_unit": routed_target_unit,
+        "answer_dimension": (
+            semantic_plan.answer_role
+            if semantic_plan.answer_role in {"amount", "duration"}
+            else (
+                semantic_plan.answer_type
+                if semantic_plan.answer_type not in {"", "unknown"}
+                else legacy_plan.get("answer_dimension")
+            )
+        ),
+        "strict_grounded_selection": True,
+        "semantic_compiler_plan": semantic_plan.as_dict(),
+        "semantic_compiler_typed_operator": typed_operator,
+        "semantic_compiler_routed": True,
+    }
+    if operation == "sum" and str(plan.get("target_unit") or "").lower() in duration_units:
+        plan["answer_dimension"] = "duration"
+    if operation == "temporal_date":
+        plan["target_unit"] = plan.get("target_unit") or "date"
+        plan["answer_dimension"] = "date"
+    if semantic_plan.requires_diverse_evidence or typed_operator in {
+        "COUNT", "COUNT_DISTINCT", "COLLECT", "UNION"
+    }:
+        plan["requires_session_diversity"] = True
+    if operation in {"difference", "temporal_difference"}:
+        plan["expected_fact_count"] = 2
+        plan["minimum_fact_count"] = 2
+    elif operation in {"count", "count_distinct"}:
+        plan["minimum_fact_count"] = 1
+        plan["target_unit"] = "items"
+        plan["answer_dimension"] = "count"
+    elif operation in {
+        "sum", "average", "argmax", "argmin", "collect_distinct",
+        "set_union", "set_intersection",
+    }:
+        plan["minimum_fact_count"] = 1
+
+    if operation.startswith("temporal_"):
+        plan["temporal_event_specs"] = [
+            temporal_event_spec(operand.operand_id, operand.text)
+            for operand in semantic_plan.operands
+        ]
+        plan["requires_session_diversity"] = semantic_plan.requires_diverse_evidence
+        if operation == "temporal_date":
+            plan["requested_temporal_granularity"] = (
+                semantic_plan.answer_type
+                if semantic_plan.answer_type in {"day", "month", "week", "year"}
+                else None
+            )
+            plan["temporal_answer_style"] = "source_relative"
+        if len(plan["temporal_event_specs"]) >= 2:
+            plan["minimum_sessions"] = 1
+    return plan
+
+
+def should_plan_with_evidence_compiler(mode, ablations):
+    """Run the label-blind planner unless the feature is explicitly disabled."""
+    if mode == "off" or "evidence_compiler" in ablations:
+        return False
+    return True
+
+
+def should_run_evidence_compiler(semantic_route_validation, mode, ablations):
+    """Activate compilation from validated semantics, never benchmark labels."""
+    if not should_plan_with_evidence_compiler(mode, ablations):
+        return False
+    return bool((semantic_route_validation or {}).get("eligible"))
+
+
+def semantic_compiler_retrieval_queries(question, semantic_plan):
+    if not isinstance(semantic_plan, SemanticQueryPlan) or not semantic_plan.valid:
+        return []
+    return semantic_plan.retrieval_queries(question)
+
+
+def operation_proof_from_legacy_result(semantic_plan, operation_result):
+    if not isinstance(semantic_plan, SemanticQueryPlan) or not semantic_plan.valid:
+        return None
+    status = operation_result.get("status")
+    if status == "complete":
+        return OperationProof(
+            status="COMPLETE",
+            operator=semantic_plan.operator,
+            answer=operation_result.get("answer"),
+            calculation=operation_result.get("calculation"),
+            executable=True,
+        )
+    reasons = operation_result.get("coverage", {}).get("reasons") or []
+    conflicting = any("ambiguous" in str(reason) for reason in reasons)
+    return OperationProof(
+        status="CONFLICTING" if conflicting else "PARTIAL",
+        operator=semantic_plan.operator,
+        answer=None,
+        reason=(",".join(str(reason) for reason in reasons) or status),
+    )
+
+
 NUMBER_WORD_PATTERN = (
     r"(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|"
     r"twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|"
@@ -3945,6 +4164,104 @@ def operation_operand_match(clause, operands):
     return best
 
 
+def annotate_measurement_operand_semantics(
+    context_layer,
+    candidates,
+    operation_plan,
+):
+    """Attach dense operand similarities without changing lexical bindings.
+
+    The deterministic evidence compiler consumes these scores only when a
+    multi-operand operation has an otherwise-unbound candidate.  Keeping the
+    existing ``operand_index`` intact preserves the established legacy path.
+    """
+    candidates = list(candidates or [])
+    operation = operation_plan.get("operation")
+    operands = [
+        str(operand).strip()
+        for operand in operation_plan.get("operands") or []
+        if str(operand).strip()
+    ]
+    if (
+        operation not in {"argmax", "argmin", "average", "difference", "sum"}
+        or len(operands) < 2
+        or not candidates
+        or not hasattr(context_layer, "encode_normalized_texts")
+    ):
+        return candidates
+
+    candidate_texts = [
+        str(
+            candidate.get("clause")
+            or candidate.get("sentence")
+            or candidate.get("source_quote")
+            or ""
+        ).strip()
+        for candidate in candidates
+    ]
+    usable_indexes = [
+        index for index, text in enumerate(candidate_texts) if text
+    ]
+    if not usable_indexes:
+        return candidates
+
+    try:
+        texts = operands + [candidate_texts[index] for index in usable_indexes]
+        vectors = context_layer.encode_normalized_texts(texts)
+        operand_vectors = vectors[: len(operands)]
+        candidate_vectors = vectors[len(operands) :]
+    except Exception:
+        return candidates
+
+    annotated = [dict(candidate) for candidate in candidates]
+    for candidate_index, vector in zip(usable_indexes, candidate_vectors):
+        scores = [
+            float(vector @ operand_vector)
+            for operand_vector in operand_vectors
+        ]
+        ranked = sorted(range(len(scores)), key=scores.__getitem__, reverse=True)
+        best_index = ranked[0]
+        runner_up = scores[ranked[1]] if len(ranked) > 1 else -1.0
+        annotated[candidate_index]["semantic_operand_scores"] = [
+            {
+                "operand_index": index,
+                "operand": operand,
+                "score": score,
+            }
+            for index, (operand, score) in enumerate(zip(operands, scores))
+        ]
+        annotated[candidate_index]["semantic_operand_binding"] = {
+            "method": "normalized_dense_embedding",
+            "best_operand_index": best_index,
+            "best_score": scores[best_index],
+            "margin": scores[best_index] - runner_up,
+        }
+    return annotated
+
+
+def iter_structured_candidate_fact_rows(value):
+    """Yield evidence-shaped rows from flat or nested operation diagnostics.
+
+    Collection operations expose a list of candidate rows, while temporal and
+    join operations expose dictionaries containing nested candidate lists plus
+    scalar calculation metadata. The frame compiler needs only provenance-
+    bearing evidence rows and must never assume one container shape.
+    """
+    if isinstance(value, dict):
+        if any(
+            value.get(field)
+            for field in ("clause", "sentence", "source_quote")
+        ):
+            yield value
+            return
+        for nested in value.values():
+            yield from iter_structured_candidate_fact_rows(nested)
+        return
+    if isinstance(value, (list, tuple)):
+        for nested in value:
+            yield from iter_structured_candidate_fact_rows(nested)
+
+
 def normalized_measurement_unit(unit):
     normalized = normalized_evidence_text(unit).strip(" .,:;")
     aliases = {
@@ -4082,6 +4399,8 @@ def extract_measurement_facts(graph_extractions, question, operation_plan):
                     "source_turn_id": extraction.get("source_turn_id"),
                     "source_session_id": extraction.get("source_session_id"),
                     "source_role": extraction.get("source_role"),
+                    "source_speaker": extraction.get("source_speaker"),
+                    "source_timestamp": extraction.get("source_timestamp"),
                     "source_quote": compact_candidate_quote(source_quote, max_chars=240),
                     "clause": compact_candidate_quote(clause, max_chars=220),
                     "sentence": compact_candidate_quote(sentence, max_chars=360),
@@ -4089,6 +4408,11 @@ def extract_measurement_facts(graph_extractions, question, operation_plan):
                     "numeric_value": number,
                     "unit": raw_unit,
                     "currency": currency,
+                    # Event state belongs to the exact measurement clause. A
+                    # later sentence in the same turn may discuss a future plan
+                    # without changing an already completed payment.
+                    "event_status_hint": temporal_event_status(sentence or clause),
+                    "source_event_status_hint": temporal_event_status(source_quote),
                     "operand_index": operand_index,
                     "operand_label": operand_label,
                     "operand_match_score": operand_score,
@@ -4150,6 +4474,90 @@ def extract_measurement_facts(graph_extractions, question, operation_plan):
     for index, fact in enumerate(facts, start=1):
         fact["candidate_id"] = f"M{index}"
     return facts[:24]
+
+
+def resolve_measurement_dimension_from_evidence(
+    graph_extractions,
+    question,
+    operation_plan,
+):
+    operation = operation_plan.get("operation")
+    if operation not in {"argmax", "argmin", "average", "difference", "sum"}:
+        return operation_plan
+    if operation_plan.get("target_unit") in {"money", "percent"}:
+        return operation_plan
+
+    probes = (
+        ("money", "money", "amount"),
+        ("duration", None, "duration"),
+        ("distance", None, "distance"),
+        ("percent", "percent", "percent"),
+    )
+    scores = {}
+    for dimension, target_unit, answer_dimension in probes:
+        probe_plan = {
+            **operation_plan,
+            "target_unit": target_unit,
+            "answer_dimension": answer_dimension,
+        }
+        facts = extract_measurement_facts(
+            graph_extractions,
+            question,
+            probe_plan,
+        )
+        eligible = []
+        for fact in facts:
+            status = temporal_event_status(fact.get("source_quote") or "")
+            if status in {"planned", "negated_or_cancelled"}:
+                continue
+            if int(fact.get("relevance_overlap") or 0) <= 0:
+                continue
+            eligible.append(fact)
+        sessions = {
+            fact.get("source_session_id")
+            for fact in eligible
+            if fact.get("source_session_id") is not None
+        }
+        scores[dimension] = (
+            len(eligible),
+            len(sessions),
+            sum(int(fact.get("relevance_overlap") or 0) for fact in eligible),
+        )
+
+    ranked = sorted(scores, key=lambda name: scores[name], reverse=True)
+    if not ranked or scores[ranked[0]][0] == 0:
+        return operation_plan
+    winner = ranked[0]
+    runner_up = ranked[1] if len(ranked) > 1 else None
+    if runner_up is not None and scores[winner] == scores[runner_up]:
+        return operation_plan
+    target_unit = next(
+        probe_target
+        for name, probe_target, _ in probes
+        if name == winner
+    )
+    answer_dimension = next(
+        probe_dimension
+        for name, _, probe_dimension in probes
+        if name == winner
+    )
+    return {
+        **operation_plan,
+        "target_unit": target_unit,
+        "answer_dimension": answer_dimension,
+        "measurement_dimension_resolution": {
+            "source": "grounded_evidence",
+            "selected_dimension": winner,
+            "scores": {
+                name: {
+                    "candidate_count": score[0],
+                    "session_count": score[1],
+                    "relevance_overlap": score[2],
+                }
+                for name, score in scores.items()
+            },
+        },
+    }
 
 
 def is_generic_operation_entity(value):
@@ -7255,6 +7663,11 @@ def execute_operation_plan(
             question,
             operation_plan,
         )
+        candidates = annotate_measurement_operand_semantics(
+            context_layer,
+            candidates,
+            operation_plan,
+        )
         result["candidate_facts"] = candidates
         deterministic_selection = deterministic_grounded_operation_selection(
             candidates,
@@ -8167,6 +8580,55 @@ def format_evidence_synthesis_context(context_layer, premises, token_budget):
     if not blocks:
         return "", []
     return header + "".join(blocks) + footer, included
+
+
+def restore_count_source_turns(rows, turn_lookup):
+    """Replace count evidence previews with their authoritative source turns."""
+    sources = {str(turn_id): turn for turn_id, turn in turn_lookup.items()}
+    restored = []
+    seen = set()
+    diagnostics = {
+        "input_row_count": 0,
+        "restored_row_count": 0,
+        "unresolved_row_count": 0,
+        "restored_source_turn_ids": [],
+    }
+    for row in rows:
+        diagnostics["input_row_count"] += 1
+        turn_id = row.get("source_turn_id")
+        turn_ids = (
+            [turn_id] if turn_id is not None
+            else list(row.get("source_turn_ids") or [])
+        )
+        turns = [sources.get(str(value)) for value in turn_ids]
+        session_id = row.get("source_session_id")
+        if not turns or any(
+            turn is None
+            or (session_id is not None and str(turn.session_id) != str(session_id))
+            for turn in turns
+        ):
+            diagnostics["unresolved_row_count"] += 1
+            restored.append(row)
+            continue
+        for turn in turns:
+            identity = (str(turn.session_id), str(turn.turn_id))
+            if identity in seen:
+                continue
+            seen.add(identity)
+            restored.append({
+                **row,
+                "source_turn_id": turn.turn_id,
+                "source_turn_ids": [turn.turn_id],
+                "source_session_id": turn.session_id,
+                "source_role": turn.role,
+                "source_speaker": turn.speaker,
+                "source_timestamp": turn.timestamp,
+                "source_quote": turn.text,
+            })
+            diagnostics["restored_row_count"] += 1
+            diagnostics["restored_source_turn_ids"].append(str(turn.turn_id))
+    diagnostics["output_row_count"] = len(restored)
+    return restored, diagnostics
 
 
 def merge_memory_evidence(*memory_groups, limit):
@@ -10533,6 +10995,7 @@ def run_pragmos_record(
     question_session_prefix="question",
 ):
     record_started_at = time.perf_counter()
+    inference_record = label_blind_inference_record(record)
     ablations = pragmos_ablation_set(args)
     cache_before = (
         context_layer.cache_stats()
@@ -10551,7 +11014,7 @@ def run_pragmos_record(
             session_id=f"{benchmark_session_prefix}-{question_id}"
         )
         ingestion_started_at = time.perf_counter()
-        turns = longmemeval_turns(context_layer, record)
+        turns = longmemeval_turns(context_layer, inference_record)
         context_layer.index_raw_turns(
             turns,
             chunk_words=args.pragmos_chunk_words,
@@ -10563,19 +11026,73 @@ def run_pragmos_record(
     base_query_profile = build_query_profile(
         question,
         known_speakers=named_peer_speakers(turns),
-        allow_distributed_actor_evidence=(
-            record.get("question_type") == "multi-session"
-        ),
+        allow_distributed_actor_evidence=False,
     )
     query_intent = infer_query_intent(question)
     query_profile = base_query_profile
     state_selector_plan = infer_state_history_selector(question)
     inferred_operation_plan = infer_multi_session_operation(
         question,
-        record.get("question_type"),
-        record.get("question_date"),
+        None,
+        inference_record.get("question_date"),
     )
+    evidence_compiler_mode = getattr(
+        args,
+        "pragmos_evidence_compiler_mode",
+        "validated",
+    )
+    semantic_planner_started_at = time.perf_counter()
+    semantic_query_plan = None
+    if should_plan_with_evidence_compiler(evidence_compiler_mode, ablations):
+        semantic_query_plan = plan_query_with_local_slm(
+            context_layer,
+            question,
+            include_result_contract=True,
+        )
+    semantic_route_validation = (
+        validate_semantic_route(
+            semantic_query_plan,
+            question,
+            question_timestamp=inference_record.get("question_date"),
+        )
+        if semantic_query_plan is not None
+        else {
+            "schema_version": 1,
+            "eligible": False,
+            "intent_family": "unknown",
+            "temporal_operation": "none",
+            "checks": {},
+            "reason": "planner_disabled",
+        }
+    )
+    evidence_compiler_active = should_run_evidence_compiler(
+        semantic_route_validation,
+        evidence_compiler_mode,
+        ablations,
+    )
+    specialized_route = None
+    if state_selector_plan.get("selector") != STATE_SELECTOR_NONE:
+        specialized_route = "state_history"
+    elif query_intent.get("intent") == PREFERENCE_RECOMMENDATION_INTENT:
+        specialized_route = "preference_synthesis"
+    if evidence_compiler_active and specialized_route is not None:
+        evidence_compiler_active = False
+        semantic_route_validation = {
+            **semantic_route_validation,
+            "eligible": False,
+            "reason": f"existing_specialized_route:{specialized_route}",
+        }
+    semantic_planner_seconds = time.perf_counter() - semantic_planner_started_at
     operation_plan = inferred_operation_plan
+    if (
+        evidence_compiler_mode == "validated"
+        and evidence_compiler_active
+    ):
+        operation_plan = semantic_plan_to_operation_plan(
+            semantic_query_plan,
+            inferred_operation_plan,
+            question,
+        )
     if "operations" in ablations:
         operation_plan = {
             **inferred_operation_plan,
@@ -10719,7 +11236,12 @@ def run_pragmos_record(
             ),
         )
     operation_targeted_groups = []
-    for retrieval_query in operation_retrieval_queries(question, operation_plan):
+    operation_queries = operation_retrieval_queries(question, operation_plan)
+    semantic_queries = semantic_compiler_retrieval_queries(
+        question,
+        semantic_query_plan,
+    )
+    for retrieval_query in list(dict.fromkeys(operation_queries + semantic_queries)):
         operation_memories = context_layer.retrieve_relevant_memories(
             retrieval_query,
             top_k=max(4, args.pragmos_graph_candidates),
@@ -10879,7 +11401,7 @@ def run_pragmos_record(
         text=question,
         speaker="user",
         session_id=f"{question_session_prefix}-{question_id}",
-        timestamp=record.get("question_date"),
+        timestamp=inference_record.get("question_date"),
     )
     query_time_scope = context_layer.infer_query_time_scope(question)
     if "graph" in ablations:
@@ -11152,12 +11674,82 @@ def run_pragmos_record(
     )
 
     query_parts = []
-    if not args.no_question_date and record.get("question_date"):
-        query_parts.append(f"Current date: {record['question_date']}")
-    if record.get("question_type"):
-        query_parts.append(f"Question type: {record['question_type']}")
+    if not args.no_question_date and inference_record.get("question_date"):
+        query_parts.append(f"Current date: {inference_record['question_date']}")
     query_parts.append(f"Question: {question}")
     query_text = "\n".join(query_parts)
+
+    compiler_event_status_resolver = (
+        derive_event_status_hint
+        if semantic_query_plan is not None
+        and effective_semantic_operator(semantic_query_plan)
+        in {"COUNT", "COUNT_DISTINCT", "SUM", "AVERAGE"}
+        else temporal_event_status
+    )
+    compiler_source_rows = list(answer_candidate_extractions) + list(
+        selected_candidate_memories
+    )
+    compiler_count_source_diagnostics = {"applicable": False}
+    if (
+        evidence_compiler_active
+        and effective_semantic_operator(semantic_query_plan) in {"COUNT", "COUNT_DISTINCT"}
+        and operation_plan.get("operation") in {"count", "count_distinct"}
+    ):
+        compiler_source_rows, compiler_count_source_diagnostics = (
+            expand_count_compiler_sources(
+                semantic_query_plan, question, compiler_source_rows,
+                retrieval_candidate_pool,
+            )
+        )
+        compiler_source_rows, source_integrity = restore_count_source_turns(
+            compiler_source_rows, turn_lookup,
+        )
+        compiler_count_source_diagnostics["source_integrity"] = source_integrity
+    if (
+        evidence_compiler_active
+        and semantic_query_plan.operator in {"EARLIEST", "LATEST"}
+    ):
+        compiler_source_rows = merge_memory_evidence(
+            compiler_source_rows,
+            retrieval_candidate_pool,
+            limit=max(24, len(compiler_source_rows)),
+        )
+    compiler_ledger = (
+        build_evidence_ledger(
+            compiler_source_rows,
+            temporal_resolver=resolve_temporal_expression,
+            event_status_resolver=compiler_event_status_resolver,
+        )
+        if evidence_compiler_active
+        else []
+    )
+    compiler_temporal_proof = None
+    compiler_binding_diagnostics = {}
+    if compiler_count_source_diagnostics.get("applicable"):
+        compiler_binding_diagnostics["count_source_coverage"] = (
+            compiler_count_source_diagnostics
+        )
+    if (
+        evidence_compiler_active
+        and semantic_query_plan.operator
+        in {"DIFFERENCE", "ELAPSED_TIME", "ORDER", "LATEST", "EARLIEST"}
+        and (
+            semantic_query_plan.operator != "DIFFERENCE"
+            or semantic_query_plan.answer_role == "duration"
+            or semantic_query_plan.answer_type in {"duration", "elapsed time", "time"}
+        )
+        and (
+            semantic_query_plan.operator not in {"LATEST", "EARLIEST"}
+            or len(semantic_query_plan.operands) >= 2
+        )
+    ):
+        (
+            compiler_temporal_proof,
+            compiler_binding_diagnostics,
+        ) = execute_temporal_proof(
+            semantic_query_plan,
+            compiler_ledger,
+        )
 
     temporal_fact_candidates = select_temporal_fact_candidates(
         graph_extractions=answer_candidate_extractions,
@@ -11203,6 +11795,11 @@ def run_pragmos_record(
         limit=4,
         query_intent=query_intent,
     )
+    operation_plan = resolve_measurement_dimension_from_evidence(
+        answer_candidate_extractions,
+        question,
+        operation_plan,
+    )
     operation_started_at = time.perf_counter()
     operation_result = execute_operation_plan(
         context_layer=context_layer,
@@ -11211,7 +11808,187 @@ def run_pragmos_record(
         graph_extractions=answer_candidate_extractions,
         query_profile=query_profile,
     )
+    frame_candidate_rows = []
+    for candidate in iter_structured_candidate_fact_rows(
+        operation_result.get("candidate_facts")
+    ):
+        candidate_clause = str(
+            candidate.get("clause")
+            or candidate.get("sentence")
+            or candidate.get("source_quote")
+            or ""
+        ).strip()
+        if not candidate_clause:
+            continue
+        frame_candidate_rows.append(
+            {
+                **candidate,
+                "source_quote": candidate_clause,
+            }
+        )
+    compiler_frame_rows = merge_memory_evidence(
+        frame_candidate_rows,
+        answer_candidate_extractions,
+        compiler_source_rows,
+        limit=(
+            len(frame_candidate_rows)
+            + len(answer_candidate_extractions)
+            + len(compiler_source_rows)
+        ),
+    )
+    if compiler_count_source_diagnostics.get("applicable"):
+        compiler_frame_rows, frame_source_integrity = restore_count_source_turns(
+            compiler_frame_rows, turn_lookup,
+        )
+        compiler_count_source_diagnostics["frame_source_integrity"] = (
+            frame_source_integrity
+        )
+    compiler_frame_ledger = (
+        build_evidence_ledger(
+            compiler_frame_rows,
+            temporal_resolver=resolve_temporal_expression,
+            event_status_resolver=compiler_event_status_resolver,
+        )
+        if compiler_frame_rows
+        else compiler_ledger
+    )
+    compiler_operation_proof = compiler_temporal_proof
+    compiler_event_diagnostics = {}
+    compiler_frame_diagnostics = {}
+    compiler_grounded_candidate_diagnostics = {}
+    if (
+        compiler_operation_proof is None
+        and evidence_compiler_mode == "validated"
+        and evidence_compiler_active
+        and operation_plan.get("operation") in {"count", "count_distinct"}
+    ):
+        (
+            compiler_event_proof,
+            compiler_event_diagnostics,
+        ) = execute_event_count_proof(
+            semantic_query_plan,
+            question,
+            compiler_ledger,
+            effective_operation=operation_plan["operation"],
+        )
+        if compiler_event_diagnostics.get("applicable"):
+            compiler_operation_proof = compiler_event_proof
+        compiler_binding_diagnostics = {
+            **compiler_binding_diagnostics,
+            "event_count": compiler_event_diagnostics,
+        }
+    frame_count_completeness_check = bool(
+        operation_plan.get("requires_session_diversity")
+        and operation_plan.get("operation") in {"count", "count_distinct"}
+    )
+    if (
+        (
+            compiler_operation_proof is None
+            or not compiler_operation_proof.executable
+            or frame_count_completeness_check
+        )
+        and evidence_compiler_mode == "validated"
+        and evidence_compiler_active
+    ):
+        (
+            compiler_candidate_proof,
+            compiler_grounded_candidate_diagnostics,
+        ) = execute_grounded_candidate_operation_proof(
+            semantic_query_plan,
+            operation_result.get("candidate_facts") or [],
+            effective_operation=operation_plan.get("operation", "none"),
+            minimum_sessions=operation_plan.get("minimum_sessions", 1),
+            target_unit=operation_plan.get("target_unit"),
+        )
+        if (
+            compiler_grounded_candidate_diagnostics.get("applicable")
+            and compiler_candidate_proof is not None
+            and compiler_candidate_proof.executable
+        ):
+            compiler_operation_proof = compiler_candidate_proof
+        compiler_binding_diagnostics = {
+            **compiler_binding_diagnostics,
+            "grounded_candidates": compiler_grounded_candidate_diagnostics,
+        }
+    if (
+        (compiler_operation_proof is None or not compiler_operation_proof.executable)
+        and evidence_compiler_mode == "validated"
+        and evidence_compiler_active
+    ):
+        compiler_frame_proof, compiler_frame_diagnostics = (
+            execute_frame_operation_proof(
+                context_layer,
+                question,
+                semantic_query_plan,
+                compiler_frame_ledger,
+                effective_operation=operation_plan.get("operation", "none"),
+                minimum_sessions=operation_plan.get("minimum_sessions", 1),
+                target_unit=operation_plan.get("target_unit"),
+                strict_contract=bool(
+                    operation_plan.get("requires_session_diversity")
+                ),
+            )
+        )
+        if compiler_frame_diagnostics.get("applicable"):
+            compiler_operation_proof = prefer_stricter_more_complete_proof(
+                compiler_operation_proof,
+                compiler_frame_proof,
+            )
+        compiler_binding_diagnostics = {
+            **compiler_binding_diagnostics,
+            "typed_frames": compiler_frame_diagnostics,
+        }
+    compiler_candidate_adjudication = {
+        "status": "not_applicable",
+        "decisions": [],
+        "batch_count": 0,
+    }
+    if (
+        compiler_operation_proof is None
+        and evidence_compiler_mode == "validated"
+        and evidence_compiler_active
+        and operation_plan.get("operation") in {"count", "count_distinct", "sum"}
+        and operation_result.get("candidate_facts")
+        and not compiler_frame_diagnostics.get("applicable")
+    ):
+        compiler_candidate_adjudication = adjudicate_operation_candidates(
+            context_layer,
+            question,
+            semantic_query_plan,
+            operation_result["candidate_facts"],
+            question_timestamp=inference_record.get("question_date"),
+            effective_operation=operation_plan["operation"],
+        )
+        compiler_operation_proof = execute_adjudicated_operation_proof(
+            semantic_query_plan,
+            operation_plan["operation"],
+            compiler_candidate_adjudication,
+            minimum_sessions=operation_plan.get("minimum_sessions", 1),
+            target_unit=operation_plan.get("target_unit"),
+        )
+    if compiler_operation_proof is None and evidence_compiler_active:
+        compiler_operation_proof = operation_proof_from_legacy_result(
+            semantic_query_plan,
+            operation_result,
+        )
+    evidence_compiler_state = (
+        compiler_state(
+            semantic_query_plan,
+            compiler_ledger,
+            compiler_operation_proof,
+        )
+        if evidence_compiler_active
+        else "not_applicable"
+    )
     operation_seconds = time.perf_counter() - operation_started_at
+    frame_proof_guard_active = bool(
+        compiler_frame_diagnostics.get("applicable")
+        and compiler_operation_proof is not None
+        and not (
+            compiler_operation_proof.status == "COMPLETE"
+            and compiler_operation_proof.executable
+        )
+    )
     ordinal_list_result = resolve_deterministic_ordinal_list_answer(
         question=question,
         evidence_rows=answer_candidate_extractions,
@@ -11263,6 +12040,18 @@ def run_pragmos_record(
     if evidence_synthesis_mode and not evidence_synthesis_premises:
         safe_abstention = True
         abstention_reason = "subject_bound_inference_premises_missing"
+    if (
+        evidence_compiler_mode == "validated"
+        and evidence_compiler_active
+        and evidence_compiler_state in {"PARTIAL", "EXTRACTION_FAILED"}
+        and operation_result.get("status") != "complete"
+        and safe_abstention
+        and abstention_reason == "operation_evidence_incomplete"
+    ):
+        # Parser or extraction incompleteness is not evidence absence. Preserve
+        # the evidence-generation fallback instead of manufacturing an abstention.
+        safe_abstention = False
+        abstention_reason = "evidence_compiler_preserved_generation_fallback"
 
     answer_suffix = build_pragmos_answer_suffix(
         question,
@@ -11339,7 +12128,18 @@ def run_pragmos_record(
     context_build_seconds = time.perf_counter() - context_build_started_at
 
     raw_generation_prediction = None
-    if operation_result["status"] == "complete":
+    if (
+        evidence_compiler_mode == "validated"
+        and evidence_compiler_active
+        and compiler_operation_proof is not None
+        and compiler_operation_proof.executable
+        and compiler_operation_proof.status == "COMPLETE"
+        and compiler_operation_proof.answer is not None
+    ):
+        prediction = compiler_operation_proof.answer
+        answer_decision = "validated_evidence_compiler_proof"
+        generation_seconds = 0.0
+    elif operation_result["status"] == "complete" and not frame_proof_guard_active:
         prediction = operation_result["answer"]
         answer_decision = "deterministic_operation_executor"
         generation_seconds = 0.0
@@ -11414,6 +12214,7 @@ def run_pragmos_record(
     )
     cache_activity = counter_delta(cache_after, cache_before)
     llm_call_counts = {
+        "semantic_query_planner": int(semantic_query_plan is not None),
         "graph_materialization": len(graph_extractions),
         "candidate_extraction": int(
             candidate_extraction_diagnostics.get(
@@ -11429,6 +12230,12 @@ def run_pragmos_record(
                     0,
                 )
             )
+        ),
+        "evidence_candidate_adjudicator": int(
+            compiler_candidate_adjudication.get("batch_count", 0)
+        ),
+        "evidence_frame_compiler": int(
+            compiler_frame_diagnostics.get("batch_count", 0)
         ),
         "final_generation": int(raw_generation_prediction is not None),
     }
@@ -11448,6 +12255,7 @@ def run_pragmos_record(
         "context_build_seconds": context_build_seconds,
         "generation_seconds": generation_seconds,
         "operation_seconds": operation_seconds,
+        "semantic_planner_seconds": semantic_planner_seconds,
         "prompt_tokens_estimate": context_layer.count_tokens(prompt),
         "completion_tokens_estimate": context_layer.count_tokens(prediction),
         "context_token_budget": context_budget,
@@ -11476,6 +12284,28 @@ def run_pragmos_record(
         "operation_plan": operation_plan,
         "inferred_operation_plan": inferred_operation_plan,
         "operation_result": operation_result,
+        "evidence_compiler_mode": evidence_compiler_mode,
+        "label_blind_inference": True,
+        "evidence_compiler_active": evidence_compiler_active,
+        "semantic_query_plan": (
+            semantic_query_plan.as_dict()
+            if semantic_query_plan is not None
+            else None
+        ),
+        "semantic_route_validation": semantic_route_validation,
+        "evidence_compiler_state": evidence_compiler_state,
+        "evidence_compiler_ledger": [
+            atom.as_dict() for atom in compiler_ledger
+        ],
+        "evidence_compiler_binding_diagnostics": compiler_binding_diagnostics,
+        "evidence_compiler_candidate_adjudication": (
+            compiler_candidate_adjudication
+        ),
+        "evidence_compiler_proof": (
+            compiler_operation_proof.as_dict()
+            if compiler_operation_proof is not None
+            else None
+        ),
         "state_selector_plan": state_selector_plan,
         "state_history_result": state_history_result,
         "state_attribute_mismatch_result": state_attribute_mismatch_result,
@@ -11727,6 +12557,7 @@ def build_run_manifest(args, data_source, workload):
     ]
     if args.mode == "pragmos_context":
         source_files.append(source_dir / "PRAGMOS_context_layer_org.py")
+        source_files.append(source_dir / "PRAGMOS_evidence_compiler.py")
     source_identities = {
         path.name: local_file_identity(path) for path in source_files
     }
@@ -11744,6 +12575,8 @@ def build_run_manifest(args, data_source, workload):
         "data_identity": data_identity,
         "model_identity": model_identity,
         "source_identities": source_identities,
+        "label_blind_inference": True,
+        "inference_record_fields": sorted(INFERENCE_RECORD_FIELDS),
         "config": config,
         "workload": [
             {
@@ -12033,6 +12866,16 @@ def parse_args():
         default="recent-first",
     )
     parser.add_argument("--pragmos-system-prompt", default=PRAGMOS_SYSTEM_PROMPT)
+    parser.add_argument(
+        "--pragmos-evidence-compiler-mode",
+        choices=["off", "shadow", "validated"],
+        default="validated",
+        help=(
+            "Compile temporal and multi-fact queries into provenance-backed "
+            "proofs. shadow records plans without changing answers; validated "
+            "routes only structurally valid plans and complete proofs."
+        ),
+    )
     parser.add_argument("--pragmos-top-k", type=int, default=6)
     parser.add_argument("--pragmos-min-score", type=float, default=0.20)
     parser.add_argument("--pragmos-graph-candidates", type=int, default=4)
@@ -12326,6 +13169,9 @@ def main():
                         ],
                         "generation_seconds": pragmos_result["generation_seconds"],
                         "operation_seconds": pragmos_result["operation_seconds"],
+                        "semantic_planner_seconds": pragmos_result[
+                            "semantic_planner_seconds"
+                        ],
                         "context_token_budget": pragmos_result["context_token_budget"],
                         "context_tokens_estimate": pragmos_result[
                             "context_tokens_estimate"
@@ -12367,6 +13213,36 @@ def main():
                             "inferred_operation_plan"
                         ],
                         "operation_result": pragmos_result["operation_result"],
+                        "evidence_compiler_mode": pragmos_result[
+                            "evidence_compiler_mode"
+                        ],
+                        "label_blind_inference": pragmos_result[
+                            "label_blind_inference"
+                        ],
+                        "evidence_compiler_active": pragmos_result[
+                            "evidence_compiler_active"
+                        ],
+                        "semantic_query_plan": pragmos_result[
+                            "semantic_query_plan"
+                        ],
+                        "semantic_route_validation": pragmos_result[
+                            "semantic_route_validation"
+                        ],
+                        "evidence_compiler_state": pragmos_result[
+                            "evidence_compiler_state"
+                        ],
+                        "evidence_compiler_ledger": pragmos_result[
+                            "evidence_compiler_ledger"
+                        ],
+                        "evidence_compiler_binding_diagnostics": pragmos_result[
+                            "evidence_compiler_binding_diagnostics"
+                        ],
+                        "evidence_compiler_candidate_adjudication": pragmos_result[
+                            "evidence_compiler_candidate_adjudication"
+                        ],
+                        "evidence_compiler_proof": pragmos_result[
+                            "evidence_compiler_proof"
+                        ],
                         "evidence_synthesis_result": pragmos_result[
                             "evidence_synthesis_result"
                         ],
@@ -12625,8 +13501,8 @@ def main():
                     else "batched_extraction_from_all_selected_evidence_with_provenance"
                 ),
                 "pragmos_operation_selection_policy": (
-                    "strict_grounded_deterministic_for_multisession_count_"
-                    "average_extrema_with_llm_fallback"
+                    "typed_provenance_event_execution_for_supported_counts_"
+                    "plus_strict_grounded_legacy_operations"
                 ),
                 "pragmos_preference_synthesis_policy": (
                     "disabled_by_ablation"
@@ -12725,7 +13601,16 @@ def main():
                 "operation_question_count": len(operation_rows),
                 "operation_completion_rate": (
                     statistics.mean(
-                        row.get("operation_result", {}).get("status") == "complete"
+                        bool(
+                            row.get("operation_result", {}).get("status") == "complete"
+                            or (
+                                (row.get("evidence_compiler_proof") or {}).get("status")
+                                == "COMPLETE"
+                                and (row.get("evidence_compiler_proof") or {}).get(
+                                    "executable"
+                                )
+                            )
+                        )
                         for row in operation_rows
                     )
                     if operation_rows

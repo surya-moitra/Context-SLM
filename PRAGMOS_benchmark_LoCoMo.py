@@ -68,12 +68,6 @@ CATEGORY_NAMES = {
     4: "single-hop",
     5: "adversarial",
 }
-CATEGORY_TO_PRAGMOS_QUESTION_TYPE = {
-    1: "multi-session",
-    2: "temporal-reasoning",
-    3: "open-domain",
-    4: "single-session-user",
-}
 LOCOMO_ANSWER_POLICY = (
     "Answer only from the supplied conversation evidence, except when the "
     "question explicitly requires ordinary background knowledge. Treat both "
@@ -91,11 +85,6 @@ LOCOMO_PRAGMOS_SYSTEM_PROMPT = (
     + " The evidence is a conversation between named peers; do not treat either "
     "peer as the answering assistant. "
     + LOCOMO_ANSWER_POLICY
-)
-TEMPORAL_INSTRUCTION = (
-    " Use the dates attached to the conversation sessions. When the evidence "
-    "uses relative time, resolve it against that session date and return the "
-    "corresponding approximate calendar date."
 )
 LATENCY_ACCOUNTING_POLICY = (
     "Conversation ingestion is timed once per actual PRAGMOS indexing event. "
@@ -434,17 +423,15 @@ def canonical_locomo_source_conversation(sample):
 
 
 def inference_record_for_category(category):
-    """Return only non-gold metadata needed by the inference pipeline."""
-    record = {}
-    question_type = CATEGORY_TO_PRAGMOS_QUESTION_TYPE.get(int(category))
-    if question_type:
-        record["question_type"] = question_type
-    return record
+    """Return a category-blind record for the shared inference pipeline."""
+    int(category)  # Validate adapter input without exposing it to inference.
+    return {}
 
 
 def system_prompt_for_category(base_prompt, category):
-    if int(category) == 2:
-        return base_prompt + TEMPORAL_INSTRUCTION
+    # Category is evaluation metadata. Semantic routing must infer whether dates
+    # matter from the question itself, so every category receives the same text.
+    int(category)
     return base_prompt
 
 
@@ -650,6 +637,7 @@ def build_manifest(args, workload):
     ]
     if args.mode == "pragmos_context":
         sources.append(root / "PRAGMOS_context_layer_org.py")
+        sources.append(root / "PRAGMOS_evidence_compiler.py")
     return with_manifest_fingerprint(
         {
             "schema_version": MANIFEST_SCHEMA_VERSION,
@@ -799,6 +787,15 @@ def parse_args():
     parser.add_argument("--haystack-order", choices=["recent-first", "chronological"], default="recent-first")
     parser.add_argument("--haystack-system-prompt", default=LOCOMO_RAW_SYSTEM_PROMPT)
     parser.add_argument("--pragmos-system-prompt", default=LOCOMO_PRAGMOS_SYSTEM_PROMPT)
+    parser.add_argument(
+        "--pragmos-evidence-compiler-mode",
+        choices=["off", "shadow", "validated"],
+        default="validated",
+        help=(
+            "Use the shared evidence compiler in off, diagnostics-only shadow, "
+            "or complete-proof-only validated mode."
+        ),
+    )
     parser.add_argument("--no-question-date", action="store_true")
     parser.add_argument("--verbose-model", action="store_true")
 
