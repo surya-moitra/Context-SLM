@@ -4485,3 +4485,53 @@ def compiler_state(
     if proof is not None:
         return proof.status if proof.status in EVIDENCE_OUTCOMES else "EXTRACTION_FAILED"
     return "ABSENT" if not list(ledger or []) else "PARTIAL"
+
+
+def composable_source_view(rows, turn_lookup):
+    """Snapshot selected authoritative turns, without resolving or mutating entities.
+
+    This view is not a claim that retrieval covered the entire conversation.
+    Any unresolved reference prevents candidate certification by the caller.
+    """
+    from PRAGMOS_composable_execution import Source
+    requested, unresolved = {}, 0
+    turns = {str(key): value for key, value in turn_lookup.items()}
+    def field(turn, key):
+        return turn.get(key) if isinstance(turn, dict) else getattr(turn, key, None)
+    for row in rows:
+        if not isinstance(row, dict):
+            unresolved += 1
+            continue
+        turn_id = row.get("source_turn_id")
+        values = row.get("source_turn_ids") or []
+        if turn_id is not None:
+            turn_ids = [turn_id]
+        elif isinstance(values, (str, int)):
+            turn_ids = [values]
+        elif isinstance(values, (list, tuple)):
+            turn_ids = list(values)
+        else:
+            unresolved += 1
+            continue
+        session = row.get("source_session_id")
+        selected = [turns.get(str(key)) for key in turn_ids]
+        if not selected or any(turn is None or field(turn, "session_id") is None
+                               or (session is not None and str(field(turn, "session_id")) != str(session))
+                               for turn in selected):
+            unresolved += 1
+            continue
+        for key in turn_ids:
+            requested.setdefault(str(key), None)
+    result = {}
+    for key in requested:
+        turn = turns[key]
+        text, role = field(turn, "text"), field(turn, "role")
+        if not isinstance(text, str) or not text.strip() or not role:
+            unresolved += 1
+            continue
+        source_id = "CS" + str(len(result) + 1)
+        result[source_id] = Source(source_id, str(field(turn, "session_id")), key,
+                                   str(role), str(field(turn, "speaker") or role),
+                                   field(turn, "timestamp"), text)
+    return result, {"source_count": len(result), "unresolved_row_count": unresolved,
+                    "scope": "selected_authoritative_turns", "full_conversation_coverage_proven": False}

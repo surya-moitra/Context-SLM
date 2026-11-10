@@ -61,6 +61,11 @@ from Phi3_raw_baseline import (
     DEFAULT_TOP_P,
     Phi3RawChat,
 )
+from PRAGMOS_temporal_contracts import (
+    eligible_temporal_candidate, promotable_temporal_result, run_temporal_candidate,
+    supported_temporal_abstention,
+)
+from PRAGMOS_semantic_query import candidate_allowed, run_temporal_query
 
 
 DEFAULT_OUTPUT_DIR = "benchmark_outputs"
@@ -3211,6 +3216,99 @@ def operation_proof_from_legacy_result(semantic_plan, operation_result):
         answer=None,
         reason=(",".join(str(reason) for reason in reasons) or status),
     )
+
+
+def completed_operation_in_trace(row):
+    temporal = row.get("temporal_contract_result") or {}
+    if temporal.get("abstention_applied") or (row.get("composable_execution_result") or {}).get("abstention_applied"):
+        return False
+    proof = row.get("evidence_compiler_proof") or {}
+    return bool((row.get("operation_result") or {}).get("status") == "complete"
+                or (row.get("composable_execution_result") or {}).get("promoted")
+                or temporal.get("promoted")
+                or (proof.get("status") == "COMPLETE" and proof.get("executable")))
+
+
+def validate_composable_configuration(args):
+    mode = getattr(args, "pragmos_composable_mode", "off")
+    if mode == "off":
+        return
+    if mode not in {"candidate", "shadow"} or args.mode != "pragmos_context":
+        raise ValueError("composable_execution_requires_pragmos_context_candidate_mode")
+    if getattr(args, "pragmos_composable_protocol", "slots_v3") not in {"slots_v3", "typed_v4"}:
+        raise ValueError("unknown_composable_protocol")
+    if getattr(args, "pragmos_evidence_compiler_mode", "validated") != "validated":
+        raise ValueError("composable_execution_requires_validated_evidence_compiler")
+    if getattr(args, "pragmos_temporal_contract_mode", "off") != "off":
+        raise ValueError("composable_execution_and_paused_temporal_experiment_cannot_be_combined")
+
+
+def membership_count_candidate(semantic_plan, query_intent, selector_plan):
+    selector = selector_plan or {}
+    return bool(isinstance(semantic_plan, SemanticQueryPlan) and semantic_plan.valid
+                and semantic_plan.operator in {"COUNT", "COUNT_DISTINCT", "COLLECT"}
+                and query_intent.get("intent") == KNOWLEDGE_UPDATE_INTENT
+                and selector.get("selector") == STATE_SELECTOR_LATEST
+                and not selector.get("deterministic_enabled") and not selector.get("requested_attribute"))
+
+
+def evaluate_composable_candidate(context_layer, question, args, *, semantic_plan,
+                                  query_intent, source_rows, turn_lookup, protected=False, selector_plan=None, baseline_answer=None):
+    """Opt-in boundary. Off/protected paths perform no model or source-view work."""
+    if getattr(args, "pragmos_composable_mode", "off") == "off":
+        return None
+    validate_composable_configuration(args)
+    report = {"version": 1, "status": "NOT_APPLICABLE", "promoted": False,
+              "reason": "protected_existing_answer_path", "calls": {"planner_calls": 0, "extractor_calls": 0}}
+    membership = membership_count_candidate(semantic_plan, query_intent, selector_plan)
+    if (protected or query_intent.get("intent") in {
+            ASSISTANT_MEMORY_INTENT,
+            PREFERENCE_RECOMMENDATION_INTENT, EVIDENCE_SYNTHESIS_INTENT,
+        } or (query_intent.get("intent") == KNOWLEDGE_UPDATE_INTENT and not membership)):
+        return report
+    protocol = getattr(args, "pragmos_composable_protocol", "slots_v3")
+    families = {"aggregate", "collection", "factual", "temporal"} if protocol == "typed_v4" else {"aggregate", "collection"}
+    if (not isinstance(semantic_plan, SemanticQueryPlan) or not semantic_plan.valid
+            or semantic_plan.intent_family not in families
+            or {"operations", "evidence_compiler"}.intersection(pragmos_ablation_set(args))):
+        report["reason"] = "no_supported_semantic_computation"
+        return report
+    from PRAGMOS_evidence_compiler import composable_source_view
+    sources, integrity = composable_source_view(source_rows, turn_lookup)
+    if integrity["unresolved_row_count"]:
+        report.update({"status": "NOT_PROVEN", "reason": "source_view_unresolved", "source_integrity": integrity})
+        return report
+    from PRAGMOS_composable_candidate import run_grounded_candidate, run_typed_candidate
+    from PRAGMOS_evidence_compiler import count_scope_contract
+    runner = run_typed_candidate if protocol == "typed_v4" else run_grounded_candidate
+    def retrieve_typed_operand(text):
+        retrieve = getattr(context_layer, "retrieve_relevant_memories", None)
+        if not callable(retrieve):
+            return {}
+        rows = retrieve(text, top_k=6, min_score=0.0, graph_evidence=[], query_relation_keys=[])
+        restored, diagnostics = composable_source_view(rows, turn_lookup)
+        if diagnostics["unresolved_row_count"]:
+            raise ValueError("targeted_typed_sources_not_restored")
+        return restored
+    report = runner(context_layer, question, sources, n_ctx=args.n_ctx,
+                           max_answer_tokens=getattr(args, "max_tokens", 64),
+                           **({"retrieve_missing": retrieve_typed_operand} if protocol == "typed_v4" else {}),
+                           answer_contract={"answer_role": semantic_plan.answer_role,
+                                            "result_shape": semantic_plan.result_shape,
+                                            "projection_roles": list(semantic_plan.projection_roles),
+                                            "actor": semantic_plan.actor or "user",
+                                            "preferred_source_roles": query_intent.get("preferred_source_roles") or ["user"],
+                                            "scope_tokens": count_scope_contract(semantic_plan, question)["topic_tokens"],
+                                            "counted_role": semantic_plan.group_role,
+                                            "parent_factual": semantic_plan.intent_family == "factual",
+                                            "extended_contracts": protocol == "typed_v4",
+                                            "preserve_slots_v3": protocol == "typed_v4",
+                                            "baseline_answer": baseline_answer,
+                                            "view": "current_membership" if membership else "observations"})
+    report["source_integrity"] = integrity
+    if getattr(args, "pragmos_composable_mode", "off") == "shadow":
+        report["shadow"] = True
+    return report
 
 
 NUMBER_WORD_PATTERN = (
@@ -12267,6 +12365,118 @@ def run_pragmos_record(
             else "phi3_evidence_generation"
         )
 
+    baseline_prediction, baseline_answer_decision = prediction, answer_decision
+    temporal_contract_started_at = time.perf_counter()
+    temporal_contract_mode = getattr(args, "pragmos_temporal_contract_mode", "off")
+    temporal_engine = getattr(args, "pragmos_temporal_engine", "contracts")
+    temporal_eligible = candidate_allowed if temporal_engine == "semantic_query" else eligible_temporal_candidate
+    temporal_runner = run_temporal_query if temporal_engine == "semantic_query" else run_temporal_candidate
+    if evidence_compiler_mode != "validated" or "operations" in ablations or "evidence_compiler" in ablations:
+        temporal_contract_mode = "off"
+    # A separate immutable evidence view preserves all established retrieval,
+    # specialized-answer and generation paths. It never materializes graph facts.
+    temporal_contract_protected = (answer_decision in {
+        "deterministic_state_history", "deterministic_ordinal_list_recall",
+        "deterministic_typed_answer_slot",
+    } or source_input_validation["blocked"])
+    temporal_contract_rows = []
+    temporal_contract_source_integrity = {"applicable": False}
+    if temporal_contract_mode != "off" and temporal_eligible(
+        semantic_query_plan, query_intent=query_intent,
+        state_selector=state_selector_plan, protected=temporal_contract_protected,
+    ):
+        temporal_groups = [retrieval_candidate_pool, selected_candidate_memories,
+                           answer_candidate_extractions, answer_context_memories,
+                           actor_grounded_graph_evidence]
+        temporal_contract_rows = merge_memory_evidence(*temporal_groups, limit=sum(map(len, temporal_groups)))
+        temporal_contract_rows, temporal_contract_source_integrity = restore_count_source_turns(
+            temporal_contract_rows, turn_lookup,
+        )
+    def retrieve_missing_temporal_operand(text):
+        rows = context_layer.retrieve_relevant_memories(text, top_k=6, min_score=0.0,
+                                                        graph_evidence=[], query_relation_keys=[])
+        restored, integrity = restore_count_source_turns(rows, turn_lookup)
+        if integrity["unresolved_row_count"]:
+            raise ValueError("targeted_temporal_sources_not_restored")
+        return restored
+
+    temporal_source_ids = {str(row.get("source_turn_id")) for row in temporal_contract_rows}
+    temporal_contract_result = temporal_runner(
+        context_layer, question, semantic_query_plan, temporal_contract_rows,
+        temporal_resolver=resolve_temporal_expression,
+        reference_timestamp=inference_record.get("question_date") if not args.no_question_date else None,
+        query_intent=query_intent, state_selector=state_selector_plan,
+        protected=temporal_contract_protected,
+        mode=temporal_contract_mode,
+        baseline_answer=baseline_prediction,
+        baseline_evidence_complete=bool(temporal_contract_source_integrity.get("unresolved_row_count") == 0),
+        source_view_complete=bool(temporal_contract_source_integrity.get("unresolved_row_count") == 0
+                                  and temporal_source_ids == {str(turn_id) for turn_id in turn_lookup}),
+        retrieve_missing=retrieve_missing_temporal_operand,
+        **({"semantic_checker_path": getattr(args, "pragmos_semantic_checker_path", None)}
+           if temporal_engine == "semantic_query" else {}),
+    )
+    temporal_contract_result["source_integrity"] = temporal_contract_source_integrity
+    temporal_contract_result["engine"] = temporal_engine
+    temporal_proof = temporal_contract_result.get("proof") or {}
+    if promotable_temporal_result(temporal_contract_result):
+        prediction = temporal_proof["answer"]
+        answer_decision = "validated_temporal_contract"
+        safe_abstention, abstention_reason = False, None
+        temporal_contract_result["promoted"] = True
+    elif supported_temporal_abstention(temporal_contract_result):
+        prediction = "I do not know."
+        answer_decision = "validated_temporal_insufficient_evidence"
+        safe_abstention, abstention_reason = True, "required_temporal_operand_not_supported"
+        temporal_contract_result["abstention_applied"] = True
+    temporal_contract_seconds = time.perf_counter() - temporal_contract_started_at
+
+    composable_trace_fields, composable_call_counts = {}, {}
+    if getattr(args, "pragmos_composable_mode", "off") != "off":
+        composable_started_at = time.perf_counter()
+        composable_result = evaluate_composable_candidate(
+            context_layer, question, args, semantic_plan=semantic_query_plan,
+            query_intent=query_intent, source_rows=compiler_source_rows,
+            turn_lookup=turn_lookup, selector_plan=state_selector_plan, baseline_answer=prediction,
+            protected=bool(
+                source_input_validation["blocked"]
+                or (state_selector_plan.get("selector") != STATE_SELECTOR_NONE
+                    and not membership_count_candidate(semantic_query_plan, query_intent, state_selector_plan))
+                or any(result.get("status") == "complete" for result in (
+                    state_history_result, ordinal_list_result, typed_answer_result,
+                ))
+                or (getattr(args, "pragmos_composable_protocol", "slots_v3") == "typed_v4"
+                    and (promotable_temporal_result(temporal_contract_result)
+                         or (temporal_proof or {}).get("executable")
+                         or answer_decision in {"deterministic_temporal", "validated_temporal_contract"}
+                         or (semantic_query_plan.intent_family == "temporal" and answer_decision in {
+                             "validated_evidence_compiler_proof", "deterministic_operation_executor"})))
+                or (safe_abstention and abstention_reason != "operation_evidence_incomplete"
+                    and abstention_reason != "evidence_compiler_preserved_generation_fallback")
+            ),
+        )
+        from PRAGMOS_composable_candidate import (
+            promotable as composable_promotable, supported_typed_abstention,
+        )
+        if composable_promotable(composable_result):
+            prediction = composable_result["answer"]
+            answer_decision = "composable_evidence_execution"
+            safe_abstention, abstention_reason = False, None
+            composable_result["promoted"] = True
+        elif supported_typed_abstention(composable_result):
+            prediction = "I do not know."
+            answer_decision = "typed_computation_explicit_missing_input"
+            safe_abstention, abstention_reason = True, "typed_required_input_explicitly_missing"
+            composable_result["abstention_applied"] = True
+        composable_trace_fields = {
+            "composable_execution_result": composable_result,
+            "composable_execution_seconds": time.perf_counter() - composable_started_at,
+        }
+        composable_call_counts = {
+            "composable_planner": composable_result["calls"]["planner_calls"],
+            "composable_extractor": composable_result["calls"]["extractor_calls"],
+        }
+
     graph_anchor_coverage = anchor_coverage(
         query_profile,
         " ".join(row.get("source_quote", "") for row in graph_extractions),
@@ -12314,10 +12524,13 @@ def run_pragmos_record(
             compiler_frame_diagnostics.get("batch_count", 0)
         ),
         "final_generation": int(raw_generation_prediction is not None),
+        **temporal_contract_result["calls"],
+        **composable_call_counts,
     }
     llm_call_counts["total"] = sum(llm_call_counts.values())
 
     return {
+        **composable_trace_fields,
         "text": prediction,
         "elapsed_seconds": time.perf_counter() - record_started_at,
         "ingestion_seconds": ingestion_seconds,
@@ -12332,6 +12545,10 @@ def run_pragmos_record(
         "generation_seconds": generation_seconds,
         "operation_seconds": operation_seconds,
         "semantic_planner_seconds": semantic_planner_seconds,
+        "temporal_contract_seconds": temporal_contract_seconds,
+        "temporal_contract_result": temporal_contract_result,
+        "baseline_prediction": baseline_prediction,
+        "baseline_answer_decision": baseline_answer_decision,
         "prompt_tokens_estimate": context_layer.count_tokens(prompt),
         "completion_tokens_estimate": context_layer.count_tokens(prediction),
         "context_token_budget": context_budget,
@@ -12600,6 +12817,7 @@ def with_manifest_fingerprint(manifest):
 
 
 def build_run_manifest(args, data_source, workload):
+    validate_composable_configuration(args)
     ignored_runtime_arguments = {
         "flush_every",
         "output_dir",
@@ -12614,6 +12832,11 @@ def build_run_manifest(args, data_source, workload):
     }
     model_identity = local_file_identity(args.model_path)
     config["model_path"] = model_identity["path"]
+    if getattr(args, "pragmos_semantic_checker_path", None):
+        from PRAGMOS_semantic_checker import semantic_model_identity
+        if args.mode != "pragmos_context" or args.pragmos_temporal_engine != "semantic_query":
+            raise ValueError("semantic_checker_requires_pragmos_semantic_query_engine")
+        config["semantic_checker_identity"] = semantic_model_identity(args.pragmos_semantic_checker_path)
 
     if args.data_file:
         data_identity = {"kind": "local_file", **local_file_identity(args.data_file)}
@@ -12635,6 +12858,16 @@ def build_run_manifest(args, data_source, workload):
         source_files.append(source_dir / "PRAGMOS_context_layer_org.py")
         source_files.append(source_dir / "PRAGMOS_evidence_compiler.py")
         source_files.append(source_dir / "PRAGMOS_temporal_grounding.py")
+        source_files.append(source_dir / "PRAGMOS_temporal_contracts.py")
+        source_files.append(source_dir / "PRAGMOS_temporal_algebra.py")
+        source_files.append(source_dir / "PRAGMOS_semantic_query.py")
+        source_files.append(source_dir / "PRAGMOS_semantic_checker.py")
+        if getattr(args, "pragmos_composable_mode", "off") != "off":
+            source_files.extend(source_dir / name for name in (
+                "PRAGMOS_composable_execution.py", "PRAGMOS_composable_candidate.py", "PRAGMOS_grounded_computation.py",
+            ))
+            if getattr(args, "pragmos_composable_protocol", "slots_v3") == "typed_v4":
+                source_files.extend(source_dir / name for name in ("PRAGMOS_typed_claims.py", "PRAGMOS_typed_computation.py"))
     source_identities = {
         path.name: local_file_identity(path) for path in source_files
     }
@@ -12954,6 +13187,12 @@ def parse_args():
         ),
     )
     parser.add_argument("--pragmos-top-k", type=int, default=6)
+    parser.add_argument(
+        "--pragmos-composable-mode", choices=["off", "shadow", "candidate"], default="off",
+        help="Opt-in source-backed calculations. Shadow records candidates without replacing answers; candidate requires paired validation.",
+    )
+    parser.add_argument("--pragmos-composable-protocol", choices=["slots_v3", "typed_v4"], default="slots_v3",
+                        help="Versioned computation protocol. typed_v4 is opt-in and requires paired validation.")
     parser.add_argument("--pragmos-min-score", type=float, default=0.20)
     parser.add_argument("--pragmos-graph-candidates", type=int, default=4)
     parser.add_argument(
@@ -12987,6 +13226,16 @@ def parse_args():
             "Retrieved evidence remains available in the trace."
         ),
     )
+    parser.add_argument(
+        "--pragmos-temporal-engine", choices=["contracts", "semantic_query"], default="contracts",
+        help="Select the temporal candidate engine; semantic_query uses grounded typed-query synthesis.",
+    )
+    parser.add_argument(
+        "--pragmos-temporal-contract-mode", choices=["off", "shadow", "validated"],
+        default="off", help="Opt-in typed temporal candidates; shadow logs without replacing answers.",
+    )
+    parser.add_argument("--pragmos-semantic-checker-path", default=None,
+                        help="Optional pinned local NLI checkpoint for semantic_query; CPU-only and offline.")
     parser.add_argument("--pragmos-chunk-words", type=int, default=160)
     parser.add_argument("--pragmos-chunk-overlap-words", type=int, default=32)
     parser.add_argument("--pragmos-embedding-batch-size", type=int, default=64)
@@ -13305,6 +13554,13 @@ def main():
                         "semantic_route_validation": pragmos_result[
                             "semantic_route_validation"
                         ],
+                        "temporal_contract_result": pragmos_result["temporal_contract_result"],
+                        "temporal_contract_seconds": pragmos_result["temporal_contract_seconds"],
+                        "baseline_prediction": pragmos_result["baseline_prediction"],
+                        "baseline_answer_decision": pragmos_result["baseline_answer_decision"],
+                        **{key: pragmos_result[key] for key in (
+                            "composable_execution_result", "composable_execution_seconds",
+                        ) if key in pragmos_result},
                         "evidence_compiler_state": pragmos_result[
                             "evidence_compiler_state"
                         ],
@@ -13545,7 +13801,9 @@ def main():
         operation_rows = [
             row
             for row in run_rows
-            if row.get("operation_plan", {}).get("operation") != "none"
+            if (row.get("operation_plan", {}).get("operation") != "none"
+                or row.get("temporal_contract_result", {}).get("promoted")
+                or (row.get("composable_execution_result") or {}).get("promoted"))
         ]
         state_history_rows = [
             row
@@ -13678,16 +13936,7 @@ def main():
                 "operation_question_count": len(operation_rows),
                 "operation_completion_rate": (
                     statistics.mean(
-                        bool(
-                            row.get("operation_result", {}).get("status") == "complete"
-                            or (
-                                (row.get("evidence_compiler_proof") or {}).get("status")
-                                == "COMPLETE"
-                                and (row.get("evidence_compiler_proof") or {}).get(
-                                    "executable"
-                                )
-                            )
-                        )
+                        completed_operation_in_trace(row)
                         for row in operation_rows
                     )
                     if operation_rows

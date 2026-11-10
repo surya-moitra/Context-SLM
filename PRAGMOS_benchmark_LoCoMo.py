@@ -40,6 +40,7 @@ from PRAGMOS_benchmark_LongMemEval import (
     pragmos_ablation_set,
     prepare_run_checkpoint,
     run_pragmos_record,
+    validate_composable_configuration,
     with_manifest_fingerprint,
 )
 from PRAGMOS_observability import (
@@ -622,12 +623,18 @@ def flatten_workload(samples, args):
 
 
 def build_manifest(args, workload):
+    validate_composable_configuration(args)
     ignored = {"flush_every", "output_dir", "resume", "run_name", "verbose_model"}
     config = {key: value for key, value in vars(args).items() if key not in ignored}
     data_identity = local_file_identity(args.data_file)
     model_identity = local_file_identity(args.model_path)
     config["data_file"] = data_identity["path"]
     config["model_path"] = model_identity["path"]
+    if getattr(args, "pragmos_semantic_checker_path", None):
+        from PRAGMOS_semantic_checker import semantic_model_identity
+        if args.mode != "pragmos_context" or args.pragmos_temporal_engine != "semantic_query":
+            raise ValueError("semantic_checker_requires_pragmos_semantic_query_engine")
+        config["semantic_checker_identity"] = semantic_model_identity(args.pragmos_semantic_checker_path)
     root = Path(__file__).resolve().parent
     sources = [
         root / "PRAGMOS_benchmark_LoCoMo.py",
@@ -639,6 +646,16 @@ def build_manifest(args, workload):
         sources.append(root / "PRAGMOS_context_layer_org.py")
         sources.append(root / "PRAGMOS_evidence_compiler.py")
         sources.append(root / "PRAGMOS_temporal_grounding.py")
+        sources.append(root / "PRAGMOS_temporal_contracts.py")
+        sources.append(root / "PRAGMOS_temporal_algebra.py")
+        sources.append(root / "PRAGMOS_semantic_query.py")
+        sources.append(root / "PRAGMOS_semantic_checker.py")
+        if getattr(args, "pragmos_composable_mode", "off") != "off":
+            sources.extend(root / name for name in (
+                "PRAGMOS_composable_execution.py", "PRAGMOS_composable_candidate.py", "PRAGMOS_grounded_computation.py",
+            ))
+            if getattr(args, "pragmos_composable_protocol", "slots_v3") == "typed_v4":
+                sources.extend(root / name for name in ("PRAGMOS_typed_claims.py", "PRAGMOS_typed_computation.py"))
     return with_manifest_fingerprint(
         {
             "schema_version": MANIFEST_SCHEMA_VERSION,
@@ -797,7 +814,23 @@ def parse_args():
             "or complete-proof-only validated mode."
         ),
     )
+    parser.add_argument(
+        "--pragmos-temporal-engine", choices=["contracts", "semantic_query"], default="contracts",
+        help="Select the shared temporal candidate engine without benchmark-category routing.",
+    )
+    parser.add_argument(
+        "--pragmos-temporal-contract-mode", choices=["off", "shadow", "validated"],
+        default="off",
+    )
+    parser.add_argument("--pragmos-semantic-checker-path", default=None,
+                        help="Optional pinned local NLI checkpoint; CPU-only and offline.")
     parser.add_argument("--no-question-date", action="store_true")
+    parser.add_argument(
+        "--pragmos-composable-mode", choices=["off", "shadow", "candidate"], default="off",
+        help="Opt-in shared computation; shadow records without replacing answers, off preserves existing inference.",
+    )
+    parser.add_argument("--pragmos-composable-protocol", choices=["slots_v3", "typed_v4"], default="slots_v3",
+                        help="Versioned computation protocol; typed_v4 requires paired validation.")
     parser.add_argument("--verbose-model", action="store_true")
 
     parser.add_argument("--pragmos-top-k", type=int, default=6)
@@ -1160,6 +1193,14 @@ def main():
                     {
                         "ingested_turn_count": len(prepared["turns"]),
                         "answer_decision": pragmos_result["answer_decision"],
+                        "temporal_contract_result": pragmos_result["temporal_contract_result"],
+                        "temporal_contract_seconds": pragmos_result["temporal_contract_seconds"],
+                        "baseline_prediction": pragmos_result["baseline_prediction"],
+                        "baseline_answer_decision": pragmos_result["baseline_answer_decision"],
+                        **{key: pragmos_result[key] for key in (
+                            "composable_execution_result", "composable_execution_seconds",
+                        ) if key in pragmos_result},
+                        "llm_call_counts": pragmos_result["llm_call_counts"],
                         "safe_abstention": pragmos_result["safe_abstention"],
                         "abstention_reason": pragmos_result["abstention_reason"],
                         "retrieval_seconds": pragmos_result["retrieval_seconds"],
