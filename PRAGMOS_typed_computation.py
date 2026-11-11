@@ -70,6 +70,12 @@ class TypedRequest:
     actor_scope: str = "speaker"
     subject_actor: str | None = None
     event_scope: str | None = None
+    group_refs: tuple = ()
+    operand_order: tuple = ()
+    subject: str | None = None
+    property_binding: bool = False
+    source_addressed: bool = False
+    value_binding: bool = False
 
     def as_dict(self):
         value = asdict(self)
@@ -121,6 +127,9 @@ def validate_typed_request(question, operation, detail, operands=None):
         not isinstance(value, str) or not value.strip() or len(value) > 160
     ) for value in operands.values()):
         raise ContractError("invalid_typed_operand_definitions")
+    if any(value is not None for value in operands.values()):
+        from PRAGMOS_typed_binding import independent_operands
+        independent_operands(operands["left"], operands["right"])
     return TypedRequest(**operation, **{k: detail[k] for k in ("grouped", "key_role", "output_unit", "membership", "per_member")},
                         time_scope=calendar_value(detail["time_scope"]) if detail["time_scope"] else None,
                         precision=precision, statuses=tuple(statuses), left_operand=operands["left"], right_operand=operands["right"])
@@ -225,6 +234,14 @@ def plan_small_request(call, question, contract):
                     {"left": "total measured value for all members of the same group",
                      "right": "number of members sharing that total"} if per_member else
                     call(prompt, "planner", object_schema({"left": {"type": "string"}, "right": {"type": "string"}}), 96))
+        from PRAGMOS_typed_binding import independent_operands
+        try:
+            independent_operands(operands["left"], operands["right"])
+        except ContractError:
+            operands = call(prompt + "\nThe previous input descriptions were not independent: " + encoded(operands)
+                            + "\nReturn two distinct source input meanings, or leave the question unsupported.",
+                            "planner", object_schema({"left": {"type": "string"}, "right": {"type": "string"}}), 96)
+            independent_operands(operands["left"], operands["right"])
         # A derived result's state is not an input filter. Describe required
         # source states separately for each operand, without the output question.
         state_field = {"type": "array", "items": choice(statuses), "minItems": 1, "maxItems": 5}
@@ -297,6 +314,9 @@ def select_small_claims(call, question, request, window, source, known, *, decis
     # Actor scope is an authoritative source-speaker constraint, not another
     # free-form role for the model to relabel.
     model_request.pop("target_actor")
+    for name in ("group_refs", "operand_order", "subject", "property_binding", "source_addressed", "value_binding"):
+        if not model_request[name]:
+            model_request.pop(name)
     base = ("Question: " + encoded(question) + "\nRequest: " + encoded(model_request)
             + "\nSpeaker: " + encoded({"role": source.role, "speaker": source.speaker})
             + "\nAdjacent source context: " + encoded(window.context) + "\nFOCUS: " + encoded(window.text))
@@ -319,16 +339,27 @@ def select_small_claims(call, question, request, window, source, known, *, decis
                    {"decision": choice(["support", "context", "repeat", "missing", "exclude", "unknown"])}, 32)["decision"]
     if decision in {"exclude", "unknown"}:
         return {"decision": decision, "facts": []}
-    from PRAGMOS_typed_claims import actor_choices, measurement_groups
+    if request.operation == "lookup" and request.source_addressed:
+        from PRAGMOS_typed_binding import select_relation_claims
+        return select_relation_claims(call, question, request, window, source, known)
+    from PRAGMOS_typed_claims import CALENDAR_TEXT, actor_choices, measurement_groups
     numeric = request.operation not in {"count", "count_distinct", "collect", "lookup", "calendar_difference", "clock_difference", "date_lookup"} or request.result_shape == "tuple_set"
     slots = numeric_slots(window.text)
     groups = measurement_groups(window.text) if numeric and slots else []
+    identity_text_source = window.text if request.source_addressed else window.context
+    identity_literals = [None, *span_choices(identity_text_source)]
     identities = ask("Select exact source literals for each independent concrete entity/event and its actor/possessor. "
                      "Use I or My for the speaker; do not include a whole action in actor. Do not calculate. "
                      "Return facts, each with entity and actor, null if not stated. Do not duplicate an entity merely "
-                     "because its sentence contains an adverb or another word.",
-                     {"facts": {"type": "array", "items": object_schema({"entity": choice(literals), "actor": choice([None, *actor_choices(window.context)])}),
-                                "minItems": 1, "maxItems": len(groups) if groups else 6}}, 192, source_only=True)["facts"]
+                     "because its sentence contains an adverb or another word. "
+                     + ("Select only the requested atomic facts, not every noun, event or reporting topic. "
+                        "A participant name and a description of that same participant are one item. "
+                        if request.source_addressed else ""),
+                     {"facts": {"type": "array", "items": object_schema({"entity": choice(identity_literals), "actor": choice([None, *actor_choices(identity_text_source)])}),
+                                "minItems": 1, "maxItems": len(groups) if groups else 6}}, 192,
+                     source_only=not request.source_addressed)["facts"]
+    from PRAGMOS_typed_binding import group_reference
+    explicit_group = group_reference(window.text, request.group_refs)
     result = []
     for identity in identities:
         entity, actor = identity["entity"], identity["actor"]
@@ -338,7 +369,8 @@ def select_small_claims(call, question, request, window, source, known, *, decis
                    status="completed", change="none")
         if request.actor_scope == "named" and identity_text(actor) == identity_text(request.subject_actor):
             row["binding"] = "named"
-        if request.actor_scope == "event_participants" or request.temporal_filter or request.operation in {"calendar_difference", "date_lookup", "clock_difference"}:
+        source_date = request.source_addressed and request.operation == "subtract" and not slots
+        if request.actor_scope == "event_participants" or request.temporal_filter or source_date or request.operation in {"calendar_difference", "date_lookup", "clock_difference"}:
             row.update(ask("Select only the exact source event identity. This describes FOCUS, not the question. Otherwise null.",
                            {"event": choice(literals)}, 64, source_only=True))
             labels = literal_labels(window.text, ("before", "after"))
@@ -347,13 +379,21 @@ def select_small_claims(call, question, request, window, source, known, *, decis
                                "These describe FOCUS, not the question. Otherwise null.",
                                {"time_anchor": choice(literals), "time_direction": choice([None, *labels])}, 96, source_only=True))
         if decision in {"support", "missing"}:
+            states = ["completed", "ongoing", "pending", "planned", "negated"]
+            if request.source_addressed and not (literal_labels(window.text, ("not", "no", "never", "neither"))
+                    or any(word.strip(".,;?!").endswith("n't") for word in window.text.casefold().split())):
+                states.remove("negated")
             row["status"] = ask("Label only this entity's source assertion: completed, ongoing, pending (still needed), "
                                 "planned (future intention), or negated. Entity: " + encoded(entity),
-                                {"status": choice(["completed", "ongoing", "pending", "planned", "negated"])}, 32, source_only=True)["status"]
-        if known and (actor is None or request.operation == "lookup" or normalized(entity).split()[:1] in (["it"], ["that"], ["this"], ["same"])):
-            prompt_context = [{"id": key, "actor": c.actor, "entity": c.entity, "key": c.key} for key, c in known.items()]
-            row["link"] = ask("Select a prior claim only when FOCUS explicitly refers to that same entity/event. Otherwise null. "
-                              "Known claims: " + encoded(prompt_context), {"link": choice([None, *known])}, 64)["link"]
+                                {"status": choice(states)}, 32, source_only=True)["status"]
+        if known and not explicit_group and ((decision == "repeat" and not numeric) or actor is None or request.operation == "lookup"
+                or normalized(entity).split()[:1] in (["it"], ["that"], ["this"], ["same"])):
+            from PRAGMOS_typed_binding import compatible_references
+            references = compatible_references(known, window, entity, actor)
+            if references:
+                prompt_context = [{"id": key, "actor": c.actor, "entity": c.entity, "key": c.key} for key, c in references.items()]
+                row["link"] = ask("Select a prior claim only when FOCUS explicitly refers to that same entity/event. Otherwise null. "
+                                  "Known claims: " + encoded(prompt_context), {"link": choice([None, *references])}, 64)["link"]
         if row["binding"] == "named":
             pass
         elif normalized(actor) in {"i", "my", "we", "our", "i've", "i'm"}:
@@ -369,14 +409,25 @@ def select_small_claims(call, question, request, window, source, known, *, decis
             # A non-agentive property has a literal subject, not a guessed
             # person. Explicit people still follow the actor-binding path.
             row.update(binding="event_property", event=entity)
-        else:
+        elif request.actor_scope == "related":
             anchor = ask("Choose the exact possessive relationship span connecting this actor to the speaker, if the "
                          "question requests that related person. Otherwise null. Actor: " + encoded(actor),
                          {"anchor": choice(literals)}, 64)["anchor"]
             row["relation_anchor"] = anchor
             row["binding"] = "requested_relation" if anchor else "other"
+        else:
+            row["binding"] = "other"
+        if row["binding"] == "other" and actor:
+            # A bound different owner is not a failed required measurement.
+            row.update(kind="context", operand="context", key=entity)
+            result.append(row)
+            continue
         needs_key = request.operation in {"count_distinct", "collect", "lookup"} or request.grouped or request.rank != "none"
-        row["key"] = (ask("Select ONLY the " + (request.key_description or request.key_role) + " identity to count/group/return for this entity. "
+        key_task = ("Select ONLY the source object's group or occurrence identity, not its measured property, "
+                    "amount or an arithmetic/comparison word. Different properties of one object share this key. "
+                    if request.property_binding else "Select ONLY the " + (request.key_description or request.key_role)
+                    + " identity to count/group/return for this entity. ")
+        row["key"] = (explicit_group[1] if explicit_group else ask(key_task +
                           "Use an exact source literal, not a number or the topic. Entity: " + encoded(entity),
                           {"key": choice(literals)}, 64)["key"] if needs_key else entity)
         if needs_key and request.key_role == "weekday":
@@ -390,6 +441,10 @@ def select_small_claims(call, question, request, window, source, known, *, decis
             row["quantity_kind"] = "missing"
             row["missing_span"] = ask("Quote ONLY the source clause explicitly saying the required value is unknown or unrecorded.",
                                        {"quote": choice(literals)}, 96)["quote"]
+            if request.property_binding:
+                row["attribute"] = ask("Quote ONLY the source property whose value is explicitly unrecorded, "
+                                       "not its owner or the missing-value qualification.",
+                                       {"attribute": choice(literals)}, 64, source_only=True)["attribute"]
         elif numeric and slots:
             group = (ask("Select the measurement group belonging to THIS entity; do not repeat a number or include another event. "
                          "Numbers: " + encoded([asdict(slot) for slot in slots]) + "\nGroups: " + encoded(groups)
@@ -402,9 +457,16 @@ def select_small_claims(call, question, request, window, source, known, *, decis
                 prefix = window.text[:slots[row["numbers"][0]].start].casefold().split()[-2:]
                 if prefix in (["at", "least"], ["at", "most"]):
                     row["bound"] = "lower" if prefix[-1] == "least" else "upper"
-            if not all(slots[index].raw_unit for index in row["numbers"]):
+            if request.property_binding or not all(slots[index].raw_unit for index in row["numbers"]):
+                property_literals = literals
+                if request.property_binding:
+                    from PRAGMOS_typed_binding import contains_phrase
+                    property_literals = [None, *(span for span in span_choices(window.text)
+                        if not numeric_slots(span) and not any(contains_phrase(span, ref) for _, ref in request.group_refs)
+                        and not CALENDAR_TEXT.fullmatch(span))]
                 row["attribute"] = ask("Select ONLY the named property or counted noun measured by this number, not its numeric value. "
-                                       "Entity: " + encoded(entity), {"attribute": choice(literals)}, 64)["attribute"]
+                                       "Exclude group identity/occurrence modifiers. Entity: " + encoded(entity),
+                                       {"attribute": choice(property_literals)}, 64)["attribute"]
             if all(slots[index].raw_unit for index in row["numbers"]):
                 row["quantity_kind"] = "measure"
                 if any(word in normalized(window.text).split() for word in ("per", "each", "every")) and any(
@@ -428,7 +490,7 @@ def select_small_claims(call, question, request, window, source, known, *, decis
                                             "Attribute: " + encoded(row["attribute"]),
                                             {"quantity_kind": choice(["count", "scalar"])}, 32, source_only=True)["quantity_kind"]
                                         if integral else "scalar")
-        if request.operation in {"subtract", "divide", "multiply", "relative_difference", "calendar_difference", "clock_difference"} and decision not in {"context", "repeat"}:
+        if request.operation in {"subtract", "divide", "multiply", "relative_difference", "calendar_difference", "clock_difference"} and decision not in {"context", "repeat"} and not (request.property_binding or request.value_binding):
             descriptions = {request.left_operand: "left", request.right_operand: "right"}
             if None in descriptions or len(descriptions) != 2:
                 raise ContractError("operand_descriptions_not_independent")
@@ -440,11 +502,23 @@ def select_small_claims(call, question, request, window, source, known, *, decis
             if signature_side is None and meaning not in descriptions:
                 raise ContractError("source_does_not_bind_a_requested_operand")
             row["operand"] = signature_side or descriptions[meaning]
-        if request.comparison != "none":
-            row["group_side"] = ask("Does THIS fact belong to the question's first compared group (left) or the other "
+        if request.property_binding:
+            from PRAGMOS_typed_binding import property_group_key
+            try:
+                row["key"] = property_group_key(entity, row["key"], row["attribute"], window, row["numbers"])
+            except ContractError:
+                if not entity or identity_text(entity) != identity_text(row["attribute"]):
+                    raise
+                # Retain the ambiguous caption for source-address unification;
+                # it is not yet a certified group/property decomposition.
+                row["key"] = entity
+        if request.comparison != "none" and not (request.property_binding and not request.group_refs):
+            if request.group_refs and not explicit_group:
+                raise ContractError("comparison_fact_has_no_unique_group_identity")
+            row["group_side"] = explicit_group[0] if explicit_group else ask("Does THIS fact belong to the question's first compared group (left) or the other "
                                     "group (right)? This is group identity, independent of its arithmetic operand.",
                                     {"side": choice(["left", "right"])}, 32)["side"]
-        if request.time_scope or request.temporal_filter or request.operation in {"calendar_difference", "date_lookup"}:
+        if request.time_scope or request.temporal_filter or source_date or request.operation in {"calendar_difference", "date_lookup"}:
             from PRAGMOS_typed_claims import CALENDAR_TEXT
             dates = list(dict.fromkeys(match.group() for match in CALENDAR_TEXT.finditer(window.context)))
             row["time"] = ask("Select the explicit date of THIS event, not the reporting date or a different event; otherwise null.",
@@ -516,8 +590,15 @@ def claim_in_actor_scope(request, claim, known=None):
         return bool(request.event_scope and claim.event and identity_text(request.event_scope) == identity_text(claim.event))
     if not request.target_actor:
         return True
-    owner = claim.actor if claim.actor_binding == "linked_event" else claim.source_speaker
-    return normalized(owner) == normalized(request.target_actor)
+    root, seen = claim, set()
+    while root.link:
+        if not known or root.link not in known or root.claim_id in seen:
+            return False
+        seen.add(root.claim_id)
+        root = known[root.link]
+    if root.actor_binding in {"other", "requested_relation"}:
+        return False
+    return normalized(root.actor) == normalized(request.target_actor)
 
 
 def established_slots_capability(request):
@@ -567,7 +648,9 @@ def working_windows(question, contract, windows, known):
     matching statement, not a top-N prefix. No answer or benchmark metadata enters.
     """
     from PRAGMOS_evidence_compiler import content_tokens
+    from PRAGMOS_typed_binding import contains_phrase
     topic = content_tokens(" ".join(contract.get("scope_tokens") or ()))
+    subject = content_tokens(contract.get("bound_subject") or "")
     tokens = {w.window_id: content_tokens(w.text) for w in windows}
     matches = {key: len(value & topic) for key, value in tokens.items()}
     threshold = min(2, max(matches.values(), default=0))
@@ -576,9 +659,15 @@ def working_windows(question, contract, windows, known):
     for claim in known.values():
         if claim.actor_binding != "other" and claim.kind != "reference":
             for label in filter(None, (claim.entity, claim.key, claim.event)):
+                if (label == claim.key and claim.attribute and claim.entity != claim.key
+                        and contains_phrase(claim.entity, claim.attribute) and contains_phrase(claim.entity, claim.key)):
+                    # An occurrence modifier of a property is a join key, not
+                    # a free-standing topic that can admit unrelated history.
+                    continue
                 # A value with its unit is not an entity dependency. Nor may
                 # one word of a multiword entity admit a different entity.
-                if any(normalized(slot.text) == normalized(label) for slot in numeric_slots(label)):
+                from PRAGMOS_typed_claims import CALENDAR_TEXT
+                if CALENDAR_TEXT.fullmatch(label) or any(normalized(slot.text) == normalized(label) for slot in numeric_slots(label)):
                     continue
                 words = content_tokens(label)
                 if words:
@@ -590,16 +679,21 @@ def working_windows(question, contract, windows, known):
                                     if name.startswith("count:") and exponent == 1)
     selected = []
     for window in windows:
-        primary = matches[window.window_id] >= threshold if threshold else bool(tokens[window.window_id] & question_tokens)
+        primary = (subject.issubset(tokens[window.window_id]) if subject else
+                   matches[window.window_id] >= threshold if threshold else bool(tokens[window.window_id] & question_tokens))
         local = tokens[window.window_id]
         dependency = any(words.issubset(local) for words in dependencies)
-        if literal_labels(window.text, ("that", "this", "these", "those", "same")):
-            dependency |= any(head and head.issubset(local) and len(names) == 1 for head, names in heads.items())
+        pointers = ("that", "this", "these", "those", "same") + (("the",) if contract.get("ordered_occurrences") else ())
+        if literal_labels(window.text, pointers):
+            dependency |= any(head and head.issubset(local) and len(names) == 1
+                              and (not contract.get("literal_relation_heads") or any(
+                                  contains_phrase(window.text, pointer + " " + " ".join(sorted(head)))
+                                  for pointer in pointers)) for head, names in heads.items())
         if literal_labels(window.text, ("each", "every", "per")):
             dependency |= any(words.issubset(local) for words in member_types)
         if primary or dependency:
             selected.append(window)
-    return selected if selected or known else list(windows)
+    return selected if selected or known or subject else list(windows)
 
 
 def validate_operand_coverage(request, claims, resolved_times=None):
@@ -624,8 +718,11 @@ def validate_operand_coverage(request, claims, resolved_times=None):
     if binary and request.grouped:
         groups = defaultdict(set)
         for claim in relevant:
-            groups[identity_text(claim.key)].add(claim.operand)
-        missing_groups = [{"key": key, "operands": sorted({"left", "right"} - roles)} for key, roles in groups.items() if roles != {"left", "right"}]
+            address = (identity_text(claim.actor), identity_text(claim.key)) if request.property_binding else (None, identity_text(claim.key))
+            groups[address].add(claim.operand)
+        missing_groups = [{"key": key, "operands": sorted({"left", "right"} - roles),
+                           **({"actor": actor} if actor else {})}
+                          for (actor, key), roles in groups.items() if roles != {"left", "right"}]
     if unknown_time:
         status = "UNRESOLVED_TIME"
     elif missing:
@@ -654,7 +751,8 @@ def compile_typed_request(request):
     if operation in {"subtract", "multiply", "divide", "relative_difference"}:
         steps = [_step("left", "scan", operand="left"), _step("right", "scan", operand="right")]
         if request.grouped:
-            steps += [_step("pairs", "join", ["left", "right"], on=[["key", "key"]], cardinality="one_to_one"),
+            join_keys = [["actor", "actor"], ["key", "key"]] if request.property_binding else [["key", "key"]]
+            steps += [_step("pairs", "join", ["left", "right"], on=join_keys, cardinality="one_to_one"),
                       _step("result", "calculate", ["pairs"], left="left.value", right="right.value", column="value",
                             operator="subtract" if operation == "relative_difference" else operation)]
             if operation == "relative_difference":
@@ -781,6 +879,21 @@ def validate_result_contract(request):
         raise ContractError("named_scope_has_no_requested_person")
     if request.actor_scope == "event_participants" and not request.event_scope:
         raise ContractError("participant_scope_has_no_requested_event")
+    if any(type(value) is not bool for value in (request.property_binding, request.source_addressed, request.value_binding)):
+        raise ContractError("invalid_source_address_contract")
+    if request.value_binding and (request.grouped or request.operation not in {"subtract", "calendar_difference", "clock_difference"}):
+        raise ContractError("scalar_bindings_require_two_scalar_inputs")
+    if request.property_binding and (not request.grouped or request.operation not in {"subtract", "divide", "relative_difference"}):
+        raise ContractError("property_bindings_require_grouped_binary_inputs")
+    if request.group_refs and (request.comparison == "none" or len(request.group_refs) != 2
+            or {side for side, _ in request.group_refs} != {"left", "right"}
+            or any(not label for _, label in request.group_refs)
+            or len({identity_text(label) for _, label in request.group_refs}) != 2):
+        raise ContractError("invalid_comparison_group_references")
+    if request.operand_order and (not request.property_binding or request.operation != "subtract"
+            or len(request.operand_order) != 2 or {side for side, _ in request.operand_order} != {"left", "right"}
+            or {position for _, position in request.operand_order} != {"earliest", "latest"}):
+        raise ContractError("invalid_temporal_operand_selectors")
     if request.result_shape == "tuple_set" and request.operation not in {"collect", "lookup", "identity"}:
         raise ContractError("tuple_request_cannot_be_reduced_to_a_scalar")
     if request.temporal_filter and (len(request.temporal_filter) != 2 or request.temporal_filter[0] not in {"before", "after"} or not request.temporal_filter[1]):
@@ -916,10 +1029,10 @@ def execute_typed_plan(request, claims, windows, sources, *, baseline_answer=Non
             if unscoped["executable"] and normalized(unscoped["answer"]) == normalized(baseline_answer):
                 result.update({"abstention_supported": True, "provenance": unscoped["provenance"],
                                "baseline_veto": "baseline_reproduced_only_by_explicitly_out_of_scope_inputs"})
-        elif request.operation == "lookup" and request.key_role == "location" and baseline_answer is not None:
+        elif request.operation == "lookup" and request.key_role == "location" and baseline_answer is not None and not request.source_addressed:
             contexts = [c for c in claims if c.actor_binding != "other" and claim_in_actor_scope(request, c, known)
                         and (c.kind == "context" or c.operand == "context")
-                        and normalized(baseline_answer) in {normalized(c.key), normalized(c.entity)}]
+                        and identity_text(baseline_answer) in {identity_text(c.key), identity_text(c.entity)}]
             if contexts:
                 coverage["status"] = "MISSING_RELATION"
                 result.update({"abstention_supported": True, "baseline_veto": "baseline_is_bound_intermediate_not_requested_attribute",
@@ -1107,12 +1220,35 @@ def run_typed_computation(context, question, sources, report, *, n_ctx, max_answ
     request = plan_small_request(call, question, {**contract, "planner_evidence": preview})
     from dataclasses import replace
     request = replace(request, target_actor=target_actor)
-    if contract.get("parent_factual") and request.operation != "lookup" and request.result_shape != "tuple_set":
-        raise ContractError("existing_factual_path_requires_linked_lookup_capability")
     report["request"] = request.as_dict()
     if contract.get("preserve_slots_v3") and established_slots_capability(request):
         report.update({"delegate_to_slots_v3": True, "reason": "established_slots_capability"})
         return report
+    if contract.get("extended_contracts") and contract.get("preserve_slots_v3"):
+        from PRAGMOS_typed_binding import needs_contract_refinement, refine_request
+        if needs_contract_refinement(request):
+            report["initial_request"] = request.as_dict()
+            request = refine_request(call, question, request, preview, contract)
+            report["request"] = request.as_dict()
+            import hashlib
+            from pathlib import Path
+            report["source_binding_sha256"] = hashlib.sha256(
+                Path(__file__).with_name("PRAGMOS_typed_binding.py").read_bytes()).hexdigest()
+    if contract.get("parent_factual") and request.operation != "lookup" and request.result_shape != "tuple_set":
+        raise ContractError("existing_factual_path_requires_linked_lookup_capability")
+    if request.subject:
+        contract = {**contract, "bound_subject": request.subject}
+    elif request.source_addressed and request.operation == "lookup":
+        from PRAGMOS_evidence_compiler import content_tokens
+        # Retrieval topic and requested output attribute occupy different slots.
+        topic = content_tokens(question) - content_tokens(request.key_description)
+        contract = {**contract, "scope_tokens": sorted(topic)}
+    if request.source_addressed and request.operation == "lookup":
+        # A relative-clause "that" elsewhere in a passage is not a demonstrative
+        # reference to the requested relationship's object type.
+        contract = {**contract, "literal_relation_heads": True}
+    if request.value_binding:
+        contract = {**contract, "ordered_occurrences": True}
     windows = source_windows(eligible)
     # Retrieval is not semantic proof. Keep the untouched raw view available for
     # dependency expansion, and report its unreviewed remainder explicitly.
@@ -1187,37 +1323,82 @@ def run_typed_computation(context, question, sources, report, *, n_ctx, max_answ
     expand_dependencies()
     report["extraction_complete"] = all(row["decision"] != "unknown" for row in reviewed)
     report["claims"] = [_claim_dict(c) for c in claims]
-    times = resolve_event_times(claims, eligible, {w.window_id: w for w in windows})[0] if request.time_scope else {}
-    selected, coverage = validate_operand_coverage(request, claims, times)
+    def bound_view():
+        nonlocal request
+        from PRAGMOS_typed_binding import bind_input_datatype, bind_operand_properties, bind_scalar_operands
+        request = bind_input_datatype(request, claims)
+        report["request"] = request.as_dict()
+        effective = claims
+        try:
+            effective, binding = bind_operand_properties(call, question, request, claims,
+                                                         {w.window_id: w for w in windows}, eligible)
+            if request.value_binding:
+                effective, binding = bind_scalar_operands(call, question, request, effective,
+                                                         {w.window_id: w for w in windows}, eligible)
+            report.pop("operand_binding_error", None)
+            if binding:
+                report["operand_binding"] = binding
+        except ContractError as exc:
+            report["operand_binding_error"] = str(exc)
+            # Missing source properties can still be sought. Never execute a
+            # partial or semantically inconsistent property assignment.
+            binding = None
+        times = resolve_event_times(effective, eligible, {w.window_id: w for w in windows})[0] if request.time_scope else {}
+        _, coverage = validate_operand_coverage(request, effective, times)
+        return effective, coverage, binding
+    effective, coverage, binding = bound_view()
     report["coverage"] = coverage
-    if coverage["status"] == "MISSING_OPERAND" and retrieve_missing is not None:
+    if coverage["status"] in {"MISSING_OPERAND", "NO_BOUND_INPUT"} and retrieve_missing is not None:
         descriptions = {"left": request.left_operand, "right": request.right_operand}
         obligations = [descriptions[side] or side for side in coverage["required_operands_missing"]]
         obligations += [row["key"] + ": " + ", ".join(descriptions[side] or side for side in row["operands"])
                         for row in coverage["missing_group_operands"]]
+        if not obligations and request.operation == "lookup":
+            obligations = [request.key_description or request.key_role]
         expanded = retrieve_missing(question + "\nMissing source inputs: " + "; ".join(obligations))
         if expanded:
-            fresh = {key: value for key, value in expanded.items() if value.role in preferred and (value.session_id, value.turn_id)
-                     not in {(s.session_id, s.turn_id) for s in eligible.values()}}
-            if fresh:
-                # Source IDs are adapter-local: assign noncolliding opaque keys.
-                from dataclasses import replace
-                for source in fresh.values():
+            by_turn = {(s.session_id, s.turn_id): key for key, s in eligible.items()}
+            requested_ids = set()
+            for source in expanded.values():
+                if source.role not in preferred:
+                    continue
+                pair = (source.session_id, source.turn_id)
+                if pair in by_turn:
+                    identifier = by_turn[pair]
+                    old = eligible[identifier]
+                    if (old.text, old.role, old.speaker, old.timestamp) != (
+                            source.text, source.role, source.speaker, source.timestamp):
+                        raise ContractError("targeted_retrieval_changed_an_existing_raw_turn")
+                else:
                     identifier = "TX" + str(len(eligible) + 1)
+                    while identifier in eligible:
+                        identifier += "X"
                     eligible[identifier] = replace(source, source_id=identifier)
-                old_pairs = {(w.source_id, w.start, w.end) for w in windows}
+                    by_turn[pair] = identifier
+                requested_ids.add(identifier)
+            if requested_ids:
                 windows = source_windows(eligible)
-                fresh_windows = [w for w in windows if (w.source_id, w.start, w.end) not in old_pairs]
-                if len(reviewed) + len(fresh_windows) > 90:
+                included = {row["window_id"] for row in reviewed if row["decision"] == "include"}
+                # A returned old turn may never have been reviewed. Source
+                # identity deduplication must not discard that missing input.
+                requested = [w for w in windows if w.source_id in requested_ids and w.window_id not in included]
+                requested_windows = {w.window_id for w in requested}
+                existing = {row["window_id"] for row in reviewed}
+                if len(existing | requested_windows) > 90:
                     raise ContractError("targeted_typed_admitted_window_budget_exceeded")
                 reviewed_ids = {row["window_id"] for row in reviewed}
                 if len({w.source_id for w in windows if w.window_id in reviewed_ids} |
-                       {w.source_id for w in fresh_windows}) > 32:
+                       {w.source_id for w in requested}) > 32:
                     raise ContractError("targeted_typed_admitted_source_budget_exceeded")
-                for window in fresh_windows:
+                reviewed[:] = [row for row in reviewed if row["window_id"] not in requested_windows]
+                report["targeted_retrieval"] = {"source_ids": sorted(requested_ids),
+                                                 "reviewed_window_ids": sorted(requested_windows)}
+                for window in requested:
                     review(window)
                 expand_dependencies()
                 report["extraction_complete"] = all(row["decision"] != "unknown" for row in reviewed)
+                effective, coverage, binding = bound_view()
+                report["coverage"] = coverage
     seen = {row["window_id"] for row in reviewed}
     report["working_view"] = {"raw_window_count": len(windows), "reviewed_window_count": len(seen),
                               "outside_working_view": [w.window_id for w in windows if w.window_id not in seen],
@@ -1225,10 +1406,12 @@ def run_typed_computation(context, question, sources, report, *, n_ctx, max_answ
     report["claims"] = [_claim_dict(c) for c in claims]
     if not report["extraction_complete"]:
         raise ContractError("typed_source_selection_unresolved")
-    proof = execute_typed_plan(request, claims, {w.window_id: w for w in windows}, eligible,
+    if (request.property_binding or request.value_binding) and binding is None:
+        raise ContractError(report["operand_binding_error"])
+    proof = execute_typed_plan(request, effective, {w.window_id: w for w in windows}, eligible,
                                baseline_answer=contract.get("baseline_answer"))
     report.update({"proof": proof, "status": proof["status"], "answer": proof["answer"], "reason": proof["reason"],
-                   "claims": [_claim_dict(c) for c in claims], "coverage": proof["coverage"]})
+                   "claims": [_claim_dict(c) for c in effective], "coverage": proof["coverage"]})
     if proof["abstention_supported"]:
         report["answer"] = "I do not know."
         report["supported_abstention"] = True

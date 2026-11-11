@@ -655,7 +655,7 @@ def build_manifest(args, workload):
                 "PRAGMOS_composable_execution.py", "PRAGMOS_composable_candidate.py", "PRAGMOS_grounded_computation.py",
             ))
             if getattr(args, "pragmos_composable_protocol", "slots_v3") == "typed_v4":
-                sources.extend(root / name for name in ("PRAGMOS_typed_claims.py", "PRAGMOS_typed_computation.py"))
+                sources.extend(root / name for name in ("PRAGMOS_typed_claims.py", "PRAGMOS_typed_computation.py", "PRAGMOS_typed_binding.py"))
     return with_manifest_fingerprint(
         {
             "schema_version": MANIFEST_SCHEMA_VERSION,

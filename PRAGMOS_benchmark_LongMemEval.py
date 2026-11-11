@@ -12867,7 +12867,7 @@ def build_run_manifest(args, data_source, workload):
                 "PRAGMOS_composable_execution.py", "PRAGMOS_composable_candidate.py", "PRAGMOS_grounded_computation.py",
             ))
             if getattr(args, "pragmos_composable_protocol", "slots_v3") == "typed_v4":
-                source_files.extend(source_dir / name for name in ("PRAGMOS_typed_claims.py", "PRAGMOS_typed_computation.py"))
+                source_files.extend(source_dir / name for name in ("PRAGMOS_typed_claims.py", "PRAGMOS_typed_computation.py", "PRAGMOS_typed_binding.py"))
     source_identities = {
         path.name: local_file_identity(path) for path in source_files
     }

@@ -492,7 +492,8 @@ def bind_typed_claim(window, source, selection, known):
         raise ContractError("typed_actor_is_not_source_speaker")
     if binding == "requested_relation":
         anchor = normalized(selection["relation_anchor"])
-        if not actor_span or not set(anchor.split()).intersection({"my", "our", "mine", "ours"}):
+        if (not actor_span or not set(anchor.split()).intersection({"my", "our", "mine", "ours"})
+                or not set(identity_text(actor_span).split()).issubset(identity_text(anchor).split())):
             raise ContractError("related_actor_requires_possessive_source_link")
     if binding == "linked_event" and parent is None:
         raise ContractError("linked_event_requires_grounded_parent")
@@ -512,8 +513,13 @@ def bind_typed_claim(window, source, selection, known):
     if parent is not None and binding not in {"linked_event", "self"} and normalized(actor) != normalized(parent.actor):
         raise ContractError("typed_reference_crosses_actors")
     if parent is not None:
+        from PRAGMOS_typed_binding import contains_phrase
         reference = normalized(selection["entity"])
         names = {normalized(parent.entity), normalized(parent.key)} - {""}
+        # A qualified identity cannot be replaced by its generic property head:
+        # one occurrence's property is not another occurrence of that property.
+        if parent.entity and parent.key and normalized(parent.entity) != normalized(parent.key) and contains_phrase(parent.key, parent.entity):
+            names = {normalized(parent.key)}
         head = identity_text(selection["entity"]).split()[-1:]
         head_matches = [c for c in known.values() if head and head == identity_text(c.entity).split()[-1:]]
         unique_head_reference = (len(head_matches) == 1 and head_matches[0].claim_id == parent.claim_id
@@ -527,7 +533,7 @@ def bind_typed_claim(window, source, selection, known):
             and count_parents[0].claim_id == parent.claim_id)
         if reference not in names and not reference.split()[:1] in (
             ["it"], ["this"], ["that"], ["these"], ["those"], ["same"],
-        ) and not any(name in normalized(window.context) for name in names) and not unique_head_reference and not quantified_member_reference:
+        ) and not any(contains_phrase(window.text, name) for name in names) and not unique_head_reference and not quantified_member_reference:
             raise ContractError("typed_reference_has_no_source_link")
     if selection["quantity_kind"] == "missing" and not selection["missing_span"]:
         raise ContractError("missing_value_requires_source_qualification")
@@ -543,6 +549,9 @@ def bind_typed_claim(window, source, selection, known):
     if bound not in {None, "lower", "upper"}:
         raise ContractError("invalid_quantity_bound")
     quantity = bind_quantity(window, selection["numbers"], selection["quantity_kind"], selection["attribute"], allow_bound=bool(bound))
+    if (selection["kind"] == "reference" and quantity is not None and parent.quantity is not None
+            and (quantity.amount, quantity.dimensions) != (parent.quantity.amount, parent.quantity.dimensions)):
+        raise ContractError("repeated_fact_changes_the_original_measurement")
     bounds = None
     if bound:
         if quantity is None or len(selection["numbers"]) != 1:

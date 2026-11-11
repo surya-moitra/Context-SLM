@@ -75,7 +75,7 @@ def main():
         "dataset_sha256": digest(args.data_file), "trace_sha256": digest(args.trace), "model_sha256": digest(args.model_path)}
     if args.protocol == "typed_v4":
         identity["source_sha256"].update({name: digest(Path(__file__).parent / name)
-            for name in ("PRAGMOS_typed_claims.py", "PRAGMOS_typed_computation.py", "PRAGMOS_temporal_grounding.py")})
+            for name in ("PRAGMOS_typed_claims.py", "PRAGMOS_typed_computation.py", "PRAGMOS_typed_binding.py", "PRAGMOS_temporal_grounding.py")})
     identity["protocol"] = args.protocol
     llm = Llama(model_path=args.model_path, n_ctx=2048, n_threads=8, n_gpu_layers=40, seed=42, verbose=False)
     context = SimpleNamespace(llm=llm, count_tokens=lambda text: len(llm.tokenize(text.encode(), add_bos=True, special=True)))

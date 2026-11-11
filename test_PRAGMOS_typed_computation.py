@@ -342,7 +342,7 @@ class TypedCounterexampleTests(unittest.TestCase):
                                  entity="paid", numbers=[0], quantity_kind="measure")
                 texts = ["My cousin paid $17.", "My cousin paid $29."] if related else ["I paid $17.", "I paid $29."]
                 claims, windows, sources = bind(texts, [spec] * 2, speakers=["Asha", "Ciara"])
-                query = replace(request(), target_actor="Asha")
+                query = replace(request(), target_actor="Asha", actor_scope="related" if related else "speaker")
                 result = execute_typed_plan(query, claims, windows, sources)
                 self.assertEqual(result["answer"], "$17")
 
@@ -376,7 +376,7 @@ class TypedCounterexampleTests(unittest.TestCase):
                         options = adapter.parse_args()
                     manifest = adapter.build_run_manifest(options, str(dataset), []) if adapter is lme else adapter.build_manifest(options, [])
                     self.assertEqual(manifest["config"]["pragmos_composable_protocol"], "typed_v4")
-                    for name in ("PRAGMOS_typed_claims.py", "PRAGMOS_typed_computation.py"):
+                    for name in ("PRAGMOS_typed_claims.py", "PRAGMOS_typed_computation.py", "PRAGMOS_typed_binding.py"):
                         self.assertEqual(name in manifest["source_identities"], mode != "off")
 
     def test_small_model_orchestration_uses_literal_selections_not_generated_answers(self):
