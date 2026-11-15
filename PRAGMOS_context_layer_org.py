@@ -21,6 +21,7 @@ import faiss
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
+from PRAGMOS_evidence_context import pack_evidence_context, word_chunk_spans
 
 from opentelemetry import metrics
 from opentelemetry.sdk.metrics import MeterProvider
@@ -223,7 +224,14 @@ class ContextLayer:
         enable_reranker=True,
         embedding_cache_size=EMBEDDING_CACHE_SIZE,
         reranker_cache_size=RERANKER_CACHE_SIZE,
+        execution_policy="reference",
+        retrieval_device="auto",
     ):
+        if execution_policy not in {"reference", "optimized"}:
+            raise ValueError("Unknown execution policy")
+        self.execution_policy = execution_policy
+        self.retrieval_device = retrieval_device
+        self.token_count_cache = OrderedDict()
         # ---------- LOAD MODEL ----------
         self.model_path = model_path
         self.context_length = context_length
@@ -258,7 +266,8 @@ class ContextLayer:
 
         # ---------- LOAD EMBEDDING MODEL & VECTOR DB ----------
 
-        self.embedder = SentenceTransformer(EMBEDDING_MODEL)
+        retrieval_kwargs = {} if retrieval_device == "auto" else {"device": retrieval_device}
+        self.embedder = SentenceTransformer(EMBEDDING_MODEL, **retrieval_kwargs)
         self.local_reranker = None
         self.local_reranker_load_attempted = False
         self.enable_dense_retrieval = bool(enable_dense_retrieval)
@@ -284,6 +293,7 @@ class ContextLayer:
         self.vector_memory = []
         self.lexical_doc_freqs = {}
         self.lexical_total_doc_len = 0
+        self.lexical_term_cache = {}
 
         # MultiDiGraph preserves distinct and historical relationships.
         self.G = nx.MultiDiGraph()
@@ -294,6 +304,7 @@ class ContextLayer:
         self.memory_counter = 0
         self.entity_counter = 0
         self.conversation_history = []
+        self.raw_source_turns = {}
         self.entity_registry = {}
         self.alias_to_entity_id = {}
         self.speaker_entity_ids = {}
@@ -314,8 +325,11 @@ class ContextLayer:
         fork.index = faiss.clone_index(self.index)
         fork.vector_memory = copy.deepcopy(self.vector_memory)
         fork.lexical_doc_freqs = dict(self.lexical_doc_freqs)
+        # Statistics depend on immutable token contents, not graph/query state.
+        fork.lexical_term_cache = dict(getattr(self, "lexical_term_cache", {}))
         fork.G = copy.deepcopy(self.G)
         fork.conversation_history = copy.deepcopy(self.conversation_history)
+        fork.raw_source_turns = copy.deepcopy(getattr(self, "raw_source_turns", {}))
         fork.entity_registry = copy.deepcopy(self.entity_registry)
         fork.alias_to_entity_id = dict(self.alias_to_entity_id)
         fork.speaker_entity_ids = dict(self.speaker_entity_ids)
@@ -359,7 +373,8 @@ Text:
             stop=["<|end|>", "<|user|>", "<|system|>"],
             echo=False,
         )
-        llm_output = llm_output['choices'][0]['text']
+        choice = llm_output['choices'][0]
+        llm_output = choice['text']
         #print("\nLLM output for extracting Entities: " + llm_output)
         # Parse structured lines into triples
         triples = []
@@ -378,6 +393,13 @@ Text:
                     )
                 if all(cleaned_parts):
                     triples.append(tuple(cleaned_parts))
+        truncated = choice.get("finish_reason") == "length"
+        self.last_graph_extraction_diagnostics = {
+            "status": "incomplete" if truncated or len(triples) >= 8 or not triples else "unverified_preliminary",
+            "finish_reason": choice.get("finish_reason"),
+            "capacity_reached": len(triples) >= 8,
+            "semantic_completeness_verified": False,
+        }
         return triples
 
     def create_turn(
@@ -1125,26 +1147,30 @@ Text:
     ):
         """Batch-index complete raw turns with provenance and overlapping chunks."""
         entries = []
+        if not hasattr(self, "raw_source_turns"):
+            self.raw_source_turns = {}
         for turn in turns:
-            chunks = self.split_text_for_memory(
-                turn.text,
-                chunk_words=chunk_words,
-                overlap_words=overlap_words,
-            )
-            for chunk_index, chunk_text in enumerate(chunks):
+            self.raw_source_turns[turn.turn_id] = turn
+            spans = word_chunk_spans(turn.text, chunk_words, overlap_words)
+            for chunk_index, (start, end) in enumerate(spans):
+                source_quote = turn.text[start:end]
+                # Keep the existing embedding text; restore layout from exact source spans.
+                chunk_text = " ".join(source_quote.split())
                 entries.append(
                     {
                         "text": self.format_turn_chunk_for_memory(
                             turn,
                             chunk_text,
                             chunk_index,
-                            len(chunks),
+                            len(spans),
                         ),
                         "label": "raw_turn_chunk",
                         "metadata": {
                             "source_turn_ids": [turn.turn_id],
                             "source_session_id": turn.session_id,
-                            "source_quote": chunk_text,
+                            "source_quote": source_quote,
+                            "source_start": start,
+                            "source_end": end,
                             "timestamp": turn.timestamp,
                             "role": turn.role,
                             "speaker": turn.speaker,
@@ -1165,7 +1191,7 @@ Text:
                                 else {}
                             ),
                             "chunk_index": chunk_index,
-                            "chunk_count": len(chunks),
+                            "chunk_count": len(spans),
                             "temporal_scope": self.infer_text_temporal_scope(chunk_text),
                             "relation_keys": [],
                             "superseded_relation_keys": [],
@@ -1176,6 +1202,9 @@ Text:
 
     def extract_memories_from_raw_turn(self, turn):
         """Extract vector and graph memories directly from the raw source turn."""
+        if not hasattr(self, "raw_source_turns"):
+            self.raw_source_turns = {}
+        self.raw_source_turns[turn.turn_id] = turn
         self.learn_speaker_identity_from_text(turn)
         raw_turn_text = self.format_turn_for_memory(turn)
         triples = self.extract_entities_and_relationships_with_llm(
@@ -1597,10 +1626,26 @@ Text:
 
     def count_tokens(self, text):
         """Count tokens with the local model tokenizer, falling back to a char estimate."""
+        use_cache = getattr(self, "execution_policy", "reference") == "optimized" and len(text) <= 8192
+        if use_cache:
+            cache = getattr(self, "token_count_cache", None)
+            if cache is None:
+                cache = self.token_count_cache = OrderedDict()
+            # Retain the tokenizer identity as well as exact text. Do not cache
+            # estimates when tokenization failed.
+            key = (id(self.llm), text)
+            if key in cache:
+                cache.move_to_end(key)
+                return cache[key]
         try:
-            return len(self.llm.tokenize(text.encode("utf-8"), add_bos=False))
+            result = len(self.llm.tokenize(text.encode("utf-8"), add_bos=False))
         except Exception:
             return max(1, (len(text) + 3) // 4)
+        if use_cache:
+            cache[key] = result
+            while len(cache) > 256:
+                cache.popitem(last=False)
+        return result
 
     def trim_text_to_token_budget(self, text, token_budget):
         """Trim text so it fits inside the requested token budget."""
@@ -1811,9 +1856,21 @@ Text:
         doc_len = len(tokens)
         avg_doc_len = self.lexical_total_doc_len / max(1, len(self.vector_memory))
         avg_doc_len = max(1.0, avg_doc_len)
-        token_counts = {}
-        for token in tokens:
-            token_counts[token] = token_counts.get(token, 0) + 1
+        token_counts = None
+        if getattr(self, "execution_policy", "reference") == "optimized":
+            cache = getattr(self, "lexical_term_cache", None)
+            if cache is None:
+                cache = self.lexical_term_cache = {}
+            signature = tuple(tokens)
+            cached = cache.get(memory_index)
+            if cached is not None and cached[0] == signature:
+                token_counts = cached[1]
+        if token_counts is None:
+            token_counts = {}
+            for token in tokens:
+                token_counts[token] = token_counts.get(token, 0) + 1
+            if getattr(self, "execution_policy", "reference") == "optimized":
+                cache[memory_index] = (signature, token_counts)
 
         score = 0.0
         total_docs = len(self.vector_memory)
@@ -1990,6 +2047,8 @@ Text:
                 "max_length": RERANKER_MAX_LENGTH,
                 "local_files_only": RERANKER_LOCAL_FILES_ONLY,
             }
+            if getattr(self, "retrieval_device", "auto") != "auto":
+                kwargs["device"] = self.retrieval_device
             self.local_reranker = CrossEncoder(RERANKER_MODEL, **kwargs)
         except TypeError:
             if RERANKER_LOCAL_FILES_ONLY and not os.path.exists(RERANKER_MODEL):
@@ -1999,6 +2058,8 @@ Text:
                     self.local_reranker = CrossEncoder(
                         RERANKER_MODEL,
                         max_length=RERANKER_MAX_LENGTH,
+                        **({"device": self.retrieval_device}
+                           if getattr(self, "retrieval_device", "auto") != "auto" else {}),
                     )
                 except Exception:
                     self.local_reranker = None
@@ -2026,7 +2087,7 @@ Text:
         quote_bonus = 0.1 if memory_record.get("source_quote") else 0.0
         return min(1.0, overlap + relation_bonus + quote_bonus)
 
-    def rerank_memory_candidates(self, query, candidate_records):
+    def rerank_memory_candidates(self, query, candidate_records, raw_scores=None):
         if not candidate_records:
             return []
 
@@ -2057,7 +2118,8 @@ Text:
                 for candidate in candidate_records
             ]
             try:
-                raw_scores = self.predict_reranker_pairs(pairs)
+                if raw_scores is None:
+                    raw_scores = self.predict_reranker_pairs(pairs)
                 if raw_scores is None:
                     raise RuntimeError("local reranker prediction failed")
                 min_raw = min(raw_scores)
@@ -2160,6 +2222,17 @@ Text:
         source_turn=None,
     ):
         ### Retrieve with dense + BM25 lexical + graph expansion, then rerank."""
+        candidate_records = self._retrieval_candidate_records(
+            query, top_k, exclude_turn_ids, query_time_scope,
+            query_relation_keys, graph_evidence, source_turn,
+        )
+        return self._finish_memory_retrieval(query, candidate_records, top_k, min_score)
+
+    def _retrieval_candidate_records(
+        self, query, top_k, exclude_turn_ids=None, query_time_scope=None,
+        query_relation_keys=None, graph_evidence=None, source_turn=None,
+        dense_scores=None,
+    ):
         if len(self.vector_memory) == 0:
             return []
         exclude_turn_ids = set(exclude_turn_ids or [])
@@ -2188,10 +2261,9 @@ Text:
 
         candidates = {}
         if self.enable_dense_retrieval:
-            for memory_index, score in self.dense_candidate_scores(
-                query,
-                candidate_k,
-            ).items():
+            if dense_scores is None:
+                dense_scores = self.dense_candidate_scores(query, candidate_k)
+            for memory_index, score in dense_scores.items():
                 self.add_candidate_score(
                     candidates,
                     memory_index,
@@ -2262,7 +2334,15 @@ Text:
                 }
             )
 
-        reranked_candidates = self.rerank_memory_candidates(query, candidate_records)
+        return candidate_records
+
+    def _finish_memory_retrieval(self, query, candidate_records, top_k, min_score, raw_scores=None):
+        top_k = max(0, min(top_k, len(self.vector_memory)))
+        if not candidate_records or top_k == 0:
+            return []
+        reranked_candidates = (self.rerank_memory_candidates(query, candidate_records)
+                               if raw_scores is None else self.rerank_memory_candidates(
+                                   query, candidate_records, raw_scores=raw_scores))
         retrieved = []
         seen_sources = set()
         for memory_record in reranked_candidates:
@@ -2279,6 +2359,51 @@ Text:
             if len(retrieved) >= top_k:
                 break
         return retrieved
+
+    def retrieve_relevant_memories_many(self, queries, top_k=RETRIEVAL_TOP_K,
+                                       min_score=RETRIEVAL_MIN_SCORE, **kwargs):
+        """Batch encoders only; filtering, normalization and ranking stay per query.
+
+        Graph traversal may invoke the LLM, so implicit graph retrieval stays on
+        the serial path. No cross-query pool or score normalization is used.
+        """
+        queries = list(queries)
+        if (getattr(self, "execution_policy", "reference") != "optimized"
+                or kwargs.get("graph_evidence") is None):
+            return [self.retrieve_relevant_memories(query, top_k=top_k,
+                    min_score=min_score, **kwargs) for query in queries]
+        if not queries or not self.vector_memory or top_k <= 0:
+            return [[] for _ in queries]
+        candidate_k = min(len(self.vector_memory), max(min(top_k, len(self.vector_memory)),
+            min(top_k, len(self.vector_memory)) * max(RETRIEVAL_SEARCH_MULTIPLIER, HYBRID_CANDIDATE_MULTIPLIER)))
+        dense_groups = [None] * len(queries)
+        if self.enable_dense_retrieval:
+            try:
+                # Search each vector separately to preserve FAISS's single-query
+                # distance kernel and tie ordering from the reference path.
+                embeddings = self.encode_normalized_texts(queries)
+                dense_groups = []
+                for embedding in embeddings:
+                    distances, indices = self.index.search(embedding.reshape(1, -1), candidate_k)
+                    dense_groups.append({int(index): max(0.0, self.vector_distance_to_score(distance))
+                        for distance, index in zip(distances[0], indices[0])
+                        if 0 <= index < len(self.vector_memory)})
+            except Exception:
+                return [self.retrieve_relevant_memories(query, top_k=top_k,
+                        min_score=min_score, **kwargs) for query in queries]
+        candidates = [self._retrieval_candidate_records(query, top_k,
+                      dense_scores=dense, **kwargs)
+                      for query, dense in zip(queries, dense_groups)]
+        pairs = [(query, self.rerankable_memory_text(row))
+                 for query, group in zip(queries, candidates) for row in group]
+        scores = self.predict_reranker_pairs(pairs)
+        offset = 0
+        results = []
+        for query, group in zip(queries, candidates):
+            local_scores = None if scores is None else scores[offset:offset + len(group)]
+            results.append(self._finish_memory_retrieval(query, group, top_k, min_score, local_scores))
+            offset += len(group)
+        return results
 
     def memory_provenance_identity(self, memory_record):
         """Return a stable evidence-unit identity without conflating speakers."""
@@ -2889,38 +3014,17 @@ Text:
             + "If evidence is missing or conflicting, say what is known from the evidence.\n"
         )
         footer = "\n[/PRAGMOS_CONTEXT]"
-        context = self.trim_text_to_token_budget(header, token_budget)
-
-        sections = [
-            ("CURRENT_USER_INPUT", user_input),
-            (
-                "VECTOR_EVIDENCE",
-                self.format_vector_evidence(vector_memories, compact=True),
-            ),
-            (
-                "GRAPH_EVIDENCE",
-                self.format_graph_evidence(
-                    graph_evidence,
-                    query_time_scope=query_time_scope,
-                    compact=True,
-                ),
-            ),
-            ("RECENT_STRUCTURED_TURNS", self.format_recent_turns_evidence(recent_turns)),
-        ]
-
-        for title, body in sections:
-            context = self.add_section_to_budgeted_context(
-                context=context,
-                title=title,
-                body=body,
-                token_budget=token_budget,
-                footer=footer,
-            )
-
-        final_context = context + footer
-        if self.count_tokens(final_context) > token_budget:
-            final_context = self.trim_text_to_token_budget(final_context, token_budget)
-        return final_context
+        sources = dict(getattr(self, "raw_source_turns", {}))
+        sources.update({turn.turn_id: turn for turn in recent_turns or []})
+        context, diagnostics = pack_evidence_context(
+            user_input=user_input, vector_memories=list(vector_memories or []),
+            graph_evidence=list(graph_evidence or []), recent_turns=list(recent_turns or []),
+            source_turns=sources, header=header, footer=footer,
+            token_budget=token_budget, count_tokens=self.count_tokens,
+            tokenize=self.tokenize_for_retrieval,
+        )
+        self.last_context_packing_diagnostics = diagnostics
+        return context
 
     def update_knowledge_graph(
         self,

@@ -175,6 +175,13 @@ def schema_grammar(schema):
         raise ContractError("grammar_build_failed:" + type(exc).__name__) from exc
 
 
+@lru_cache(maxsize=32)
+def _cached_schema_grammar(serialized_schema):
+    # Grammar objects contain grammar text, not a mutable sampler. _call still
+    # constructs and validates a native sampler on every inference call.
+    return schema_grammar(json.loads(serialized_schema))
+
+
 @lru_cache(maxsize=16)
 def _grammar(kind, source_ids=(), operand_ids=(), source_spans=(), measurement_spans=(), answer_fields=()):
     schema = plan_schema(answer_fields) if kind == "planner" else extraction_schema(source_ids, operand_ids, source_spans, measurement_spans)
@@ -298,7 +305,9 @@ def _call(context, prompt, kind, n_ctx, audit, *, source_ids=(), operand_ids=(),
         raise ContractError(kind + "_context_budget_exceeded")
     kwargs = {"max_tokens": max_tokens, "temperature": 0, "top_p": 1,
               "repeat_penalty": 1.05, "stop": ["<|end|>", "<|user|>"], "echo": False}
-    grammar = (schema_grammar(schema) if schema is not None else
+    grammar = ((_cached_schema_grammar(json.dumps(schema, ensure_ascii=True, separators=(",", ":")))
+                if getattr(context, "execution_policy", "reference") == "optimized" else schema_grammar(schema))
+               if schema is not None else
                _grammar(kind, source_ids, operand_ids, source_spans, measurement_spans, answer_fields))
     if grammar is not None:
         _validate_native_grammar(context, grammar, kind, audit)
@@ -480,7 +489,8 @@ def supported_typed_abstention(report):
                      or (proof.get("baseline_veto") and proof.get("coverage", {}).get("status") in {"OUTSIDE_REQUESTED_SCOPE", "MISSING_RELATION"})))
 
 
-def run_typed_candidate(context, question, sources, *, n_ctx, max_answer_tokens=64, answer_contract=None, retrieve_missing=None):
+def run_typed_candidate(context, question, sources, *, n_ctx, max_answer_tokens=64, answer_contract=None, retrieve_missing=None,
+                        prepared_execution=None):
     """Opt-in V4 entry; V3 generation and extraction are not changed."""
     from PRAGMOS_typed_computation import run_typed_computation
     report = {"version": 4, "protocol": "typed_claims_v4", "status": "NOT_PROVEN", "promoted": False,
@@ -501,8 +511,9 @@ def run_typed_candidate(context, question, sources, *, n_ctx, max_answer_tokens=
         + int(getattr(getattr(state, "scores", None), "nbytes", 0))
         + int(getattr(getattr(state, "input_ids", None), "nbytes", 0)))
     try:
+        extra = {"prepared_execution": prepared_execution} if prepared_execution is not None else {}
         report = run_typed_computation(context, question, sources, report, n_ctx=n_ctx, max_answer_tokens=max_answer_tokens,
-                                       contract=answer_contract or {}, retrieve_missing=retrieve_missing)
+                                       contract=answer_contract or {}, retrieve_missing=retrieve_missing, **extra)
     except (ContractError, ValueError, TypeError, KeyError, IndexError, RuntimeError) as exc:
         report.update({"status": "NOT_PROVEN", "answer": None, "supported_abstention": False, "reason": str(exc)})
     finally:

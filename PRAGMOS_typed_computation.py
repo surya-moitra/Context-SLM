@@ -1192,7 +1192,8 @@ def _claim_dict(claim):
     return value
 
 
-def run_typed_computation(context, question, sources, report, *, n_ctx, max_answer_tokens, contract, retrieve_missing=None):
+def run_typed_computation(context, question, sources, report, *, n_ctx, max_answer_tokens, contract, retrieve_missing=None,
+                          prepared_execution=None):
     from PRAGMOS_composable_candidate import _call as generate
     def call(prompt, stage, schema, reserve):
         audit = report["calls"]
@@ -1408,6 +1409,11 @@ def run_typed_computation(context, question, sources, report, *, n_ctx, max_answ
         raise ContractError("typed_source_selection_unresolved")
     if (request.property_binding or request.value_binding) and binding is None:
         raise ContractError(report["operand_binding_error"])
+    if prepared_execution is not None:
+        # Keep native bound objects outside the serializable trace. Only the
+        # deterministic baseline-dependent veto is rerun after a fallback.
+        prepared_execution.update(request=request, claims=tuple(effective),
+                                  windows={w.window_id: w for w in windows}, sources=dict(eligible))
     proof = execute_typed_plan(request, effective, {w.window_id: w for w in windows}, eligible,
                                baseline_answer=contract.get("baseline_answer"))
     report.update({"proof": proof, "status": proof["status"], "answer": proof["answer"], "reason": proof["reason"],

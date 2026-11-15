@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from PRAGMOS_composable_candidate import (
-    _call, _grammar, _validate_native_grammar, extraction_schema, run_candidate,
+    _call, _grammar, _cached_schema_grammar, _validate_native_grammar, extraction_schema, run_candidate,
     source_span_choices,
 )
 from PRAGMOS_composable_execution import ContractError, Source
@@ -28,6 +28,36 @@ def actor_rule(grammar):
 
 
 class ComposableGrammarTests(unittest.TestCase):
+    def test_optimized_schema_cache_does_not_skip_calls_or_native_validation(self):
+        _cached_schema_grammar.cache_clear()
+        ctx = context([{"ok": True}, {"ok": False}, {"other": True}])
+        ctx.execution_policy = "optimized"
+        schema = {"type": "object", "properties": {"ok": {"type": "boolean"}}}
+        other = {"type": "object", "properties": {"other": {"type": "boolean"}}}
+        audit = {"planner_calls": 0, "prompt_tokens": 0, "completion_tokens": 0}
+        with patch("PRAGMOS_composable_candidate.schema_grammar", return_value=object()) as build, \
+             patch("PRAGMOS_composable_candidate._validate_native_grammar") as validate:
+            first = _call(ctx, "same", "planner", 2048, audit, schema=schema)
+            second = _call(ctx, "same", "planner", 2048, audit, schema=schema)
+            _call(ctx, "same", "planner", 2048, audit, schema=other)
+        self.assertEqual(first, {"ok": True})
+        self.assertEqual(second, {"ok": False})
+        self.assertEqual(build.call_count, 2)
+        self.assertEqual(validate.call_count, 3)
+        self.assertEqual(audit["planner_calls"], 3)
+        self.assertEqual(_cached_schema_grammar.cache_info().maxsize, 32)
+        _cached_schema_grammar.cache_clear()
+
+    def test_failed_grammar_build_is_never_cached(self):
+        _cached_schema_grammar.cache_clear()
+        schema = json.dumps({"type": "object"})
+        with patch("PRAGMOS_composable_candidate.schema_grammar", side_effect=ContractError("invalid")) as build:
+            for _ in range(2):
+                with self.assertRaises(ContractError):
+                    _cached_schema_grammar(schema)
+        self.assertEqual(build.call_count, 2)
+        self.assertEqual(_cached_schema_grammar.cache_info().currsize, 0)
+
     def test_every_special_span_retains_its_exact_json_value(self):
         for span in SPECIAL_SPANS:
             with self.subTest(span=span):

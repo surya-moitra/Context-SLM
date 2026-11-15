@@ -644,12 +644,21 @@ def build_manifest(args, workload):
     ]
     if args.mode == "pragmos_context":
         sources.append(root / "PRAGMOS_context_layer_org.py")
+        sources.append(root / "PRAGMOS_evidence_context.py")
+        sources.append(root / "PRAGMOS_execution.py")
+        sources.append(root / "PRAGMOS_proof_execution.py")
         sources.append(root / "PRAGMOS_evidence_compiler.py")
         sources.append(root / "PRAGMOS_temporal_grounding.py")
         sources.append(root / "PRAGMOS_temporal_contracts.py")
         sources.append(root / "PRAGMOS_temporal_algebra.py")
         sources.append(root / "PRAGMOS_semantic_query.py")
         sources.append(root / "PRAGMOS_semantic_checker.py")
+        if getattr(args, "pragmos_state_mode", "off") != "off":
+            sources.extend(root / name for name in (
+                "PRAGMOS_state_views.py", "PRAGMOS_state_binding.py", "PRAGMOS_state_claims.py", "PRAGMOS_state_contracts.py",
+                "PRAGMOS_state_reader.py", "PRAGMOS_state_owners.py", "PRAGMOS_state_program.py", "PRAGMOS_composable_execution.py",
+                "PRAGMOS_composable_candidate.py", "PRAGMOS_grounded_computation.py", "PRAGMOS_typed_claims.py",
+            ))
         if getattr(args, "pragmos_composable_mode", "off") != "off":
             sources.extend(root / name for name in (
                 "PRAGMOS_composable_execution.py", "PRAGMOS_composable_candidate.py", "PRAGMOS_grounded_computation.py",
@@ -767,9 +776,11 @@ def aggregate_latency_metrics(rows):
 
 
 def parse_args():
+    from PRAGMOS_execution import add_execution_arguments
     parser = argparse.ArgumentParser(
         description="Run raw Phi-3 or PRAGMOS on LoCoMo-shaped data."
     )
+    add_execution_arguments(parser)
     parser.add_argument("--data-file", default=DEFAULT_DATA_FILE)
     parser.add_argument(
         "--mode",
@@ -831,6 +842,10 @@ def parse_args():
     )
     parser.add_argument("--pragmos-composable-protocol", choices=["slots_v3", "typed_v4"], default="slots_v3",
                         help="Versioned computation protocol; typed_v4 requires paired validation.")
+    parser.add_argument("--pragmos-state-mode", choices=["off", "shadow", "candidate"], default="off",
+                        help="Shared read-only state resolution; candidate requires paired validation.")
+    parser.add_argument("--pragmos-state-protocol", choices=["bound_v3", "evidence_v4"], default="evidence_v4",
+                        help="Versioned shared state interface; recorded in the run manifest.")
     parser.add_argument("--verbose-model", action="store_true")
 
     parser.add_argument("--pragmos-top-k", type=int, default=6)
@@ -865,6 +880,8 @@ def parse_args():
 
 def main():
     args = parse_args()
+    from PRAGMOS_execution import validate_execution_arguments
+    validate_execution_arguments(args)
     samples = load_locomo(args.data_file)
     validation = validate_locomo_dataset(samples)
     if args.validate_only:
@@ -921,6 +938,8 @@ def main():
                 enable_reranker="reranker" not in pragmos_ablation_set(args),
                 embedding_cache_size=args.pragmos_embedding_cache_size,
                 reranker_cache_size=args.pragmos_reranker_cache_size,
+                execution_policy=args.pragmos_execution_policy,
+                retrieval_device=args.pragmos_retrieval_device,
             )
         else:
             model = Phi3RawChat(
@@ -1193,12 +1212,18 @@ def main():
                     {
                         "ingested_turn_count": len(prepared["turns"]),
                         "answer_decision": pragmos_result["answer_decision"],
+                        "context_packing_diagnostics": pragmos_result.get("context_packing_diagnostics"),
+                        "generation_diagnostics": pragmos_result.get("generation_diagnostics"),
+                        "execution_diagnostics": pragmos_result.get("execution_diagnostics"),
+                        "candidate_extraction_diagnostics": pragmos_result.get("candidate_extraction_diagnostics"),
                         "temporal_contract_result": pragmos_result["temporal_contract_result"],
                         "temporal_contract_seconds": pragmos_result["temporal_contract_seconds"],
                         "baseline_prediction": pragmos_result["baseline_prediction"],
                         "baseline_answer_decision": pragmos_result["baseline_answer_decision"],
                         **{key: pragmos_result[key] for key in (
                             "composable_execution_result", "composable_execution_seconds",
+                            "state_resolution_result", "state_resolution_seconds",
+                            "state_resolution_baseline_prediction", "state_resolution_baseline_decision",
                         ) if key in pragmos_result},
                         "llm_call_counts": pragmos_result["llm_call_counts"],
                         "safe_abstention": pragmos_result["safe_abstention"],
