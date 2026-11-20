@@ -623,7 +623,9 @@ def flatten_workload(samples, args):
 
 
 def build_manifest(args, workload):
+    from PRAGMOS_execution import validate_execution_arguments
     validate_composable_configuration(args)
+    validate_execution_arguments(args)
     ignored = {"flush_every", "output_dir", "resume", "run_name", "verbose_model"}
     config = {key: value for key, value in vars(args).items() if key not in ignored}
     data_identity = local_file_identity(args.data_file)
@@ -653,6 +655,17 @@ def build_manifest(args, workload):
         sources.append(root / "PRAGMOS_temporal_algebra.py")
         sources.append(root / "PRAGMOS_semantic_query.py")
         sources.append(root / "PRAGMOS_semantic_checker.py")
+        if getattr(args, "pragmos_assistance_boundary", "off") == "observe":
+            from PRAGMOS_assistance_boundary import protocol_identity
+            config["assistance_boundary_protocol"] = protocol_identity()
+            sources.extend(root / name for name in (
+                "PRAGMOS_assistance_boundary.py", "PRAGMOS_composable_candidate.py",
+                "PRAGMOS_composable_execution.py",
+            ))
+        if getattr(args, "pragmos_assistance_mode", "off") == "guarded":
+            from PRAGMOS_assistance_runner import SOURCE_FILES, protocol_identity as advice_identity
+            config["assistance_protocol"] = advice_identity()
+            sources.extend(root / name for name in SOURCE_FILES)
         if getattr(args, "pragmos_state_mode", "off") != "off":
             sources.extend(root / name for name in (
                 "PRAGMOS_state_views.py", "PRAGMOS_state_binding.py", "PRAGMOS_state_claims.py", "PRAGMOS_state_contracts.py",

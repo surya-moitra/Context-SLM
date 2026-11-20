@@ -26,7 +26,7 @@ import statistics
 import time
 from collections import Counter
 from pathlib import Path
-from PRAGMOS_evidence_context import source_units, unit_text
+from PRAGMOS_evidence_context import evidence_source, quote_spans, source_units, unit_text
 from PRAGMOS_execution import (
     add_execution_arguments, index_with_planner, retrieve_independent_queries,
     validate_execution_arguments,
@@ -981,10 +981,10 @@ def prioritize_memories_for_query_intent(memories, query_intent):
     )
 
 
-def infer_requested_answer_slot(question):
+def infer_requested_answer_slot(question, *, include_collection=True):
     """Return a broad answer type without using benchmark-specific content."""
     normalized = re.sub(r"\s+", " ", (question or "").strip().lower())
-    if requested_list_count(normalized) is not None:
+    if include_collection and requested_list_count(normalized) is not None:
         return "requested list"
     if re.search(r"\bcolou?r\b", normalized):
         return "color"
@@ -3442,6 +3442,8 @@ def finish_proof_first_record(context_layer, record, question_id, upstream, repo
              "evidence_frame_compiler": 0, "final_generation": 0,
              "composable_planner": report["calls"]["planner_calls"],
              "composable_extractor": report["calls"]["extractor_calls"]}
+    if "assistance_boundary" in s.execution_diagnostics:
+        calls["assistance_boundary"] = s.execution_diagnostics["assistance_boundary"]["model_calls"]
     calls["total"] = sum(calls.values())
     result = {
         "text": report["answer"], "answer_decision": "composable_evidence_execution",
@@ -10867,6 +10869,7 @@ def selected_evidence_extraction_prompt(
     evidence_blocks,
     query_intent=None,
     relationship_limit=6,
+    repair_context="",
 ):
     operation = operation_plan.get("operation", "none")
     operation_note = ""
@@ -10918,9 +10921,228 @@ def selected_evidence_extraction_prompt(
         "evidence item. After reviewing an item, add EVIDENCE_COMPLETE | its_id. "
         "That marker means this window was reviewed, not that missing facts are absent. "
         "Return no explanation.\n\n"
+        + repair_context
         + "\n\n".join(evidence_blocks)
         + "\n<|end|>\n<|assistant|>\n"
     )
+
+
+# Speech attribution is not an additional property of the requested object.
+# This vocabulary is used only after the existing intent router establishes recall.
+SOURCE_ATTRIBUTION_TOKENS = frozenset({
+    "call", "describ", "explain", "give", "identifi", "list", "made", "make",
+    "mention", "outlin", "provid", "recommend", "said", "say", "suggest", "tell", "told",
+})
+
+
+def source_projection_assertion_supported(text):
+    words = normalized_evidence_text(text).split()
+    negative = {"not", "never", "no", "don", "doesn", "didn", "isn", "wasn", "weren",
+                "aren", "cannot", "wouldn", "shouldn", "couldn"}
+    return bool("?" not in text and not negative.intersection(words)
+                and "can t" not in " ".join(words)
+                and derive_event_status_hint(text) not in {"negated", "planned"})
+
+
+def source_projection_speech_tokens(clause, question):
+    words = clause.split()
+    if len(words) < 2 or words[0].casefold() != "i" or not source_projection_assertion_supported(clause):
+        return set()
+    return retrieval_content_tokens(words[1]).intersection(
+        SOURCE_ATTRIBUTION_TOKENS, retrieval_content_tokens(question))
+
+
+def source_projection_eligible(question, requested_slot, query_intent, query_profile,
+                               inferred_plan, operation_plan, selector_plan):
+    """Independent read capabilities may challenge an inferred collection, not arithmetic."""
+    return bool(
+        (query_intent.get("answer_mode") == "recall_assistant_content"
+         or (query_intent.get("intent") == USER_MEMORY_INTENT
+             and requested_list_ordinal(question) is not None))
+        and inferred_plan.get("operation") == "none"
+        and operation_plan.get("operation") in COLLECTION_OPERATIONS
+        and selector_plan.get("selector") == STATE_SELECTOR_NONE
+        and not query_profile.get("actor_binding_enabled")
+        and not temporal_reference_tokens(question)
+        and requested_slot not in {"exact quantity or amount", "exact duration", "exact date or time"}
+        and infer_requested_answer_slot(question, include_collection=False) not in {
+            "exact quantity or amount", "exact duration", "exact date or time"}
+    )
+
+
+def source_projection_exchange(row, turn_lookup):
+    """Resolve an immutable source and its immediate request, never a session-wide join."""
+    text, spans, fields, integrity = evidence_source(row, turn_lookup)
+    if integrity != "authoritative_turn" or not spans or not source_role_matches(fields["role"], ["assistant"]):
+        return None
+    turn_id = fields["turn_id"]
+    ordered = list(turn_lookup.values())
+    position = next((i for i, turn in enumerate(ordered) if str(turn.turn_id) == str(turn_id)), None)
+    parent = ordered[position - 1] if position is not None and position > 0 else None
+    if (parent is None or str(parent.session_id) != str(fields["session_id"])
+            or not source_role_matches(parent.role, ["user"])
+            or (fields.get("parent_turn_id") is not None
+                and str(fields["parent_turn_id"]) not in {str(parent.turn_id), str(getattr(parent, "external_turn_id", None))})):
+        parent = None
+    return {"text": text, "spans": spans, "fields": fields, "parent": parent}
+
+
+def source_projection_request_binding(question, row, turn_lookup, query_profile, *, scope_text=None,
+                                      discharged_tokens=()):
+    exchange = source_projection_exchange(row, turn_lookup)
+    if exchange is None:
+        return None
+    parent = exchange["parent"]
+    context = scope_text if scope_text is not None else exchange["text"]
+    if parent is not None:
+        context = parent.text + "\n" + context
+    obligations = retrieval_content_tokens(question).difference(SOURCE_ATTRIBUTION_TOKENS, discharged_tokens)
+    if requested_list_ordinal(question) is not None:
+        obligations.difference_update({"item", "number"})
+    if not obligations or not obligations.issubset(retrieval_content_tokens(context)):
+        return None
+    if not anchor_coverage(query_profile, context)["complete"]:
+        return None
+    return exchange
+
+
+def resolve_source_projection(question, requested_slot, query_profile, query_intent,
+                              inferred_plan, operation_plan, selector_plan, turn_lookup,
+                              ordinal_result, typed_result, answer_candidates):
+    """Certify a unique source read against the original request, not its generated operator.
+
+    This is deliberately a closed capability: unresolved bindings retain the old
+    execution path. It neither repairs the semantic planner nor certifies absence.
+    """
+    result = {"status": "not_applicable", "answer": None, "candidates": [],
+              "policy": "original_request_plus_authoritative_source_projection"}
+    if not source_projection_eligible(question, requested_slot, query_intent, query_profile,
+                                      inferred_plan, operation_plan, selector_plan):
+        return result
+    result["status"] = "not_proven"
+    offers = []
+    if (ordinal_result.get("applicable") and ordinal_result.get("status") != "complete"
+            or typed_result.get("applicable") and typed_result.get("status") != "complete"):
+        return result
+    if ordinal_result.get("status") == "complete":
+        offers.extend(("ordinal", row) for row in ordinal_result["candidates"])
+    if typed_result.get("status") == "complete":
+        offers.extend((requested_slot, row) for row in typed_result["candidates"])
+    if not offers:
+        offers.extend(("relation", row) for row in answer_candidates or [])
+    certificates = []
+    relation_alternatives = {}
+    for kind, row in offers:
+        value = str(row.get("value") or "")
+        exchange = source_projection_exchange(row, turn_lookup)
+        if exchange is None or not value:
+            continue
+        text = exchange["text"]
+        pieces = row.get("items") or [value]
+        value_spans = []
+        for piece in pieces:
+            spans = quote_spans(text, piece)
+            if not spans:
+                # Value spans may end immediately before sentence punctuation;
+                # quote_spans intentionally matches whole whitespace tokens.
+                spans = [(match.start(), match.end()) for match in re.finditer(re.escape(piece), text)
+                         if (match.start() == 0 or not text[match.start() - 1].isalnum())
+                         and (match.end() == len(text) or not text[match.end()].isalnum())]
+            value_spans.append(spans)
+        if not all(len(spans) == 1 for spans in value_spans):
+            continue
+        spans = [item[0] for item in value_spans]
+        # A full-turn resolver must not promote a value outside the selected source window.
+        if not all(any(a <= start and end <= b for a, b in exchange["spans"]) for start, end in spans):
+            continue
+        if not source_projection_assertion_supported(text):
+            continue
+        scope = text
+        if kind == "ordinal":
+            if requested_slot != "specific fact requested":
+                continue
+            # The source's header/request binds the LIST, not arbitrary words in its members.
+            first = re.search(r"(?:^|\s)1[.):]\s", text)
+            if first is None:
+                continue
+            scope = text[:first.start()]
+        elif kind == "requested list":
+            count = requested_list_count(question)
+            if not count or len(pieces) != count or ":" not in text:
+                continue
+            scope = text.split(":", 1)[0]
+        elif kind == "color":
+            start, end = spans[0]
+            scope = local_evidence_sentence(text, start, end)
+            subjects = retrieval_content_tokens(question).difference(
+                SOURCE_ATTRIBUTION_TOKENS | {"color", "colour", "illustration"})
+            # Parent requests cannot lend an unrelated object's color to the requested subject.
+            if not subjects or not subjects.issubset(retrieval_content_tokens(scope)):
+                continue
+        elif kind == "relation":
+            head, relation, tail = (str(row.get(key) or "") for key in ("head", "relation", "tail"))
+            question_tokens = retrieval_content_tokens(question)
+            property_tokens = question_tokens.difference(SOURCE_ATTRIBUTION_TOKENS)
+            relation_tokens = retrieval_content_tokens(relation)
+            start, end = spans[0]
+            source_clause = local_evidence_clause(text, start, end)
+            speech_tokens = source_projection_speech_tokens(source_clause, question).intersection(relation_tokens)
+            # An explicit first-person speech act binds its literal complement;
+            # its object type can be supplied by the immediately preceding request.
+            speech_bound = bool(speech_tokens
+                                and normalized_evidence_text(head) in {"i", "assistant", "speaker assistant"})
+            property_bound = property_tokens.intersection(relation_tokens)
+            if (row.get("support_component") != "tail" or not head or not tail
+                    or not (property_bound or speech_bound)):
+                continue
+            scope = local_evidence_sentence(text, start, end)
+            if not evidence_entity_is_grounded(row, head) or not evidence_contains_value(scope, tail):
+                continue
+            specific_speech = question_tokens.intersection(SOURCE_ATTRIBUTION_TOKENS).difference(
+                {"give", "say", "said", "mention", "provid", "tell", "told", "call"})
+            if specific_speech and not speech_bound:
+                continue
+            if not speech_bound and (not evidence_contains_value(scope, head)
+                                     or not property_tokens.difference(relation_tokens).issubset(
+                                         retrieval_content_tokens(scope))):
+                continue
+            binding_key = (normalized_evidence_text(head), normalized_evidence_text(relation))
+            relation_alternatives.setdefault(binding_key, set()).add(normalized_evidence_text(value))
+            # Generated relation names are not independent source-scope witnesses.
+            # Their property must occur in the actual exchange as well.
+            parent = exchange["parent"]
+            context = scope + ("\n" + parent.text if parent is not None else "")
+            if not property_bound.issubset(
+                    retrieval_content_tokens(context)):
+                continue
+        binding = source_projection_request_binding(
+            question, row, turn_lookup, query_profile, scope_text=scope,
+            discharged_tokens={"color", "colour", "illustration"} if kind == "color" else ())
+        if binding is None:
+            continue
+        fields = exchange["fields"]
+        certificates.append({"kind": kind, "answer": value, "source_turn_id": fields["turn_id"],
+                             "source_session_id": fields["session_id"], "source_role": fields["role"],
+                             "source_speaker": fields["speaker"], "source_timestamp": fields["timestamp"],
+                             "source_quote": text, "value_spans": [list(span) for span in spans],
+                             "binding_key": list(binding_key) if kind == "relation" else None,
+                             "request_context": ({"turn_id": binding["parent"].turn_id,
+                                                  "session_id": binding["parent"].session_id,
+                                                  "role": binding["parent"].role,
+                                                  "speaker": binding["parent"].speaker,
+                                                  "timestamp": binding["parent"].timestamp,
+                                                  "source_quote": binding["parent"].text}
+                                                 if binding["parent"] is not None else None)})
+    values = {normalized_evidence_text(item["answer"]) for item in certificates}
+    for item in certificates:
+        if item["binding_key"] is not None:
+            values.update(relation_alternatives.get(tuple(item["binding_key"]), set()))
+    result["candidates"] = certificates
+    if len(values) == 1:
+        result.update(status="complete", answer=certificates[0]["answer"])
+    elif values:
+        result["status"] = "ambiguous"
+    return result
 
 
 def extract_candidates_from_selected_evidence(
@@ -10931,6 +11153,8 @@ def extract_candidates_from_selected_evidence(
     selected_memories,
     existing_extractions=None,
     query_intent=None,
+    turn_lookup=None,
+    prioritize_source_projection=False,
 ):
     """Extract candidate facts from every selected evidence item in batches."""
     records = selected_evidence_records(selected_memories)
@@ -10947,11 +11171,12 @@ def extract_candidates_from_selected_evidence(
     prompt_token_budget = max(0, context_length - output_token_budget - 64)
     reviews = {record["evidence_id"]: {"windows": {}, "unprocessed_spans": []} for record in pending_records}
 
-    def make_prompt(batch, relationship_limit=6):
+    def make_prompt(batch, relationship_limit=6, repair_context=""):
         return selected_evidence_extraction_prompt(
             question, requested_slot, operation_plan,
             [format_selected_evidence_block(item) for item in batch],
             query_intent=query_intent, relationship_limit=relationship_limit,
+            repair_context=repair_context,
         )
 
     windows = []
@@ -10997,12 +11222,29 @@ def extract_candidates_from_selected_evidence(
     batch_outputs = []
     batch_errors = []
     retry_windows = []
+    projection_repair_ids = set()
     calls = 0
 
     def run_batch(batch, repair=False):
         nonlocal calls
         limit = 12 if repair else 6
-        prompt = make_prompt(batch, limit)
+        repair_context = ""
+        if repair and batch[0]["evidence_id"] in projection_repair_ids:
+            binding = source_projection_request_binding(question, batch[0], turn_lookup, build_query_profile(question))
+            if binding is not None:
+                repair_context = (
+                    "Repair the incomplete relation extraction, not the answer. Every factual line "
+                    "must have FOUR fields: evidence_id | subject | relation | object. "
+                    "For an assistant-authored statement, speaker assistant is an allowed subject. "
+                    "Do not omit the subject or guess a missing field from malformed output. "
+                    "Copy the object literally from the evidence. A request is context, not proof "
+                    "that its requested fact was supplied.\n"
+                )
+                parent = binding["parent"]
+                if parent is not None:
+                    repair_context += (f"[REQUEST_CONTEXT turn={parent.turn_id}; role={parent.role}; "
+                                       f"speaker={parent.speaker}]\n{parent.text}\n[/REQUEST_CONTEXT]\n\n")
+        prompt = make_prompt(batch, limit, repair_context)
         allowance = min(640 if repair else output_token_budget,
                         context_length - context_layer.count_tokens(prompt) - 64)
         if allowance < 128:
@@ -11080,6 +11322,27 @@ def extract_candidates_from_selected_evidence(
 
     for batch in batches:
         run_batch(batch)
+    if prioritize_source_projection and turn_lookup:
+        profile = build_query_profile(question)
+        reviewed_rows = [{**record, "triples": triples_by_id.get(record["evidence_id"], [])
+                          + list((existing_by_key.get(record["provenance_key"]) or {}).get("triples") or [])}
+                         for record in records]
+        current_projection = resolve_source_projection(
+            question, requested_slot, profile, query_intent or {},
+            infer_multi_session_operation(question, None), operation_plan, infer_state_history_selector(question),
+            turn_lookup, resolve_deterministic_ordinal_list_answer(question, reviewed_rows, profile),
+            resolve_typed_answer_slot(question, requested_slot, reviewed_rows, profile, query_intent),
+            select_answer_slot_candidates(reviewed_rows, question, requested_slot, query_profile=profile,
+                                          query_intent=query_intent),
+        )
+        if (current_projection["status"] == "not_proven" and requested_list_ordinal(question) is None
+                and requested_slot not in {"color", "requested list"}):
+            projection_repair_ids = {window["evidence_id"] for window in retry_windows
+                                     if source_projection_request_binding(question, window, turn_lookup, profile) is not None
+                                     and source_projection_speech_tokens(window["source_quote"], question)}
+        # Stable priority within the SAME two-call repair budget. Unrelated routes
+        # retain their old order, extraction prompts and accepted facts.
+        retry_windows.sort(key=lambda window: window["evidence_id"] in projection_repair_ids, reverse=True)
     repair_ids = []
     for window in retry_windows:
         if window["evidence_id"] in repair_ids:
@@ -11442,7 +11705,73 @@ def evidence_has_answer_type_signal(
     return True
 
 
-def run_pragmos_record(
+def run_pragmos_record(context_layer, record, question, args, question_id, *, prepared_turns=None,
+                       memory_preindexed=False, benchmark_session_prefix="longmemeval",
+                       question_session_prefix="question"):
+    """Default remains the unchanged legacy path; advice routing is explicit opt-in."""
+    keywords = dict(prepared_turns=prepared_turns, memory_preindexed=memory_preindexed,
+                    benchmark_session_prefix=benchmark_session_prefix, question_session_prefix=question_session_prefix)
+    if getattr(args, "pragmos_assistance_mode", "off") == "off":
+        return _run_pragmos_record_legacy(context_layer, record, question, args, question_id, **keywords)
+    validate_execution_arguments(args)
+    if memory_preindexed and prepared_turns is None:
+        raise ValueError("prepared_turns is required when memory_preindexed=True")
+    from PRAGMOS_assistance_contracts import interpret_request
+    from PRAGMOS_assistance_runner import run_advice
+    started = time.perf_counter()
+    route = interpret_request(context_layer, question, n_ctx=args.n_ctx, seed=args.seed)
+
+    def finish(result, assistance=None, attempted=False):
+        result["execution_diagnostics"]["assistance_route"] = {
+            "mode": "guarded", "request": route, "assistance": assistance,
+            "legacy_used": result["answer_decision"] not in {"contextual_assistance", "assistance_insufficient_context"},
+        }
+        counts = result["llm_call_counts"]
+        counts["assistance_request"] = route["model_calls"]
+        if attempted and assistance:
+            counts["assistance_source_interpretation"] = assistance.get("model_calls", {}).get("source_interpretation", 0)
+            counts["assistance_attempt_generation"] = assistance.get("model_calls", {}).get("generation", 0)
+            counts["assistance_search_reformulation"] = assistance.get("model_calls", {}).get("search_reformulation", 0)
+        counts["total"] = sum(value for key, value in counts.items() if key != "total")
+        result["elapsed_seconds"] = time.perf_counter() - started
+        return result
+
+    if not route["advice_candidate"]:
+        return finish(_run_pragmos_record_legacy(context_layer, record, question, args, question_id, **keywords))
+    cache_before = context_layer.cache_stats() if hasattr(context_layer, "cache_stats") else {}
+    begin = time.perf_counter()
+    if memory_preindexed:
+        turns, ingestion_seconds = list(prepared_turns), 0.0
+    else:
+        context_layer.reset_memory(session_id=f"{benchmark_session_prefix}-{question_id}")
+        turns = longmemeval_turns(context_layer, label_blind_inference_record(record))
+        context_layer.index_raw_turns(turns, chunk_words=args.pragmos_chunk_words,
+            overlap_words=args.pragmos_chunk_overlap_words, batch_size=args.pragmos_embedding_batch_size)
+        ingestion_seconds = time.perf_counter() - begin
+    result, assistance = run_advice(context_layer, question, args, turns)
+    if result is None:
+        keywords.update(prepared_turns=turns, memory_preindexed=True)
+        result = _run_pragmos_record_legacy(context_layer, record, question, args, question_id, **keywords)
+        result["ingestion_seconds"] += ingestion_seconds
+        return finish(result, assistance, attempted=True)
+    result["ingestion_seconds"] = ingestion_seconds
+    result["execution_diagnostics"] = {"policy": getattr(context_layer, "execution_policy", "reference"),
+        "retrieval_device": getattr(context_layer, "retrieval_device", "auto"),
+        "memory_preindexed": memory_preindexed, "index_seconds": ingestion_seconds,
+        "planner_seconds": 0.0, "overlap_enabled": False, "timing_policy": "use_elapsed_seconds_for_end_to_end_latency"}
+    cache_after = context_layer.cache_stats() if hasattr(context_layer, "cache_stats") else {}
+    result.update(cache_stats=cache_after, cache_activity=counter_delta(cache_after, cache_before))
+    # Gold annotations are used only for measurements AFTER the answer is final.
+    for field, rows, ranking in (("candidate_pool", result["retrieval_candidate_pool"], "candidate_pool"),
+                                 ("final_evidence", result["final_memories"], "final_evidence")):
+        result[field + "_longmemeval_retrieval_metrics"] = longmemeval_session_retrieval_metrics(
+            record=record, ranked_items=rows, ranking_name=ranking, question_id=question_id)
+    result["retrieval_diagnostics"] = answer_session_recall(record, result["final_memories"], graph_evidence=[])
+    result["candidate_pool_retrieval_diagnostics"] = answer_session_recall(record, result["retrieval_candidate_pool"])
+    return finish(result, assistance)
+
+
+def _run_pragmos_record_legacy(
     context_layer,
     record,
     question,
@@ -11515,6 +11844,11 @@ def run_pragmos_record(
         None,
         inference_record.get("question_date"),
     )
+    if getattr(args, "pragmos_assistance_boundary", "off") == "observe":
+        from PRAGMOS_assistance_boundary import observe_assistance_boundary
+        execution_diagnostics["assistance_boundary"] = observe_assistance_boundary(
+            context_layer, question, mode="observe", n_ctx=args.n_ctx, seed=args.seed,
+        ).as_dict()
     semantic_route_validation = (
         validate_semantic_route(
             semantic_query_plan,
@@ -12060,6 +12394,10 @@ def run_pragmos_record(
                 selected_memories=selected_candidate_memories,
                 existing_extractions=graph_extractions,
                 query_intent=query_intent,
+                turn_lookup=turn_lookup,
+                prioritize_source_projection=source_projection_eligible(
+                    question, requested_answer_slot, query_intent, query_profile,
+                    inferred_operation_plan, operation_plan, state_selector_plan),
             )
         )
     candidate_extraction_seconds = (
@@ -12289,16 +12627,36 @@ def run_pragmos_record(
         operation_plan,
     )
     operation_started_at = time.perf_counter()
-    operation_result = execute_operation_plan(
-        context_layer=context_layer,
-        question=question,
-        operation_plan=operation_plan,
-        graph_extractions=(
-            grounded_temporal_evidence_rows(compiler_ledger)
-            if compiler_temporal_grounding_active else answer_candidate_extractions
-        ),
-        query_profile=query_profile,
+    ordinal_list_result = resolve_deterministic_ordinal_list_answer(
+        question=question, evidence_rows=answer_candidate_extractions, query_profile=query_profile,
     )
+    typed_answer_result = resolve_typed_answer_slot(
+        question=question, requested_slot=requested_answer_slot,
+        evidence_rows=answer_candidate_extractions, query_profile=query_profile, query_intent=query_intent,
+    )
+    source_projection_result = resolve_source_projection(
+        question, requested_answer_slot, query_profile, query_intent,
+        inferred_operation_plan, operation_plan, state_selector_plan, turn_lookup,
+        ordinal_list_result, typed_answer_result, answer_slot_candidates,
+    )
+    source_projection_admitted = bool(source_projection_result["status"] == "complete"
+                                      and actor_grounding.get("complete"))
+    operation_compiler_active = evidence_compiler_active and not source_projection_admitted
+    if source_projection_admitted:
+        operation_result = {"status": "not_run", "operation": operation_plan.get("operation"),
+                            "answer": None, "candidate_facts": [], "selected_facts": [],
+                            "reason": "verified_source_projection"}
+    else:
+        operation_result = execute_operation_plan(
+            context_layer=context_layer,
+            question=question,
+            operation_plan=operation_plan,
+            graph_extractions=(
+                grounded_temporal_evidence_rows(compiler_ledger)
+                if compiler_temporal_grounding_active else answer_candidate_extractions
+            ),
+            query_profile=query_profile,
+        )
     frame_candidate_rows = []
     for candidate in iter_structured_candidate_fact_rows(
         operation_result.get("candidate_facts")
@@ -12354,7 +12712,7 @@ def run_pragmos_record(
     if (
         compiler_operation_proof is None
         and evidence_compiler_mode == "validated"
-        and evidence_compiler_active
+        and operation_compiler_active
         and operation_plan.get("operation") in {"count", "count_distinct"}
     ):
         (
@@ -12383,7 +12741,7 @@ def run_pragmos_record(
             or frame_count_completeness_check
         )
         and evidence_compiler_mode == "validated"
-        and evidence_compiler_active
+        and operation_compiler_active
     ):
         (
             compiler_candidate_proof,
@@ -12408,7 +12766,7 @@ def run_pragmos_record(
     if (
         (compiler_operation_proof is None or not compiler_operation_proof.executable)
         and evidence_compiler_mode == "validated"
-        and evidence_compiler_active
+        and operation_compiler_active
     ):
         compiler_frame_proof, compiler_frame_diagnostics = (
             execute_frame_operation_proof(
@@ -12441,7 +12799,7 @@ def run_pragmos_record(
     if (
         compiler_operation_proof is None
         and evidence_compiler_mode == "validated"
-        and evidence_compiler_active
+        and operation_compiler_active
         and operation_plan.get("operation") in {"count", "count_distinct", "sum"}
         and operation_result.get("candidate_facts")
         and not compiler_frame_diagnostics.get("applicable")
@@ -12461,7 +12819,7 @@ def run_pragmos_record(
             minimum_sessions=operation_plan.get("minimum_sessions", 1),
             target_unit=operation_plan.get("target_unit"),
         )
-    if compiler_operation_proof is None and evidence_compiler_active:
+    if compiler_operation_proof is None and operation_compiler_active:
         compiler_operation_proof = operation_proof_from_legacy_result(
             semantic_query_plan,
             operation_result,
@@ -12492,18 +12850,6 @@ def run_pragmos_record(
             compiler_operation_proof.status == "COMPLETE"
             and compiler_operation_proof.executable
         )
-    )
-    ordinal_list_result = resolve_deterministic_ordinal_list_answer(
-        question=question,
-        evidence_rows=answer_candidate_extractions,
-        query_profile=query_profile,
-    )
-    typed_answer_result = resolve_typed_answer_slot(
-        question=question,
-        requested_slot=requested_answer_slot,
-        evidence_rows=answer_candidate_extractions,
-        query_profile=query_profile,
-        query_intent=query_intent,
     )
     state_history_result = resolve_deterministic_state_history_answer(
         question=question,
@@ -12559,6 +12905,17 @@ def run_pragmos_record(
     if source_input_validation["blocked"]:
         safe_abstention = True
         abstention_reason = "authoritative_numeric_inputs_incomplete"
+    source_projection_selected = bool(
+        source_projection_admitted and not source_input_validation["blocked"]
+        and not state_attribute_mismatch_result["abstain"] and actor_grounding.get("complete")
+    )
+    if source_projection_selected:
+        safe_abstention, abstention_reason = False, None
+    if source_projection_result["status"] != "not_applicable":
+        execution_diagnostics["source_projection"] = {
+            **source_projection_result, "selected": source_projection_selected,
+            "superseded_operator": operation_plan.get("operation") if source_projection_selected else None,
+        }
 
     # A diagnostic distinction, not permission to bypass actor/input/proof guards.
     candidate_extraction_diagnostics["evidence_absence_established"] = False
@@ -12667,6 +13024,10 @@ def run_pragmos_record(
         prediction = "I do not know."
         answer_decision = "safe_abstention"
         generation_seconds = 0.0
+    elif source_projection_selected:
+        prediction = source_projection_result["answer"]
+        answer_decision = "validated_source_projection"
+        generation_seconds = 0.0
     elif (
         evidence_compiler_mode == "validated"
         and evidence_compiler_active
@@ -12747,7 +13108,7 @@ def run_pragmos_record(
     temporal_contract_protected = (answer_decision in {
         "deterministic_state_history", "deterministic_ordinal_list_recall",
         "deterministic_typed_answer_slot",
-    } or source_input_validation["blocked"])
+    } or source_input_validation["blocked"] or source_projection_selected)
     temporal_contract_rows = []
     temporal_contract_source_integrity = {"applicable": False}
     if temporal_contract_mode != "off" and temporal_eligible(
@@ -12810,6 +13171,7 @@ def run_pragmos_record(
             execution_cache=proof_execution_cache if proof_first_report is not None else None,
             protected=bool(
                 source_input_validation["blocked"]
+                or source_projection_selected
                 or (state_selector_plan.get("selector") != STATE_SELECTOR_NONE
                     and not membership_count_candidate(semantic_query_plan, query_intent, state_selector_plan))
                 or any(result.get("status") == "complete" for result in (
@@ -12869,6 +13231,7 @@ def run_pragmos_record(
             required_scopes=[group["text"] for group in query_profile.get("required_anchor_groups", [])
                              if group.get("text") and group["text"] in question],
             protected=bool(source_input_validation["blocked"]
+                           or source_projection_selected
                            or state_history_result.get("status") == "complete"
                            or ordinal_list_result.get("status") == "complete"
                            or typed_answer_result.get("status") == "complete"
@@ -12943,6 +13306,8 @@ def run_pragmos_record(
         **composable_call_counts,
         **state_call_counts,
     }
+    if "assistance_boundary" in execution_diagnostics:
+        llm_call_counts["assistance_boundary"] = execution_diagnostics["assistance_boundary"]["model_calls"]
     llm_call_counts["total"] = sum(llm_call_counts.values())
 
     return {
@@ -13238,6 +13603,7 @@ def with_manifest_fingerprint(manifest):
 
 def build_run_manifest(args, data_source, workload):
     validate_composable_configuration(args)
+    validate_execution_arguments(args)
     ignored_runtime_arguments = {
         "flush_every",
         "output_dir",
@@ -13285,6 +13651,17 @@ def build_run_manifest(args, data_source, workload):
         source_files.append(source_dir / "PRAGMOS_temporal_algebra.py")
         source_files.append(source_dir / "PRAGMOS_semantic_query.py")
         source_files.append(source_dir / "PRAGMOS_semantic_checker.py")
+        if getattr(args, "pragmos_assistance_boundary", "off") == "observe":
+            from PRAGMOS_assistance_boundary import protocol_identity
+            config["assistance_boundary_protocol"] = protocol_identity()
+            source_files.extend(source_dir / name for name in (
+                "PRAGMOS_assistance_boundary.py", "PRAGMOS_composable_candidate.py",
+                "PRAGMOS_composable_execution.py",
+            ))
+        if getattr(args, "pragmos_assistance_mode", "off") == "guarded":
+            from PRAGMOS_assistance_runner import SOURCE_FILES, protocol_identity as advice_identity
+            config["assistance_protocol"] = advice_identity()
+            source_files.extend(source_dir / name for name in SOURCE_FILES)
         if getattr(args, "pragmos_state_mode", "off") != "off":
             source_files.extend(source_dir / name for name in (
                 "PRAGMOS_state_views.py", "PRAGMOS_state_binding.py", "PRAGMOS_state_claims.py", "PRAGMOS_state_contracts.py",

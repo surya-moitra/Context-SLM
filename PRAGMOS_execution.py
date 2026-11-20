@@ -6,6 +6,14 @@ from concurrent.futures import ThreadPoolExecutor
 
 def add_execution_arguments(parser):
     parser.add_argument(
+        "--pragmos-assistance-mode", choices=["off", "guarded"], default="off",
+        help="Opt-in new-advice route with question/source interpretation. Off preserves existing inference.",
+    )
+    parser.add_argument(
+        "--pragmos-assistance-boundary", choices=["off", "observe"], default="off",
+        help="Question-only, state-isolated purpose observation; cannot change evidence or answers.",
+    )
+    parser.add_argument(
         "--pragmos-execution-policy", choices=["reference", "optimized"],
         default="reference",
         help="Optimized batches independent retrieval work; reasoning and evidence limits are unchanged.",
@@ -26,6 +34,24 @@ def add_execution_arguments(parser):
 
 
 def validate_execution_arguments(args):
+    assistance = getattr(args, "pragmos_assistance_mode", "off")
+    if assistance not in {"off", "guarded"}:
+        raise ValueError("--pragmos-assistance-mode supports only off or guarded")
+    if assistance == "guarded":
+        if args.mode != "pragmos_context":
+            raise ValueError("guarded assistance requires --mode pragmos_context")
+        if getattr(args, "pragmos_assistance_boundary", "off") != "off":
+            raise ValueError("guarded assistance cannot be combined with the frozen observation probe")
+        if getattr(args, "pragmos_ablate", None):
+            raise ValueError("guarded assistance ablations are not yet supported")
+        if (getattr(args, "temperature", 0) != 0 or getattr(args, "top_p", 1) != 1
+                or getattr(args, "repeat_penalty", 1.1) != 1.1):
+            raise ValueError("guarded assistance currently requires temperature=0, top_p=1, repeat_penalty=1.1")
+    boundary = getattr(args, "pragmos_assistance_boundary", "off")
+    if boundary not in {"off", "observe"}:
+        raise ValueError("--pragmos-assistance-boundary supports only off or observe")
+    if boundary == "observe" and args.mode != "pragmos_context":
+        raise ValueError("--pragmos-assistance-boundary observe requires --mode pragmos_context")
     if getattr(args, "pragmos_proof_first", False) and (
         args.mode != "pragmos_context"
         or getattr(args, "pragmos_composable_mode", "off") != "candidate"

@@ -14,6 +14,17 @@ PACK="$PROJECT/benchmark/longMemEval/synthetic_v2/semantic_revision_2"
 DATA="$PACK/typed_computation_diagnostics_v1/pragmos_multisession_diagnostics_20_v1.json"
 RUN="$PACK/execution_latency_v2/runs/proof_first"
 NAME="pragmos_diagnostics20_proof_first_candidate_v2"
+ASSISTANCE="${PRAGMOS_ASSISTANCE_MODE:-off}"
+if [[ "$ASSISTANCE" != off && "$ASSISTANCE" != guarded ]]; then
+  print -u2 "PRAGMOS_ASSISTANCE_MODE must be off or guarded"
+  exit 2
+fi
+if [[ "$ASSISTANCE" == guarded ]]; then
+  RUN="$PACK/execution_latency_v2/runs/guarded_advice_v1"
+  NAME="pragmos_diagnostics20_guarded_advice_v1"
+fi
+print "Assistance mode: $ASSISTANCE"
+print "Output directory: $RUN"
 export MPLCONFIGDIR="${MPLCONFIGDIR:-/tmp/pragmos-matplotlib}"
 export PYTHONPYCACHEPREFIX="${PYTHONPYCACHEPREFIX:-/tmp/pragmos-proof-first-pycache}"
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TOKENIZERS_PARALLELISM=false
@@ -54,6 +65,7 @@ ARGS=(
   --pragmos-temporal-engine contracts --pragmos-temporal-contract-mode off
   --pragmos-state-mode off --pragmos-execution-policy optimized
   --pragmos-retrieval-device cpu --pragmos-proof-first
+  --pragmos-assistance-boundary off --pragmos-assistance-mode "$ASSISTANCE"
   --flush-every 1 --output-dir "$RUN" --run-name "$NAME" --resume
 )
 if [[ "${1:-}" == --check-only ]]; then
