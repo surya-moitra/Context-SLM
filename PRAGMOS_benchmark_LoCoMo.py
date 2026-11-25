@@ -655,6 +655,12 @@ def build_manifest(args, workload):
         sources.append(root / "PRAGMOS_temporal_algebra.py")
         sources.append(root / "PRAGMOS_semantic_query.py")
         sources.append(root / "PRAGMOS_semantic_checker.py")
+        if getattr(args, "pragmos_factual_mode", "off") == "guarded":
+            from PRAGMOS_factual_read import protocol_identity as factual_identity
+            config["factual_read_protocol"] = factual_identity()
+            sources.extend(root / name for name in (
+                "PRAGMOS_factual_read.py", "PRAGMOS_factual_scope.py", "PRAGMOS_composable_candidate.py", "PRAGMOS_composable_execution.py",
+                "PRAGMOS_typed_claims.py", "PRAGMOS_grounded_computation.py", "PRAGMOS_assistance_boundary.py"))
         if getattr(args, "pragmos_assistance_boundary", "off") == "observe":
             from PRAGMOS_assistance_boundary import protocol_identity
             config["assistance_boundary_protocol"] = protocol_identity()

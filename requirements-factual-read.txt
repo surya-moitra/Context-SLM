@@ -1,0 +1,5 @@
+# Optional guarded factual-scope repair; existing inference packages stay pinned.
+spacy==3.8.11
+en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
+nltk==3.10.3
+# Local corpus setup (no runtime downloads): python -m nltk.downloader -d "$VIRTUAL_ENV/nltk_data" wordnet

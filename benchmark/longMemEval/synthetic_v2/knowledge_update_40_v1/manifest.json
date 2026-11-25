@@ -1,0 +1,131 @@
+{
+  "abstention_count": 6,
+  "answer_session_policy": "Both earlier and later source sessions are relevant, matching official update-history evaluation; minimal answer-span sessions are audited separately.",
+  "artifacts": {
+    "evaluation_only/case_audit.json": "2c1ff5409dc4a1c3ec11bb4e3efbbf0532d93ddb964d9a048fe44109fa7ecbac",
+    "evaluation_only/coverage_inventory.json": "cae21ed8091cc8ef2e5d58850b024781a8192fae21ce2ff4b94ab0ae5fa89cff",
+    "pragmos_knowledge_update_validation_40_v1.json": "65431f373ab32a77db19897639499e7fe042ea152ca46b8af71daac60adf4aa1"
+  },
+  "historical_failure_profile_count": 19,
+  "historical_success_is_not_a_synthetic_baseline_pass": true,
+  "historical_success_profile_count": 21,
+  "independent_holdout": false,
+  "inputs": {
+    "authoring_fixtures": {
+      "path": "/Users/moitra/.codex/worktrees/lme-evidence-compiler/context/PRAGMOS_knowledge_update_pack_cases.py",
+      "sha256": "8c65a9a3ce3aaa75161b3e44903c5a8602f7e8c39e2a710e8f4816c8188de268"
+    },
+    "builder": {
+      "path": "/Users/moitra/.codex/worktrees/lme-evidence-compiler/context/build_PRAGMOS_knowledge_update_pack.py",
+      "sha256": "3fe945e97302378735cb66fca75c66d8f64a500c475b781fc140b9b771e170cf"
+    },
+    "historical_judge": {
+      "path": "/Users/moitra/surya/dev_project/context/benchmark/longMemEval/official_publication_v1/pragmos_2k/official_judge/full_500/pragmos_gpt4o_full500_v1_results.jsonl",
+      "sha256": "93744b7563d30b395b8c0da3c7ca02b07a089a0245f56346f14295cc28f9e0be"
+    },
+    "historical_trace": {
+      "path": "/Users/moitra/surya/dev_project/context/benchmark/longMemEval/official_publication_v1/pragmos_2k/run/lme_official_pragmos_context_full500_v1_trace.jsonl",
+      "sha256": "02f888f0a3128d8e00506101a35bb646b93cce83fc417050a3252e39785debb0"
+    },
+    "r2_audit": {
+      "path": "/Users/moitra/surya/dev_project/context/benchmark/longMemEval/synthetic_v2/semantic_revision_2/semantic_r2_audit.jsonl",
+      "sha256": "7758ffca20285dc5b5f66da5fd13d901461b668927c3bd5861b0d634262e6435"
+    },
+    "source_audit": {
+      "path": "/Users/moitra/surya/dev_project/context/benchmark/longMemEval/synthetic_v2/pragmos_synthetic_longmemeval_500_v2_audit.jsonl",
+      "sha256": "7d9b984f25b45d722ed97fbf024f906f470817dfddd19116a419b884122d5820"
+    },
+    "source_r2": {
+      "path": "/Users/moitra/surya/dev_project/context/benchmark/longMemEval/synthetic_v2/semantic_revision_2/pragmos_synthetic_longmemeval_500_v2_semantic_r2.json",
+      "sha256": "080778e405d91f3b554ab5bb4b367e4eb2ccd4b751a5715559d7bd1a4f1bfaa9"
+    }
+  },
+  "limitations": [
+    "The 24 subtypes are an analyst taxonomy, not official LongMemEval labels.",
+    "Authored facts/proofs validate internal consistency, not independent semantic fidelity.",
+    "Only source slots and adjacent assistant acknowledgements are replaced; full distractor histories remain.",
+    "Answers, profile selection and annotations are evaluation-only. Inference must not read this directory's audit files."
+  ],
+  "official_benchmark_score": false,
+  "primary_profile_count": 24,
+  "primary_profile_counts": {
+    "best_record": 2,
+    "boolean_state": 2,
+    "change_direction": 1,
+    "corrected_threshold": 1,
+    "cross_actor_comparison": 1,
+    "cumulative_progress": 3,
+    "current_attribute": 3,
+    "derived_entitlement": 1,
+    "earliest_state": 1,
+    "elapsed_state": 2,
+    "event_scoped_value": 2,
+    "inventory_quantity": 1,
+    "latest_completed_event": 1,
+    "membership_changes": 2,
+    "normalized_ratio_direction": 1,
+    "numeric_change": 1,
+    "paired_states": 1,
+    "planned_state": 1,
+    "predecessor_state": 2,
+    "range_snapshot": 1,
+    "routine_schedule": 2,
+    "structured_record": 1,
+    "time_windowed_progress": 1,
+    "unsupported_scope": 6
+  },
+  "question_count": 40,
+  "schema_version": 1,
+  "selection_policy": "profile-balanced development; not proportional or a random accuracy estimate",
+  "source_profile_indices": [
+    366,
+    367,
+    368,
+    369,
+    370,
+    371,
+    372,
+    373,
+    374,
+    375,
+    376,
+    379,
+    381,
+    382,
+    388,
+    389,
+    399,
+    401,
+    402,
+    404,
+    405,
+    406,
+    412,
+    414,
+    416,
+    419,
+    421,
+    422,
+    424,
+    431,
+    432,
+    433,
+    436,
+    437,
+    438,
+    439,
+    440,
+    441,
+    442,
+    443
+  ],
+  "suite": "knowledge_update_40_v1",
+  "validation": {
+    "independent_semantic_review_completed": false,
+    "opaque_session_ids": true,
+    "preserved_session_turn_counts_dates_and_unedited_background": true,
+    "reference_fact_spans_bound_to_user_sources": true,
+    "reference_operations_recomputed": true,
+    "semantic_equivalence_or_equal_difficulty_to_official_proven": false
+  }
+}

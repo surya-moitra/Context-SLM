@@ -6,6 +6,10 @@ from concurrent.futures import ThreadPoolExecutor
 
 def add_execution_arguments(parser):
     parser.add_argument(
+        "--pragmos-factual-mode", choices=["off", "guarded"], default="off",
+        help="Opt-in source-bound property reads and positive-proof scope admission; no gold labels are used.",
+    )
+    parser.add_argument(
         "--pragmos-assistance-mode", choices=["off", "guarded"], default="off",
         help="Opt-in new-advice route with question/source interpretation. Off preserves existing inference.",
     )
@@ -34,6 +38,11 @@ def add_execution_arguments(parser):
 
 
 def validate_execution_arguments(args):
+    factual = getattr(args, "pragmos_factual_mode", "off")
+    if factual not in {"off", "guarded"}:
+        raise ValueError("--pragmos-factual-mode supports only off or guarded")
+    if factual == "guarded" and (args.mode != "pragmos_context" or getattr(args, "pragmos_ablate", None)):
+        raise ValueError("guarded factual reads require pragmos_context without ablations")
     assistance = getattr(args, "pragmos_assistance_mode", "off")
     if assistance not in {"off", "guarded"}:
         raise ValueError("--pragmos-assistance-mode supports only off or guarded")

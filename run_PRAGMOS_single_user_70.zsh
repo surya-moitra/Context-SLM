@@ -3,7 +3,7 @@ set -eu
 set -o pipefail
 
 if (( $# > 1 )) || [[ "${1:-}" != "" && "${1:-}" != --check-only ]]; then
-  print -u2 "Usage: PRAGMOS_ASSISTANCE_MODE=off|guarded /bin/zsh run_PRAGMOS_single_user_70.zsh [--check-only]"
+  print -u2 "Usage: PRAGMOS_ASSISTANCE_MODE=off|guarded PRAGMOS_FACTUAL_MODE=off|guarded /bin/zsh run_PRAGMOS_single_user_70.zsh [--check-only]"
   exit 2
 fi
 CODE="${0:A:h}"
@@ -13,6 +13,8 @@ MODEL="/Users/moitra/surya/dev_project/phi3-gguf/Phi-3-mini-4k-instruct-q4.gguf"
 SYNTH="$PROJECT/benchmark/longMemEval/synthetic_v2/semantic_revision_2"
 DATA="$SYNTH/pragmos_synthetic_longmemeval_500_v2_semantic_r2.json"
 ASSISTANCE="${PRAGMOS_ASSISTANCE_MODE:-off}"
+FACTUAL="${PRAGMOS_FACTUAL_MODE:-off}"
+[[ "$FACTUAL" == off || "$FACTUAL" == guarded ]] || { print -u2 "PRAGMOS_FACTUAL_MODE must be off or guarded"; exit 2; }
 case "$ASSISTANCE" in
   guarded)
     RUN="$SYNTH/single_session_user_70_v1/runs/guarded_advice_v1"
@@ -27,6 +29,10 @@ case "$ASSISTANCE" in
     exit 2
     ;;
 esac
+if [[ "$FACTUAL" == guarded ]]; then
+  RUN="$SYNTH/single_session_user_70_v1/runs/factual_read_${ASSISTANCE}_v1"
+  NAME="pragmos_user70_factual_read_${ASSISTANCE}_v1"
+fi
 [[ -x "$PY" && -f "$MODEL" && -f "$DATA" ]] || { print -u2 "Python, model or dataset is missing"; exit 1; }
 HASH="$(shasum -a 256 "$DATA")"
 [[ "${HASH%% *}" == "080778e405d91f3b554ab5bb4b367e4eb2ccd4b751a5715559d7bd1a4f1bfaa9" ]] || {
@@ -36,6 +42,7 @@ HASH="$(shasum -a 256 "$DATA")"
 COUNT="$(jq '[.[] | select(.question_type == "single-session-user")] | length' "$DATA")"
 [[ "$COUNT" == 70 ]] || { print -u2 "Expected 70 single-session-user records, found $COUNT"; exit 1; }
 print "Frozen R2 user70; assistance mode: $ASSISTANCE"
+print "Source-bound factual mode: $FACTUAL"
 print "Output directory: $RUN"
 print "Old User70 results use a different dataset/code; use matching current off/on runs for paired regression."
 export MPLCONFIGDIR="${MPLCONFIGDIR:-/tmp/pragmos-matplotlib}"
@@ -59,6 +66,7 @@ ARGS=(
   --pragmos-state-mode off --pragmos-execution-policy optimized
   --pragmos-retrieval-device cpu --pragmos-proof-first
   --pragmos-assistance-boundary off --pragmos-assistance-mode "$ASSISTANCE"
+  --pragmos-factual-mode "$FACTUAL"
   --flush-every 1 --output-dir "$RUN" --run-name "$NAME" --resume
 )
 if [[ "${1:-}" == --check-only ]]; then

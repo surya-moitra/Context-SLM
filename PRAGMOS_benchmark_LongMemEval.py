@@ -16,6 +16,7 @@ same loading, output, and metric code.
 """
 
 import argparse
+import copy
 import datetime
 import hashlib
 import json
@@ -3358,10 +3359,14 @@ def evaluate_composable_candidate(context_layer, question, args, *, semantic_pla
                 "preserve_slots_v3": protocol == "typed_v4",
                 "baseline_answer": baseline_answer,
                 "view": "current_membership" if membership else "observations"}
+    identity_contract = contract
+    if getattr(args, "pragmos_factual_mode", "off") == "guarded":
+        from PRAGMOS_factual_read import PROTOCOL
+        identity_contract = {**contract, "factual_validation_protocol": PROTOCOL}
     identity = None
     if execution_cache is not None:
         from PRAGMOS_proof_execution import candidate_identity, reuse_candidate
-        identity = candidate_identity(question, sources, integrity, contract,
+        identity = candidate_identity(question, sources, integrity, identity_contract,
                                       n_ctx=args.n_ctx, max_tokens=getattr(args, "max_tokens", 64),
                                       semantic_plan=semantic_plan.as_dict())
         if execution_cache.get("identity") == identity:
@@ -3426,7 +3431,7 @@ def proof_first_eligible(args, semantic_plan, query_intent, query_profile, selec
     )
 
 
-def finish_proof_first_record(context_layer, record, question_id, upstream, report, seconds, guard):
+def finish_proof_first_record(context_layer, record, question_id, upstream, report, seconds, guard, *, read_report=None):
     """Serialize an actual proof answer without inventing an unrun baseline."""
     from types import SimpleNamespace
     s = SimpleNamespace(**upstream)
@@ -3444,6 +3449,9 @@ def finish_proof_first_record(context_layer, record, question_id, upstream, repo
              "composable_extractor": report["calls"]["extractor_calls"]}
     if "assistance_boundary" in s.execution_diagnostics:
         calls["assistance_boundary"] = s.execution_diagnostics["assistance_boundary"]["model_calls"]
+    factual = upstream.get("factual_read_report") or {}
+    if factual:
+        calls["factual_reader"] = factual.get("model_calls", 0)
     calls["total"] = sum(calls.values())
     result = {
         "text": report["answer"], "answer_decision": "composable_evidence_execution",
@@ -3521,7 +3529,48 @@ def finish_proof_first_record(context_layer, record, question_id, upstream, repo
         record=record, ranked_items=list(s.final_memories) + list(s.graph_evidence),
         ranking_name="final_evidence", question_id=question_id)
     result["elapsed_seconds"] = time.perf_counter() - s.record_started_at
+    if read_report is not None:
+        result.update(answer_decision="source_bound_factual_read", composable_execution_result=None,
+                      composable_execution_seconds=0.0, baseline_answer_decision="not_run_source_bound_read",
+                      evidence_compiler_state="not_run", semantic_route_validation={
+                          **s.semantic_route_validation, "proposed_route_used": False},
+                      operation_plan={**s.inferred_operation_plan, "operation": "none", "requires_session_diversity": False},
+                      operation_result={"status": "not_applicable", "operation": "none", "execution": "source_bound_read"},
+                      prompt_tokens_estimate=read_report["prompt_tokens"],
+                      context_tokens_estimate=read_report["source_tokens"],
+                      context_packing_diagnostics={"policy": "whole_authoritative_read_windows",
+                          "final_answer_prompt_used": False, "reader_prompt_used": True,
+                          "included_units": read_report["sources"]})
+        result["llm_call_counts"].update(composable_planner=0, composable_extractor=0)
+        result["llm_call_counts"]["total"] = sum(v for k, v in result["llm_call_counts"].items() if k != "total")
     return result
+
+
+def factual_proof_admission(proof, args, query_profile, *, unresolved_scope=None):
+    if getattr(args, "pragmos_factual_mode", "off") != "guarded":
+        return {"accepted": True, "reason": "factual_mode_off"}
+    if query_profile.get("actor_binding_enabled"):
+        return {"accepted": True, "reason": "existing_actor_bound_contract"}
+    from PRAGMOS_factual_read import proof_scope_admission
+    groups = query_profile.get("required_anchor_groups") or []
+    if unresolved_scope is not None:
+        groups = [g for g in groups if g.get("text") in unresolved_scope]
+    if not groups:
+        return {"accepted": True, "reason": "existing_request_scope_covered"}
+    return proof_scope_admission(proof, groups, anchor_group_is_supported)
+
+
+def factual_read_eligible(args, intent, profile, inferred_plan, selector, requested_slot, semantic_plan):
+    if getattr(args, "pragmos_factual_mode", "off") != "guarded":
+        return False
+    from PRAGMOS_factual_read import COMPOSED_OPERATORS
+    return bool(intent.get("intent") == USER_MEMORY_INTENT
+                and semantic_plan is not None
+                and inferred_plan.get("operation") == "none"
+                and selector.get("selector") == STATE_SELECTOR_NONE
+                and not profile.get("actor_binding_enabled")
+                and requested_slot != "requested list"
+                and getattr(semantic_plan, "operator", None) not in COMPOSED_OPERATORS)
 
 
 NUMBER_WORD_PATTERN = (
@@ -11837,7 +11886,8 @@ def _run_pragmos_record_legacy(
         allow_distributed_actor_evidence=False,
     )
     query_intent = infer_query_intent(question)
-    query_profile = base_query_profile
+    query_profile = (copy.deepcopy(base_query_profile)
+                     if getattr(args, "pragmos_factual_mode", "off") == "guarded" else base_query_profile)
     state_selector_plan = infer_state_history_selector(question)
     inferred_operation_plan = infer_multi_session_operation(
         question,
@@ -12344,6 +12394,32 @@ def _run_pragmos_record_legacy(
     proof_execution_cache = {}
     proof_first_seconds = 0.0
     proof_first_report = None
+    factual_read_report = None
+    if factual_read_eligible(args, query_intent, base_query_profile, inferred_operation_plan,
+                             state_selector_plan, requested_answer_slot, semantic_query_plan):
+        from PRAGMOS_factual_read import read_operation_obligations, run_factual_read
+        factual_read_report = run_factual_read(
+            context_layer, question,
+            merge_memory_evidence(final_memories, retrieval_candidate_pool, limit=48), turn_lookup,
+            roles=query_intent.get("preferred_source_roles") or ["user"],
+            anchors_supported=lambda text: anchor_coverage(base_query_profile, text)["complete"],
+            n_ctx=args.n_ctx, max_answer_tokens=args.max_tokens, seed=args.seed,
+            scope_groups=base_query_profile.get('required_anchor_groups'),
+            group_supported=anchor_group_is_supported)
+        execution_diagnostics["factual_read"] = factual_read_report
+        if factual_read_report["status"] == "COMPLETE":
+            admission = read_operation_obligations(factual_read_report, semantic_query_plan, turn_lookup)
+            factual_read_report["source_obligations"] = admission
+            if not admission["accepted"]:
+                factual_read_report.update(status="NOT_PROVEN", answer=None, reason=admission["reason"])
+        if factual_read_report["status"] == "COMPLETE":
+            proof_source_records = selected_evidence_records(selected_candidate_memories)
+            proof_actor_grounding = actor_bound_evidence_coverage(base_query_profile, proof_source_records)
+            read_result = {"answer": factual_read_report["answer"], "promoted": True,
+                           "calls": {"planner_calls": 0, "extractor_calls": 0}}
+            return finish_proof_first_record(context_layer, record, question_id, locals(), read_result,
+                                             0.0, {"accepted": True, "kind": "source_bound_read"},
+                                             read_report=factual_read_report)
     proof_schedule = {"enabled": bool(getattr(args, "pragmos_proof_first", False)),
                       "attempted": False, "accepted": False, "legacy_fallback_used": False}
     if proof_schedule["enabled"]:
@@ -12368,6 +12444,11 @@ def _run_pragmos_record_legacy(
             proof_guard = independent_positive_guard(
                 proof_first_report, semantic_query_plan, operation_plan.get("operation"), turn_lookup,
                 windows=(proof_execution_cache.get("prepared") or {}).get("windows"))
+            if getattr(args, "pragmos_factual_mode", "off") == "guarded":
+                scope_guard = factual_proof_admission(proof_first_report.get("proof"), args, base_query_profile,
+                                                     unresolved_scope=proof_actor_grounding.get("missing", []))
+                proof_guard["factual_scope"] = scope_guard
+                proof_guard["accepted"] = proof_guard["accepted"] and scope_guard["accepted"]
             proof_first_seconds = time.perf_counter() - proof_started_at
             proof_schedule.update(attempted=True, accepted=proof_guard["accepted"],
                                   source_guard=proof_guard, early_seconds=proof_first_seconds,
@@ -12833,6 +12914,17 @@ def _run_pragmos_record_legacy(
         else (compiler_operation_proof, {"applicable": False, "blocked": False})
     )
     compiler_binding_diagnostics["source_input_validation"] = source_input_validation
+    factual_scope_rejection = None
+    if (getattr(args, "pragmos_factual_mode", "off") == "guarded"
+            and compiler_operation_proof is not None and compiler_operation_proof.executable):
+        admission = factual_proof_admission(compiler_operation_proof.as_dict(), args, base_query_profile,
+                                           unresolved_scope=selected_evidence_anchor_coverage.get("missing", []))
+        compiler_binding_diagnostics["factual_scope_admission"] = admission
+        if not admission["accepted"]:
+            factual_scope_rejection = admission
+            from dataclasses import replace
+            compiler_operation_proof = replace(compiler_operation_proof, status="PARTIAL", answer=None,
+                                               executable=False, reason=admission["reason"])
     evidence_compiler_state = (
         compiler_state(
             semantic_query_plan,
@@ -12844,7 +12936,7 @@ def _run_pragmos_record_legacy(
     )
     operation_seconds = time.perf_counter() - operation_started_at
     frame_proof_guard_active = bool(
-        (compiler_frame_diagnostics.get("applicable") or source_input_validation["blocked"])
+        (compiler_frame_diagnostics.get("applicable") or source_input_validation["blocked"] or factual_scope_rejection)
         and compiler_operation_proof is not None
         and not (
             compiler_operation_proof.status == "COMPLETE"
@@ -12905,6 +12997,9 @@ def _run_pragmos_record_legacy(
     if source_input_validation["blocked"]:
         safe_abstention = True
         abstention_reason = "authoritative_numeric_inputs_incomplete"
+    if factual_scope_rejection is not None:
+        safe_abstention = True
+        abstention_reason = "requested_scope_not_in_positive_proof"
     source_projection_selected = bool(
         source_projection_admitted and not source_input_validation["blocked"]
         and not state_attribute_mismatch_result["abstain"] and actor_grounding.get("complete")
@@ -13199,7 +13294,11 @@ def _run_pragmos_record_legacy(
         from PRAGMOS_composable_candidate import (
             promotable as composable_promotable, supported_typed_abstention,
         )
-        if composable_promotable(composable_result):
+        admission = factual_proof_admission(composable_result.get("proof"), args, base_query_profile,
+                                           unresolved_scope=selected_evidence_anchor_coverage.get("missing", []))
+        if getattr(args, "pragmos_factual_mode", "off") == "guarded":
+            composable_result["factual_scope_admission"] = admission
+        if composable_promotable(composable_result) and admission["accepted"]:
             prediction = composable_result["answer"]
             answer_decision = "composable_evidence_execution"
             safe_abstention, abstention_reason = False, None
@@ -13308,6 +13407,8 @@ def _run_pragmos_record_legacy(
     }
     if "assistance_boundary" in execution_diagnostics:
         llm_call_counts["assistance_boundary"] = execution_diagnostics["assistance_boundary"]["model_calls"]
+    if factual_read_report is not None:
+        llm_call_counts["factual_reader"] = factual_read_report["model_calls"]
     llm_call_counts["total"] = sum(llm_call_counts.values())
 
     return {
@@ -13651,6 +13752,12 @@ def build_run_manifest(args, data_source, workload):
         source_files.append(source_dir / "PRAGMOS_temporal_algebra.py")
         source_files.append(source_dir / "PRAGMOS_semantic_query.py")
         source_files.append(source_dir / "PRAGMOS_semantic_checker.py")
+        if getattr(args, "pragmos_factual_mode", "off") == "guarded":
+            from PRAGMOS_factual_read import protocol_identity as factual_identity
+            config["factual_read_protocol"] = factual_identity()
+            source_files.extend(source_dir / name for name in (
+                "PRAGMOS_factual_read.py", "PRAGMOS_factual_scope.py", "PRAGMOS_composable_candidate.py", "PRAGMOS_composable_execution.py",
+                "PRAGMOS_typed_claims.py", "PRAGMOS_grounded_computation.py", "PRAGMOS_assistance_boundary.py"))
         if getattr(args, "pragmos_assistance_boundary", "off") == "observe":
             from PRAGMOS_assistance_boundary import protocol_identity
             config["assistance_boundary_protocol"] = protocol_identity()

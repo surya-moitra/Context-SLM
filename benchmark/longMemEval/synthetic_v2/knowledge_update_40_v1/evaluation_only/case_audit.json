@@ -1,0 +1,3295 @@
+[
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 11,
+        "session_id": "ku40_0366_s0019",
+        "source_quote": "The Riverside charity race has become a regular part of my weekends. I am trying to keep the timed race results separate from the easy training loops because the routes and distances are different. My first timed Riverside 5K was 28 minutes 20 seconds. On the next Riverside 5K I brought it down to 26 minutes 15 seconds. Mira runs the shorter junior route, so her results go on another page.",
+        "source_session_index": 19,
+        "source_turn_index": 10,
+        "timestamp": "2027/12/16 (Thu) 22:02",
+        "words": 71
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0366_s0039",
+        "source_quote": "I finished the most recent Riverside charity 5K in 27 minutes 40 seconds. The crowd made it an enjoyable morning, but I was slower than on the previous attempt. My watch also logged an untimed warm-up and a walk back to the bus stop. I am not counting either of those as race results, and I have not entered the longer summer race yet.",
+        "source_session_index": 39,
+        "source_turn_index": 4,
+        "timestamp": "2027/12/23 (Thu) 22:54",
+        "words": 64
+      }
+    ],
+    "facts": {
+      "R1": {
+        "episode": 0,
+        "id": "R1",
+        "quote_end": 252,
+        "quote_start": 198,
+        "session_id": "ku40_0366_s0019",
+        "source_session_index": 19,
+        "source_turn_index": 10,
+        "text": "My first timed Riverside 5K was 28 minutes 20 seconds.",
+        "timestamp": "2027/12/16 (Thu) 22:02",
+        "value": 1700
+      },
+      "R2": {
+        "episode": 0,
+        "id": "R2",
+        "quote_end": 321,
+        "quote_start": 253,
+        "session_id": "ku40_0366_s0019",
+        "source_session_index": 19,
+        "source_turn_index": 10,
+        "text": "On the next Riverside 5K I brought it down to 26 minutes 15 seconds.",
+        "timestamp": "2027/12/16 (Thu) 22:02",
+        "value": 1575
+      },
+      "R3": {
+        "episode": 1,
+        "id": "R3",
+        "quote_end": 73,
+        "quote_start": 0,
+        "session_id": "ku40_0366_s0039",
+        "source_session_index": 39,
+        "source_turn_index": 4,
+        "text": "I finished the most recent Riverside charity 5K in 27 minutes 40 seconds.",
+        "timestamp": "2027/12/23 (Thu) 22:54",
+        "value": 1660
+      }
+    },
+    "historical_official_judge_correct": false,
+    "minimal_reference_session_ids": [
+      "ku40_0366_s0019",
+      "ku40_0366_s0039"
+    ],
+    "official_question": "What was my personal best time in the charity 5K run?",
+    "official_question_id": "6a1eabeb",
+    "primary_profile": "best_record",
+    "question_id": "synthetic_ku40_v1_0366",
+    "record_sha256": "3c77cd266d54637625e126fa75a0e4265a7f1c99fc2536650859a6ae327ebf31",
+    "reference": {
+      "format": "duration_seconds",
+      "ids": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "op": "min"
+    },
+    "reference_answer": "26 minutes 15 seconds",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "minimum_duration_not_last_performance"
+    ],
+    "selected": true,
+    "semantic_review_note": "Best is the minimum completed 5K duration, not the last performance or another route.",
+    "source_profile_index": 366,
+    "source_r2_question_id": "synthetic_v2s_r2_0366",
+    "source_session_count": 40,
+    "source_turn_count": 413
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0367_s0035",
+        "source_quote": "So far my Thai restaurant list in Stoneport contains Basil Dock, Lemongrass Barn and Tamarind Room. I keep the names because otherwise I forget which menu I have already tried. My brother's list is much longer, but most of his meals were in another town. We have only compared notes, not combined the lists.",
+        "source_session_index": 35,
+        "source_turn_index": 4,
+        "timestamp": "2027/11/10 (Wed) 19:29",
+        "words": 54
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0367_s0046",
+        "source_quote": "I finally ate at Noodle Gate in Stoneport as well. It was the new place on my list. We also went back to Basil Dock for the same noodle dish I had before. That return visit was lovely, although it did not introduce another restaurant. I have booked Orchid Jetty for next month, but that meal has not happened yet.",
+        "source_session_index": 46,
+        "source_turn_index": 6,
+        "timestamp": "2027/12/31 (Fri) 01:26",
+        "words": 60
+      }
+    ],
+    "facts": {
+      "ADD": {
+        "episode": 1,
+        "id": "ADD",
+        "quote_end": 50,
+        "quote_start": 0,
+        "session_id": "ku40_0367_s0046",
+        "source_session_index": 46,
+        "source_turn_index": 6,
+        "text": "I finally ate at Noodle Gate in Stoneport as well.",
+        "timestamp": "2027/12/31 (Fri) 01:26",
+        "value": [
+          "Noodle Gate"
+        ]
+      },
+      "BASE": {
+        "episode": 0,
+        "id": "BASE",
+        "quote_end": 99,
+        "quote_start": 0,
+        "session_id": "ku40_0367_s0035",
+        "source_session_index": 35,
+        "source_turn_index": 4,
+        "text": "So far my Thai restaurant list in Stoneport contains Basil Dock, Lemongrass Barn and Tamarind Room.",
+        "timestamp": "2027/11/10 (Wed) 19:29",
+        "value": [
+          "Basil Dock",
+          "Lemongrass Barn",
+          "Tamarind Room"
+        ]
+      }
+    },
+    "historical_official_judge_correct": false,
+    "minimal_reference_session_ids": [
+      "ku40_0367_s0035",
+      "ku40_0367_s0046"
+    ],
+    "official_question": "How many Korean restaurants have I tried in my city?",
+    "official_question_id": "6aeb4375",
+    "primary_profile": "cumulative_progress",
+    "question_id": "synthetic_ku40_v1_0367",
+    "record_sha256": "1dd4950a05718d36911e1ba4744bc122122e7a3b2cada01a2d0833b27357a059",
+    "reference": {
+      "add": [
+        "ADD"
+      ],
+      "base": "BASE",
+      "op": "set_size",
+      "remove": []
+    },
+    "reference_answer": "4",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "distinct_venues",
+      "repeat_not_addition",
+      "future_not_completed"
+    ],
+    "selected": true,
+    "semantic_review_note": "Count distinct completed restaurant visits, not mentions, repeat visits, a relative's tally or a booking.",
+    "source_profile_index": 367,
+    "source_r2_question_id": "synthetic_v2s_r2_0367",
+    "source_session_count": 47,
+    "source_turn_count": 468
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0368_s0031",
+        "source_quote": "Leena was still living in a rented flat in Cedar Bridge when we last met for lunch. She was my colleague on the library digitisation project, not the neighbour with a similar first name. She wanted somewhere quieter but had not committed to a place. I mentioned my own possible move to Dock Lane, which was an entirely separate conversation.",
+        "source_session_index": 31,
+        "source_turn_index": 4,
+        "timestamp": "2028/01/05 (Wed) 07:22",
+        "words": 60
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 9,
+        "session_id": "ku40_0368_s0044",
+        "source_quote": "Leena has now moved to Willowedge; she sent me a picture of the garden after the removal van left. Her old Cedar Bridge keys have been returned. She is keeping the same job and will commute twice a week. I am still at my old address because my Dock Lane plan fell through. The photo is hers, not a picture of a place I have moved into.",
+        "source_session_index": 44,
+        "source_turn_index": 8,
+        "timestamp": "2028/01/07 (Fri) 13:44",
+        "words": 67
+      }
+    ],
+    "facts": {
+      "NEW": {
+        "episode": 1,
+        "id": "NEW",
+        "quote_end": 98,
+        "quote_start": 0,
+        "session_id": "ku40_0368_s0044",
+        "source_session_index": 44,
+        "source_turn_index": 8,
+        "text": "Leena has now moved to Willowedge; she sent me a picture of the garden after the removal van left.",
+        "timestamp": "2028/01/07 (Fri) 13:44",
+        "value": "Willowedge"
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 83,
+        "quote_start": 0,
+        "session_id": "ku40_0368_s0031",
+        "source_session_index": 31,
+        "source_turn_index": 4,
+        "text": "Leena was still living in a rented flat in Cedar Bridge when we last met for lunch.",
+        "timestamp": "2028/01/05 (Wed) 07:22",
+        "value": "Cedar Bridge"
+      }
+    },
+    "historical_official_judge_correct": false,
+    "minimal_reference_session_ids": [
+      "ku40_0368_s0044"
+    ],
+    "official_question": "Where did Rachel move to after her recent relocation?",
+    "official_question_id": "830ce83f",
+    "primary_profile": "current_attribute",
+    "question_id": "synthetic_ku40_v1_0368",
+    "record_sha256": "0f96b9136209bcb7e05f559565c8f5391d94832953026910ba98391afd28d018",
+    "reference": {
+      "id": "NEW",
+      "op": "pick"
+    },
+    "reference_answer": "Willowedge",
+    "restored_support_slots": [],
+    "retired_source_slots": [
+      {
+        "source_session_index": 31,
+        "source_turn_index": 10
+      }
+    ],
+    "secondary_features": [
+      "named_other_actor",
+      "relocation"
+    ],
+    "selected": true,
+    "semantic_review_note": "The changed address belongs to the named colleague, not the narrator or a contemplated move.",
+    "source_profile_index": 368,
+    "source_r2_question_id": "synthetic_v2s_r2_0368",
+    "source_session_count": 47,
+    "source_turn_count": 511
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 9,
+        "session_id": "ku40_0369_s0002",
+        "source_quote": "I initially wrote $285,000 as the pre-approval amount on my Harbor Credit mortgage application. Those were the notes I took during the first phone conversation. The broker also discussed a possible purchase budget and a smaller deposit, neither of which was the bank's final pre-approval. I wanted to check the letter before treating the phone notes as settled.",
+        "source_session_index": 2,
+        "source_turn_index": 8,
+        "timestamp": "2027/09/20 (Mon) 18:51",
+        "words": 58
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0369_s0036",
+        "source_quote": "The Harbor Credit letter confirms a pre-approval of $340,000 for that application, correcting the $285,000 I wrote earlier. The loan I actually drew was $310,000 because the house cost less than the ceiling. I have put the letter with that purchase file. A later enquiry with Moor Bank concerns a different property and has not changed the Harbor Credit approval.",
+        "source_session_index": 36,
+        "source_turn_index": 4,
+        "timestamp": "2028/01/09 (Sun) 19:26",
+        "words": 60
+      }
+    ],
+    "facts": {
+      "CORRECT": {
+        "episode": 1,
+        "id": "CORRECT",
+        "quote_end": 123,
+        "quote_start": 0,
+        "session_id": "ku40_0369_s0036",
+        "source_session_index": 36,
+        "source_turn_index": 4,
+        "text": "The Harbor Credit letter confirms a pre-approval of $340,000 for that application, correcting the $285,000 I wrote earlier.",
+        "timestamp": "2028/01/09 (Sun) 19:26",
+        "value": "$340,000"
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 95,
+        "quote_start": 0,
+        "session_id": "ku40_0369_s0002",
+        "source_session_index": 2,
+        "source_turn_index": 8,
+        "text": "I initially wrote $285,000 as the pre-approval amount on my Harbor Credit mortgage application.",
+        "timestamp": "2027/09/20 (Mon) 18:51",
+        "value": "$285,000"
+      }
+    },
+    "historical_official_judge_correct": false,
+    "minimal_reference_session_ids": [
+      "ku40_0369_s0036"
+    ],
+    "official_question": "What was the amount I was pre-approved for when I got my mortgage from Wells Fargo?",
+    "official_question_id": "852ce960",
+    "primary_profile": "event_scoped_value",
+    "question_id": "synthetic_ku40_v1_0369",
+    "record_sha256": "1707a7a14a306d6177a8f750bf7d43bdc1b373401e9804dba67cede51b8c2031",
+    "reference": {
+      "id": "CORRECT",
+      "op": "pick"
+    },
+    "reference_answer": "$340,000",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "correction",
+      "same_application",
+      "different_numeric_attribute"
+    ],
+    "selected": true,
+    "semantic_review_note": "Select the corrected approval for the same application, not the actual loan, buying budget or a later application.",
+    "source_profile_index": 369,
+    "source_r2_question_id": "synthetic_v2s_r2_0369",
+    "source_session_count": 39,
+    "source_turn_count": 396
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 9,
+        "session_id": "ku40_0370_s0003",
+        "source_quote": "I started attending the tai chi class once a week to unwind after work. The first few lessons were enough to learn the sequence, but I was missing the practice between sessions. There is a separate walking group on Sundays. My sister goes to that group rather than tai chi, and we do not share a timetable.",
+        "source_session_index": 3,
+        "source_turn_index": 8,
+        "timestamp": "2027/09/28 (Tue) 00:33",
+        "words": 57
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0370_s0019",
+        "source_quote": "I now make it to tai chi three times a week, on Tuesday, Thursday and Saturday. That has become my regular routine rather than an occasional extra lesson. I considered going every weekday during a quiet work period, but I did not sign up for that arrangement. The Sunday walking group is unchanged and is not another tai chi class.",
+        "source_session_index": 19,
+        "source_turn_index": 4,
+        "timestamp": "2028/01/16 (Sun) 22:50",
+        "words": 60
+      }
+    ],
+    "facts": {
+      "NEW": {
+        "episode": 1,
+        "id": "NEW",
+        "quote_end": 79,
+        "quote_start": 0,
+        "session_id": "ku40_0370_s0019",
+        "source_session_index": 19,
+        "source_turn_index": 4,
+        "text": "I now make it to tai chi three times a week, on Tuesday, Thursday and Saturday.",
+        "timestamp": "2028/01/16 (Sun) 22:50",
+        "value": "three times a week"
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 71,
+        "quote_start": 0,
+        "session_id": "ku40_0370_s0003",
+        "source_session_index": 3,
+        "source_turn_index": 8,
+        "text": "I started attending the tai chi class once a week to unwind after work.",
+        "timestamp": "2027/09/28 (Tue) 00:33",
+        "value": "once a week"
+      }
+    },
+    "historical_official_judge_correct": false,
+    "minimal_reference_session_ids": [
+      "ku40_0370_s0019"
+    ],
+    "official_question": "How often do I attend yoga classes to help with my anxiety?",
+    "official_question_id": "945e3d21",
+    "primary_profile": "routine_schedule",
+    "question_id": "synthetic_ku40_v1_0370",
+    "record_sha256": "edf4f44c104200130a6a1c01828744e44f52570b388307e7aced108aa5e5991e",
+    "reference": {
+      "id": "NEW",
+      "op": "pick"
+    },
+    "reference_answer": "three times a week",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "implicit_current",
+      "frequency",
+      "unrealized_plan"
+    ],
+    "selected": true,
+    "semantic_review_note": "An implicit-current routine question must select the realised frequency, not a plan or another activity.",
+    "source_profile_index": 370,
+    "source_r2_question_id": "synthetic_v2s_r2_0370",
+    "source_session_count": 48,
+    "source_turn_count": 489
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0371_s0001",
+        "source_quote": "I keep my shopping list in the PocketList app and share it with my partner. It replaced the scraps of paper I used to leave beside the kettle. My mother still preferred a paper notebook at that point. We talked about how the shared list avoids buying the same groceries twice, but she had not tried it herself yet.",
+        "source_session_index": 1,
+        "source_turn_index": 4,
+        "timestamp": "2027/12/01 (Wed) 00:54",
+        "words": 59
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0371_s0036",
+        "source_quote": "My mother has switched her shopping list to PocketList too. She asked me to help set it up and now adds groceries from her phone. We use separate lists because we do not live together; the method is the same even though the contents are not. My brother still sends shopping requests by text, which is his own arrangement.",
+        "source_session_index": 36,
+        "source_turn_index": 4,
+        "timestamp": "2028/01/20 (Thu) 08:21",
+        "words": 59
+      }
+    ],
+    "facts": {
+      "MOTHER": {
+        "episode": 1,
+        "id": "MOTHER",
+        "quote_end": 59,
+        "quote_start": 0,
+        "session_id": "ku40_0371_s0036",
+        "source_session_index": 36,
+        "source_turn_index": 4,
+        "text": "My mother has switched her shopping list to PocketList too.",
+        "timestamp": "2028/01/20 (Thu) 08:21",
+        "value": "PocketList app"
+      },
+      "SELF": {
+        "episode": 0,
+        "id": "SELF",
+        "quote_end": 75,
+        "quote_start": 0,
+        "session_id": "ku40_0371_s0001",
+        "source_session_index": 1,
+        "source_turn_index": 4,
+        "text": "I keep my shopping list in the PocketList app and share it with my partner.",
+        "timestamp": "2027/12/01 (Wed) 00:54",
+        "value": "PocketList app"
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0371_s0001",
+      "ku40_0371_s0036"
+    ],
+    "official_question": "Is my mom using the same grocery list method as me?",
+    "official_question_id": "d7c942c3",
+    "primary_profile": "cross_actor_comparison",
+    "question_id": "synthetic_ku40_v1_0371",
+    "record_sha256": "8435d031444ee8110ad243eb9172f18760a82efd321a1d33bf7ae0c3625991f1",
+    "reference": {
+      "ids": [
+        "SELF",
+        "MOTHER"
+      ],
+      "op": "equal"
+    },
+    "reference_answer": "Yes",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "related_actor",
+      "equality"
+    ],
+    "selected": true,
+    "semantic_review_note": "Compare the current methods of two bound actors, not whether they share one list or had different old methods.",
+    "source_profile_index": 371,
+    "source_r2_question_id": "synthetic_v2s_r2_0371",
+    "source_session_count": 49,
+    "source_turn_count": 520
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 11,
+        "session_id": "ku40_0372_s0003",
+        "source_quote": "I reckoned I had spent about 9-11 hours working on the driftwood sculpture. That estimate covered cleaning the wood and building the first support. I did not keep a stopwatch running while the glue dried. The workshop booking itself was longer because I also helped somebody repair a frame, so its duration is not all time on my sculpture.",
+        "source_session_index": 3,
+        "source_turn_index": 10,
+        "timestamp": "2028/01/29 (Sat) 05:04",
+        "words": 59
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 9,
+        "session_id": "ku40_0372_s0029",
+        "source_quote": "Including the latest carving sessions, my total hands-on time on the driftwood sculpture is now about 13-15 hours. That is a revised total, not an extra block to add to my first estimate. I have allowed another 6 hours in the plan for sanding and mounting, but that work is still ahead of me. The range is more honest than pretending I timed every short session precisely.",
+        "source_session_index": 29,
+        "source_turn_index": 8,
+        "timestamp": "2028/02/04 (Fri) 10:39",
+        "words": 67
+      }
+    ],
+    "facts": {
+      "NEW": {
+        "episode": 1,
+        "id": "NEW",
+        "quote_end": 114,
+        "quote_start": 0,
+        "session_id": "ku40_0372_s0029",
+        "source_session_index": 29,
+        "source_turn_index": 8,
+        "text": "Including the latest carving sessions, my total hands-on time on the driftwood sculpture is now about 13-15 hours.",
+        "timestamp": "2028/02/04 (Fri) 10:39",
+        "value": "13-15 hours"
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 75,
+        "quote_start": 0,
+        "session_id": "ku40_0372_s0003",
+        "source_session_index": 3,
+        "source_turn_index": 10,
+        "text": "I reckoned I had spent about 9-11 hours working on the driftwood sculpture.",
+        "timestamp": "2028/01/29 (Sat) 05:04",
+        "value": "9-11 hours"
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0372_s0029"
+    ],
+    "official_question": "How many hours have I spent on my abstract ocean sculpture?",
+    "official_question_id": "71315a70",
+    "primary_profile": "range_snapshot",
+    "question_id": "synthetic_ku40_v1_0372",
+    "record_sha256": "cf97f26de4efbafb05e37d3e11c26185300a90a27fb7d9e9a5afc506a6999804",
+    "reference": {
+      "id": "NEW",
+      "op": "pick"
+    },
+    "reference_answer": "13-15 hours",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "interval_answer",
+      "cumulative_not_increment"
+    ],
+    "selected": true,
+    "semantic_review_note": "Keep the supported range; do not sum cumulative estimates or replace it with a future budget.",
+    "source_profile_index": 372,
+    "source_r2_question_id": "synthetic_v2s_r2_0372",
+    "source_session_count": 53,
+    "source_turn_count": 514
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 9,
+        "session_id": "ku40_0373_s0006",
+        "source_quote": "My bicycles were the city bike, the road bike and the trail bike. They were all mine, although the trail bike was temporarily at a repair shop. My neighbour keeps two bikes beside the same rack. Sharing the rack does not make those part of my collection, and the repair booking did not mean I had sold the trail bike.",
+        "source_session_index": 6,
+        "source_turn_index": 8,
+        "timestamp": "2027/06/07 (Mon) 07:16",
+        "words": 60
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0373_s0029",
+        "source_quote": "I bought a folding bike for commuting. I then sold my road bike to Niko and handed it over. The city and trail bikes are still here. I keep the receipt for the folding bike with the manuals, and the old road-bike photos are only a reminder of the sale. I have been browsing gravel bikes, but I have not bought one.",
+        "source_session_index": 29,
+        "source_turn_index": 4,
+        "timestamp": "2028/01/22 (Sat) 11:34",
+        "words": 62
+      }
+    ],
+    "facts": {
+      "ADD": {
+        "episode": 1,
+        "id": "ADD",
+        "quote_end": 38,
+        "quote_start": 0,
+        "session_id": "ku40_0373_s0029",
+        "source_session_index": 29,
+        "source_turn_index": 4,
+        "text": "I bought a folding bike for commuting.",
+        "timestamp": "2028/01/22 (Sat) 11:34",
+        "value": [
+          "folding bike"
+        ]
+      },
+      "BASE": {
+        "episode": 0,
+        "id": "BASE",
+        "quote_end": 65,
+        "quote_start": 0,
+        "session_id": "ku40_0373_s0006",
+        "source_session_index": 6,
+        "source_turn_index": 8,
+        "text": "My bicycles were the city bike, the road bike and the trail bike.",
+        "timestamp": "2027/06/07 (Mon) 07:16",
+        "value": [
+          "city bike",
+          "road bike",
+          "trail bike"
+        ]
+      },
+      "REMOVE": {
+        "episode": 1,
+        "id": "REMOVE",
+        "quote_end": 91,
+        "quote_start": 39,
+        "session_id": "ku40_0373_s0029",
+        "source_session_index": 29,
+        "source_turn_index": 4,
+        "text": "I then sold my road bike to Niko and handed it over.",
+        "timestamp": "2028/01/22 (Sat) 11:34",
+        "value": [
+          "road bike"
+        ]
+      }
+    },
+    "historical_official_judge_correct": false,
+    "minimal_reference_session_ids": [
+      "ku40_0373_s0006",
+      "ku40_0373_s0029"
+    ],
+    "official_question": "How many bikes do I currently own?",
+    "official_question_id": "89941a93",
+    "primary_profile": "membership_changes",
+    "question_id": "synthetic_ku40_v1_0373",
+    "record_sha256": "1d875d4613a0096f7470c39a0f54befad422fabefd4d4a83bce6bbac240361fe",
+    "reference": {
+      "add": [
+        "ADD"
+      ],
+      "base": "BASE",
+      "op": "set_size",
+      "remove": [
+        "REMOVE"
+      ]
+    },
+    "reference_answer": "3",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "set_add",
+      "set_remove",
+      "ownership_not_lifetime_acquisitions"
+    ],
+    "selected": true,
+    "semantic_review_note": "Current membership is additions minus disposals; lifetime acquisitions, repairs and another actor's bikes are not the same set.",
+    "source_profile_index": 373,
+    "source_r2_question_id": "synthetic_v2s_r2_0373",
+    "source_session_count": 51,
+    "source_turn_count": 528
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 9,
+        "session_id": "ku40_0374_s0001",
+        "source_quote": "My bread-making class originally met on Wednesday evenings. I liked having the weekend free, although the late finish was awkward with work. The kitchen also ran a Tuesday cake group taught by somebody else. I never joined that group, and its timetable was not a change to our bread-making course.",
+        "source_session_index": 1,
+        "source_turn_index": 8,
+        "timestamp": "2028/01/13 (Thu) 16:13",
+        "words": 50
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 11,
+        "session_id": "ku40_0374_s0017",
+        "source_quote": "Our bread-making class has moved to Saturday mornings and I have been attending that slot. The teacher had floated Monday as another option, but that was dropped before the new timetable was issued. I have taken the Wednesday reminder out of my calendar. The Tuesday cake group still has its old slot and is not the class I take.",
+        "source_session_index": 17,
+        "source_turn_index": 10,
+        "timestamp": "2028/01/28 (Fri) 01:36",
+        "words": 59
+      }
+    ],
+    "facts": {
+      "NEW": {
+        "episode": 1,
+        "id": "NEW",
+        "quote_end": 90,
+        "quote_start": 0,
+        "session_id": "ku40_0374_s0017",
+        "source_session_index": 17,
+        "source_turn_index": 10,
+        "text": "Our bread-making class has moved to Saturday mornings and I have been attending that slot.",
+        "timestamp": "2028/01/28 (Fri) 01:36",
+        "value": "Saturday"
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 59,
+        "quote_start": 0,
+        "session_id": "ku40_0374_s0001",
+        "source_session_index": 1,
+        "source_turn_index": 8,
+        "text": "My bread-making class originally met on Wednesday evenings.",
+        "timestamp": "2028/01/13 (Thu) 16:13",
+        "value": "Wednesday"
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0374_s0017"
+    ],
+    "official_question": "What day of the week do I take a cocktail-making class?",
+    "official_question_id": "ce6d2d27",
+    "primary_profile": "routine_schedule",
+    "question_id": "synthetic_ku40_v1_0374",
+    "record_sha256": "7c3f04e24665999c263b7cbd5f98ae050ea77d1c68193e3c8fb37e9e0ac71648",
+    "reference": {
+      "id": "NEW",
+      "op": "pick"
+    },
+    "reference_answer": "Saturday",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "weekday",
+      "implicit_current"
+    ],
+    "selected": true,
+    "semantic_review_note": "Resolve the active weekday even without a current/latest keyword in the question; exclude a proposed slot and a different class.",
+    "source_profile_index": 374,
+    "source_r2_question_id": "synthetic_v2_0374",
+    "source_session_count": 51,
+    "source_turn_count": 521
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0375_s0006",
+        "source_quote": "Our family went to Port Ember for the spring break. The harbour walk was everyone's favourite part and I took far too many photographs. We had considered a trip to Norhaven later in the year, but at this stage it was only an idea. My solo overnight work visit to Hillmarket was not a family holiday.",
+        "source_session_index": 6,
+        "source_turn_index": 6,
+        "timestamp": "2028/02/02 (Wed) 13:13",
+        "words": 56
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 9,
+        "session_id": "ku40_0375_s0045",
+        "source_quote": "We have since returned from a family trip to Norhaven. I am sorting the photographs from that trip and from the older Port Ember holiday together, so both place names keep appearing in my messages. We are talking about a future family trip to Eastmere, but nothing has been booked. The only completed family trip after Port Ember was the Norhaven one.",
+        "source_session_index": 45,
+        "source_turn_index": 8,
+        "timestamp": "2028/02/03 (Thu) 19:07",
+        "words": 62
+      }
+    ],
+    "facts": {
+      "NEW": {
+        "episode": 1,
+        "id": "NEW",
+        "quote_end": 54,
+        "quote_start": 0,
+        "session_id": "ku40_0375_s0045",
+        "source_session_index": 45,
+        "source_turn_index": 8,
+        "text": "We have since returned from a family trip to Norhaven.",
+        "timestamp": "2028/02/03 (Thu) 19:07",
+        "value": "Norhaven"
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 51,
+        "quote_start": 0,
+        "session_id": "ku40_0375_s0006",
+        "source_session_index": 6,
+        "source_turn_index": 6,
+        "text": "Our family went to Port Ember for the spring break.",
+        "timestamp": "2028/02/02 (Wed) 13:13",
+        "value": "Port Ember"
+      }
+    },
+    "historical_official_judge_correct": false,
+    "minimal_reference_session_ids": [
+      "ku40_0375_s0045"
+    ],
+    "official_question": "Where did I go on my most recent family trip?",
+    "official_question_id": "9ea5eabc",
+    "primary_profile": "latest_completed_event",
+    "question_id": "synthetic_ku40_v1_0375",
+    "record_sha256": "fa09206b45d00fc56e586f41b17e835c3112d89795a48505e2b91b91ab642383",
+    "reference": {
+      "id": "NEW",
+      "op": "pick"
+    },
+    "reference_answer": "Norhaven",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "future_trip_not_completed",
+      "retrospective_mention"
+    ],
+    "selected": true,
+    "semantic_review_note": "The most recent completed event is not the last place mentioned, an older photo collection or a future plan.",
+    "source_profile_index": 375,
+    "source_r2_question_id": "synthetic_v2_0375",
+    "source_session_count": 53,
+    "source_turn_count": 537
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0376_s0007",
+        "source_quote": "I first kept my spare earbuds in the small drawer under my desk. It was easy to reach while I was working, but the drawer started filling with cables and memory cards. Later I put the earbuds into a canvas pouch by the bed. That pouch was a temporary solution while I sorted the desk, not their first home.",
+        "source_session_index": 7,
+        "source_turn_index": 4,
+        "timestamp": "2027/10/29 (Fri) 04:25",
+        "words": 59
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0376_s0030",
+        "source_quote": "The spare earbuds are now in the labelled box on the wardrobe shelf. I moved them there after clearing the pouch from beside the bed. My partner's spare charging lead is still in the desk drawer, so I should not assume everything in that drawer belongs to the earbuds. I kept the same pair throughout these moves; I did not buy replacements.",
+        "source_session_index": 30,
+        "source_turn_index": 4,
+        "timestamp": "2028/02/17 (Thu) 13:31",
+        "words": 62
+      }
+    ],
+    "facts": {
+      "CURRENT": {
+        "episode": 1,
+        "id": "CURRENT",
+        "quote_end": 68,
+        "quote_start": 0,
+        "session_id": "ku40_0376_s0030",
+        "source_session_index": 30,
+        "source_turn_index": 4,
+        "text": "The spare earbuds are now in the labelled box on the wardrobe shelf.",
+        "timestamp": "2028/02/17 (Thu) 13:31",
+        "value": "the labelled box on the wardrobe shelf"
+      },
+      "ORIGINAL": {
+        "episode": 0,
+        "id": "ORIGINAL",
+        "quote_end": 64,
+        "quote_start": 0,
+        "session_id": "ku40_0376_s0007",
+        "source_session_index": 7,
+        "source_turn_index": 4,
+        "text": "I first kept my spare earbuds in the small drawer under my desk.",
+        "timestamp": "2027/10/29 (Fri) 04:25",
+        "value": "the small drawer under my desk"
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0376_s0007"
+    ],
+    "official_question": "Where do I initially keep my old sneakers?",
+    "official_question_id": "07741c44",
+    "primary_profile": "earliest_state",
+    "question_id": "synthetic_ku40_v1_0376",
+    "record_sha256": "5a7d988db083433fcd52f298a8902869d96dd37bc0bc14aebbc15916e74917b2",
+    "reference": {
+      "id": "ORIGINAL",
+      "op": "pick"
+    },
+    "reference_answer": "the small drawer under my desk",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "original_location",
+      "three_states"
+    ],
+    "selected": true,
+    "semantic_review_note": "Select the earliest location of the same object, preserving the later locations as competing history.",
+    "source_profile_index": 376,
+    "source_r2_question_id": "synthetic_v2s_r2_0376",
+    "source_session_count": 50,
+    "source_turn_count": 513
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 11,
+        "session_id": "ku40_0379_s0000",
+        "source_quote": "When I became Platform Lead at Meridian Lab, I had 6 engineers reporting to me. We shared a wider department with another team but I did not manage their members. A few weeks into the role, a temporary transfer took my own team up to 9. I kept the onboarding notes from my first week because the role was new to me.",
+        "source_session_index": 0,
+        "source_turn_index": 10,
+        "timestamp": "2027/08/27 (Fri) 21:43",
+        "words": 62
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 11,
+        "session_id": "ku40_0379_s0006",
+        "source_quote": "My Meridian Lab team now has 8 engineers after the temporary transfer ended and another permanent colleague joined. Arun leads the other team of 12 engineers and our meetings often cover both teams. I still report on my own direct reports separately. The temporary headcount of 9 was real for a while, but it is no longer the figure for my team.",
+        "source_session_index": 6,
+        "source_turn_index": 10,
+        "timestamp": "2028/02/10 (Thu) 09:34",
+        "words": 62
+      }
+    ],
+    "facts": {
+      "CURRENT": {
+        "episode": 1,
+        "id": "CURRENT",
+        "quote_end": 115,
+        "quote_start": 0,
+        "session_id": "ku40_0379_s0006",
+        "source_session_index": 6,
+        "source_turn_index": 10,
+        "text": "My Meridian Lab team now has 8 engineers after the temporary transfer ended and another permanent colleague joined.",
+        "timestamp": "2028/02/10 (Thu) 09:34",
+        "value": 8
+      },
+      "INITIAL": {
+        "episode": 0,
+        "id": "INITIAL",
+        "quote_end": 79,
+        "quote_start": 0,
+        "session_id": "ku40_0379_s0000",
+        "source_session_index": 0,
+        "source_turn_index": 10,
+        "text": "When I became Platform Lead at Meridian Lab, I had 6 engineers reporting to me.",
+        "timestamp": "2027/08/27 (Fri) 21:43",
+        "value": 6
+      }
+    },
+    "historical_official_judge_correct": false,
+    "minimal_reference_session_ids": [
+      "ku40_0379_s0000",
+      "ku40_0379_s0006"
+    ],
+    "official_question": "How many engineers do I lead when I just started my new role as Senior Software Engineer? How many engineers do I lead now?",
+    "official_question_id": "031748ae",
+    "primary_profile": "paired_states",
+    "question_id": "synthetic_ku40_v1_0379",
+    "record_sha256": "65aa5a9e5843bcc4cc27bd1c2b75c756b627d45b4f9eb5279e66320376ec3783",
+    "reference": {
+      "ids": [
+        "INITIAL",
+        "CURRENT"
+      ],
+      "op": "pair"
+    },
+    "reference_answer": "Initially 6; now 8",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "two_answer_slots",
+      "initial_and_current"
+    ],
+    "selected": true,
+    "semantic_review_note": "Return both time-indexed slots for the same role and team, not one scalar or a department total.",
+    "source_profile_index": 379,
+    "source_r2_question_id": "synthetic_v2s_r2_0379",
+    "source_session_count": 46,
+    "source_turn_count": 494
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0381_s0004",
+        "source_quote": "I thought Gold level in Clover Rewards required 140 stars. That number came from a quick note I made after reading a discussion online. My balance was changing as I bought drinks, so I wanted to keep the qualification threshold separate from the number of stars already in my account. My partner uses another rewards programme.",
+        "source_session_index": 4,
+        "source_turn_index": 6,
+        "timestamp": "2028/02/11 (Fri) 00:45",
+        "words": 56
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0381_s0043",
+        "source_quote": "I checked the Clover Rewards terms: Gold level requires 120 stars, not the 140 I had written down. The app shows 175 stars in my account, which means I have crossed the threshold. The balance can continue increasing without changing the rule for reaching Gold. The online note was simply mistaken, and the terms I checked apply to my existing account rather than a new promotion.",
+        "source_session_index": 43,
+        "source_turn_index": 4,
+        "timestamp": "2028/03/01 (Wed) 02:46",
+        "words": 66
+      }
+    ],
+    "facts": {
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 58,
+        "quote_start": 0,
+        "session_id": "ku40_0381_s0004",
+        "source_session_index": 4,
+        "source_turn_index": 6,
+        "text": "I thought Gold level in Clover Rewards required 140 stars.",
+        "timestamp": "2028/02/11 (Fri) 00:45",
+        "value": 140
+      },
+      "THRESHOLD": {
+        "episode": 1,
+        "id": "THRESHOLD",
+        "quote_end": 98,
+        "quote_start": 0,
+        "session_id": "ku40_0381_s0043",
+        "source_session_index": 43,
+        "source_turn_index": 4,
+        "text": "I checked the Clover Rewards terms: Gold level requires 120 stars, not the 140 I had written down.",
+        "timestamp": "2028/03/01 (Wed) 02:46",
+        "value": 120
+      }
+    },
+    "historical_official_judge_correct": false,
+    "minimal_reference_session_ids": [
+      "ku40_0381_s0043"
+    ],
+    "official_question": "How many stars do I need to reach the gold level on my Starbucks Rewards app?",
+    "official_question_id": "0f05491a",
+    "primary_profile": "corrected_threshold",
+    "question_id": "synthetic_ku40_v1_0381",
+    "record_sha256": "51d6888f636de510e7ff86d4384b3dc80d58cc8cf7a93d905d38ae99aa463cf2",
+    "reference": {
+      "id": "THRESHOLD",
+      "op": "pick"
+    },
+    "reference_answer": "120",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "threshold_not_balance",
+      "explicit_correction"
+    ],
+    "selected": true,
+    "semantic_review_note": "A correction to a threshold is distinct from a changing balance and from a later promotion.",
+    "source_profile_index": 381,
+    "source_r2_question_id": "synthetic_v2s_r2_0381",
+    "source_session_count": 45,
+    "source_turn_count": 489
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0382_s0004",
+        "source_quote": "At that check-in I had been using the EverTrack band for 2 months. I had owned it longer because it stayed in its box before I started tracking walks. My sister was already using hers and had a separate streak. We compared the display settings, not the start dates, and I did not count the months it spent unused as months of use.",
+        "source_session_index": 4,
+        "source_turn_index": 6,
+        "timestamp": "2027/12/19 (Sun) 05:23",
+        "words": 63
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 9,
+        "session_id": "ku40_0382_s0040",
+        "source_quote": "By our latest check-in, I had been actively using my EverTrack band for 8 months. I had owned it for a full year by then, but I still distinguish owning it from wearing it. My sister had reached 10 months of use on her band. I am pleased that the same device is still working; I have not reset my own start date or replaced it.",
+        "source_session_index": 40,
+        "source_turn_index": 8,
+        "timestamp": "2028/03/04 (Sat) 05:37",
+        "words": 66
+      }
+    ],
+    "facts": {
+      "NEW": {
+        "episode": 1,
+        "id": "NEW",
+        "quote_end": 81,
+        "quote_start": 0,
+        "session_id": "ku40_0382_s0040",
+        "source_session_index": 40,
+        "source_turn_index": 8,
+        "text": "By our latest check-in, I had been actively using my EverTrack band for 8 months.",
+        "timestamp": "2028/03/04 (Sat) 05:37",
+        "value": "8 months"
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 66,
+        "quote_start": 0,
+        "session_id": "ku40_0382_s0004",
+        "source_session_index": 4,
+        "source_turn_index": 6,
+        "text": "At that check-in I had been using the EverTrack band for 2 months.",
+        "timestamp": "2027/12/19 (Sun) 05:23",
+        "value": "2 months"
+      }
+    },
+    "historical_official_judge_correct": false,
+    "minimal_reference_session_ids": [
+      "ku40_0382_s0040"
+    ],
+    "official_question": "How long have I been using my Fitbit Charge 3?",
+    "official_question_id": "08e075c7",
+    "primary_profile": "elapsed_state",
+    "question_id": "synthetic_ku40_v1_0382",
+    "record_sha256": "8b685204fb98c59d75a791c8aadb3519feb9600fae2ce58e678d86d2975ee393",
+    "reference": {
+      "id": "NEW",
+      "op": "pick"
+    },
+    "reference_answer": "8 months",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "stated_duration",
+      "use_not_ownership_duration"
+    ],
+    "selected": true,
+    "semantic_review_note": "Use the latest stated elapsed duration at its as-of point, not ownership duration or a relative's usage.",
+    "source_profile_index": 382,
+    "source_r2_question_id": "synthetic_v2s_r2_0382",
+    "source_session_count": 45,
+    "source_turn_count": 484
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 9,
+        "session_id": "ku40_0388_s0007",
+        "source_quote": "Leena was working at Birch Labs after we stopped being colleagues at the archive. We used to be on the same digitisation team, so I still think of her as my colleague even though I left. I work for a different organisation now. She mentioned seeing an advertisement from Delta Systems, but an advertisement was not an offer or a change of employer.",
+        "source_session_index": 7,
+        "source_turn_index": 8,
+        "timestamp": "2028/02/25 (Fri) 07:44",
+        "words": 63
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0388_s0040",
+        "source_quote": "Leena has joined Cedar Analytics and has finished her first week there. She left Birch Labs before starting. Delta Systems did invite her to interview, but she declined once she accepted the Cedar Analytics role. My own employer has not changed. The news is about Leena's actual job, not the various company names in our conversation.",
+        "source_session_index": 40,
+        "source_turn_index": 6,
+        "timestamp": "2028/02/28 (Mon) 08:26",
+        "words": 56
+      }
+    ],
+    "facts": {
+      "NEW": {
+        "episode": 1,
+        "id": "NEW",
+        "quote_end": 71,
+        "quote_start": 0,
+        "session_id": "ku40_0388_s0040",
+        "source_session_index": 40,
+        "source_turn_index": 6,
+        "text": "Leena has joined Cedar Analytics and has finished her first week there.",
+        "timestamp": "2028/02/28 (Mon) 08:26",
+        "value": "Cedar Analytics"
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 81,
+        "quote_start": 0,
+        "session_id": "ku40_0388_s0007",
+        "source_session_index": 7,
+        "source_turn_index": 8,
+        "text": "Leena was working at Birch Labs after we stopped being colleagues at the archive.",
+        "timestamp": "2028/02/25 (Fri) 07:44",
+        "value": "Birch Labs"
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0388_s0040"
+    ],
+    "official_question": "What company is Rachel, an old colleague from my previous company, currently working at?",
+    "official_question_id": "5a4f22c0",
+    "primary_profile": "current_attribute",
+    "question_id": "synthetic_ku40_v1_0388",
+    "record_sha256": "bb352685e04a6c096dd16652e82c77cb1c288935f86058d6343c05f4a56881dc",
+    "reference": {
+      "id": "NEW",
+      "op": "pick"
+    },
+    "reference_answer": "Cedar Analytics",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "named_other_actor",
+      "employer",
+      "job_offer_not_employment"
+    ],
+    "selected": true,
+    "semantic_review_note": "Bind a named other actor's current employer; an interview is not employment and the narrator's employer is separate.",
+    "source_profile_index": 388,
+    "source_r2_question_id": "synthetic_v2_0388",
+    "source_session_count": 49,
+    "source_turn_count": 487
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0389_s0001",
+        "source_quote": "My earlier cordial batch used 9 measures of water. I mixed that water with 3 measures of syrup. The jug held the whole batch and the notes describe ingredients, not the number of glasses served. I wanted to scale the recipe later, but scaling the jug alone would not tell me whether the drink had become weaker or stronger.",
+        "source_session_index": 1,
+        "source_turn_index": 4,
+        "timestamp": "2027/10/11 (Mon) 07:05",
+        "words": 59
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0389_s0019",
+        "source_quote": "The batch I make now uses 14 measures of water. That new batch takes 7 measures of syrup. Both ingredient measures are the same size as before. I have a larger jug now and more people to serve. I wrote the new recipe on a label for the jug, but the old recipe card is still in the kitchen drawer beside the spare measuring cup.",
+        "source_session_index": 19,
+        "source_turn_index": 6,
+        "timestamp": "2028/02/27 (Sun) 08:38",
+        "words": 65
+      }
+    ],
+    "facts": {
+      "NEW_S": {
+        "episode": 1,
+        "id": "NEW_S",
+        "quote_end": 89,
+        "quote_start": 48,
+        "session_id": "ku40_0389_s0019",
+        "source_session_index": 19,
+        "source_turn_index": 6,
+        "text": "That new batch takes 7 measures of syrup.",
+        "timestamp": "2028/02/27 (Sun) 08:38",
+        "value": 7
+      },
+      "NEW_W": {
+        "episode": 1,
+        "id": "NEW_W",
+        "quote_end": 47,
+        "quote_start": 0,
+        "session_id": "ku40_0389_s0019",
+        "source_session_index": 19,
+        "source_turn_index": 6,
+        "text": "The batch I make now uses 14 measures of water.",
+        "timestamp": "2028/02/27 (Sun) 08:38",
+        "value": 14
+      },
+      "OLD_S": {
+        "episode": 0,
+        "id": "OLD_S",
+        "quote_end": 95,
+        "quote_start": 51,
+        "session_id": "ku40_0389_s0001",
+        "source_session_index": 1,
+        "source_turn_index": 4,
+        "text": "I mixed that water with 3 measures of syrup.",
+        "timestamp": "2027/10/11 (Mon) 07:05",
+        "value": 3
+      },
+      "OLD_W": {
+        "episode": 0,
+        "id": "OLD_W",
+        "quote_end": 50,
+        "quote_start": 0,
+        "session_id": "ku40_0389_s0001",
+        "source_session_index": 1,
+        "source_turn_index": 4,
+        "text": "My earlier cordial batch used 9 measures of water.",
+        "timestamp": "2027/10/11 (Mon) 07:05",
+        "value": 9
+      }
+    },
+    "historical_official_judge_correct": false,
+    "minimal_reference_session_ids": [
+      "ku40_0389_s0001",
+      "ku40_0389_s0019"
+    ],
+    "official_question": "For the coffee-to-water ratio in my French press, did I switch to more water per tablespoon of coffee, or less?",
+    "official_question_id": "6071bd76",
+    "primary_profile": "normalized_ratio_direction",
+    "question_id": "synthetic_ku40_v1_0389",
+    "record_sha256": "8bf62a344948231100ddff763d147697fed2c7a3dbbd55e34a5b18a87f422041",
+    "reference": {
+      "ids": [
+        "OLD_W",
+        "OLD_S",
+        "NEW_W",
+        "NEW_S"
+      ],
+      "op": "ratio_direction"
+    },
+    "reference_answer": "less",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "ratio_not_numerator",
+      "two_denominators"
+    ],
+    "selected": true,
+    "semantic_review_note": "Compare 9/3 with 14/7; absolute water increases while water per syrup decreases.",
+    "source_profile_index": 389,
+    "source_r2_question_id": "synthetic_v2s_r2_0389",
+    "source_session_count": 46,
+    "source_turn_count": 482
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0399_s0000",
+        "source_quote": "I had been following the evening tidying routine for one week when I first described it. I spend a short time on the desk and kitchen after dinner rather than doing a whole-house clean. My sister started her own routine earlier. We exchange ideas about storage, but I keep track of my own start rather than counting the weeks she has been doing hers.",
+        "source_session_index": 0,
+        "source_turn_index": 4,
+        "timestamp": "2028/01/07 (Fri) 00:05",
+        "words": 64
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 3,
+        "session_id": "ku40_0399_s0036",
+        "source_quote": "At our latest check-in I had kept up the evening tidying routine for 4 weeks. It has become easier to leave the kitchen clear before going to bed. I hope to keep going for at least 8 weeks before reviewing the arrangement. That is a target I have not reached yet, and my sister's longer streak is still her own.",
+        "source_session_index": 36,
+        "source_turn_index": 2,
+        "timestamp": "2028/04/26 (Wed) 19:33",
+        "words": 60
+      }
+    ],
+    "facts": {
+      "NEW": {
+        "episode": 1,
+        "id": "NEW",
+        "quote_end": 77,
+        "quote_start": 0,
+        "session_id": "ku40_0399_s0036",
+        "source_session_index": 36,
+        "source_turn_index": 2,
+        "text": "At our latest check-in I had kept up the evening tidying routine for 4 weeks.",
+        "timestamp": "2028/04/26 (Wed) 19:33",
+        "value": "4 weeks"
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 88,
+        "quote_start": 0,
+        "session_id": "ku40_0399_s0000",
+        "source_session_index": 0,
+        "source_turn_index": 4,
+        "text": "I had been following the evening tidying routine for one week when I first described it.",
+        "timestamp": "2028/01/07 (Fri) 00:05",
+        "value": "one week"
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0399_s0036"
+    ],
+    "official_question": "How long have I been sticking to my daily tidying routine?",
+    "official_question_id": "7a87bd0c",
+    "primary_profile": "elapsed_state",
+    "question_id": "synthetic_ku40_v1_0399",
+    "record_sha256": "a171f7c9814a73678cd011f1b067eee46f6b465c35b10e21cb50504054403501",
+    "reference": {
+      "id": "NEW",
+      "op": "pick"
+    },
+    "reference_answer": "4 weeks",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "stated_elapsed_weeks",
+      "routine_not_planned_duration",
+      "historical_success_control"
+    ],
+    "selected": true,
+    "semantic_review_note": "Retain a historically successful elapsed-state profile; select completed weeks of the narrator's routine, not a target or a relative's streak.",
+    "source_profile_index": 399,
+    "source_r2_question_id": "synthetic_v2s_r2_0399",
+    "source_session_count": 48,
+    "source_turn_count": 506
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 9,
+        "session_id": "ku40_0401_s0002",
+        "source_quote": "My SketchStream account had reached 840 followers when I shared the first screenshot. That account is for my paper art. I also have a sound-recording account with a different audience, so I do not combine their figures. I saved the screenshot in the project folder because it was a small milestone rather than an official monthly report.",
+        "source_session_index": 2,
+        "source_turn_index": 8,
+        "timestamp": "2028/04/14 (Fri) 19:21",
+        "words": 57
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0401_s0047",
+        "source_quote": "SketchStream is now at 1,025 followers on the paper-art account. I attached the old 840-follower screenshot again when we talked about how it began; it is not a new count. The sound-recording account has 1,400 followers. I am discussing the paper-art account's current audience, not adding together its earlier snapshots or the audiences of two different accounts.",
+        "source_session_index": 47,
+        "source_turn_index": 4,
+        "timestamp": "2028/04/16 (Sun) 10:39",
+        "words": 57
+      }
+    ],
+    "facts": {
+      "NEW": {
+        "episode": 1,
+        "id": "NEW",
+        "quote_end": 64,
+        "quote_start": 0,
+        "session_id": "ku40_0401_s0047",
+        "source_session_index": 47,
+        "source_turn_index": 4,
+        "text": "SketchStream is now at 1,025 followers on the paper-art account.",
+        "timestamp": "2028/04/16 (Sun) 10:39",
+        "value": 1025
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 85,
+        "quote_start": 0,
+        "session_id": "ku40_0401_s0002",
+        "source_session_index": 2,
+        "source_turn_index": 8,
+        "text": "My SketchStream account had reached 840 followers when I shared the first screenshot.",
+        "timestamp": "2028/04/14 (Fri) 19:21",
+        "value": 840
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0401_s0047"
+    ],
+    "official_question": "How many Instagram followers do I currently have?",
+    "official_question_id": "1cea1afa",
+    "primary_profile": "cumulative_progress",
+    "question_id": "synthetic_ku40_v1_0401",
+    "record_sha256": "38bfdfecacd2e4401ed3d1916d47bbb8adca9850333f4314b5ac8e6dbec83e74",
+    "reference": {
+      "id": "NEW",
+      "op": "pick"
+    },
+    "reference_answer": "1025",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "snapshot_not_sum",
+      "stale_screenshot",
+      "account_binding"
+    ],
+    "selected": true,
+    "semantic_review_note": "A later retelling of an old snapshot must not supersede the current observation, nor should cumulative snapshots be summed.",
+    "source_profile_index": 401,
+    "source_r2_question_id": "synthetic_v2s_r2_0401",
+    "source_session_count": 49,
+    "source_turn_count": 485
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0402_s0001",
+        "source_quote": "We had 24 dozen eggs in the pantry after the delivery. Each tray held a dozen; the invoice also counted trays, so it was easy to confuse trays with individual eggs. The neighbour had placed a separate order. Her trays were delivered in the same van but went straight to her house rather than into our pantry.",
+        "source_session_index": 1,
+        "source_turn_index": 4,
+        "timestamp": "2028/03/03 (Fri) 08:43",
+        "words": 57
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0402_s0040",
+        "source_quote": "After the baking weekend we have 16 dozen eggs left in our pantry. Eight dozen from the earlier delivery were used. The remaining trays are unopened and still hold a dozen each. I have not placed another order. The original delivery receipt is still pinned to the pantry door, next to the baking rota for the coming weekend.",
+        "source_session_index": 40,
+        "source_turn_index": 6,
+        "timestamp": "2028/05/04 (Thu) 17:46",
+        "words": 58
+      }
+    ],
+    "facts": {
+      "NEW": {
+        "episode": 1,
+        "id": "NEW",
+        "quote_end": 66,
+        "quote_start": 0,
+        "session_id": "ku40_0402_s0040",
+        "source_session_index": 40,
+        "source_turn_index": 6,
+        "text": "After the baking weekend we have 16 dozen eggs left in our pantry.",
+        "timestamp": "2028/05/04 (Thu) 17:46",
+        "value": 16
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 54,
+        "quote_start": 0,
+        "session_id": "ku40_0402_s0001",
+        "source_session_index": 1,
+        "source_turn_index": 4,
+        "text": "We had 24 dozen eggs in the pantry after the delivery.",
+        "timestamp": "2028/03/03 (Fri) 08:43",
+        "value": 24
+      }
+    },
+    "historical_official_judge_correct": false,
+    "minimal_reference_session_ids": [
+      "ku40_0402_s0040"
+    ],
+    "official_question": "How many dozen eggs do we currently have stocked up in our refrigerator?",
+    "official_question_id": "ed4ddc30",
+    "primary_profile": "inventory_quantity",
+    "question_id": "synthetic_ku40_v1_0402",
+    "record_sha256": "8b42294ae563441443cd70a0b808c781b5c563e08b68401fa3dd97cf93fc3876",
+    "reference": {
+      "id": "NEW",
+      "op": "pick"
+    },
+    "reference_answer": "16",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "dozens_not_individuals",
+      "stock_not_lifetime_purchases"
+    ],
+    "selected": true,
+    "semantic_review_note": "Return the current stock in dozens, not the old delivery or an individual-egg conversion.",
+    "source_profile_index": 402,
+    "source_r2_question_id": "synthetic_v2s_r2_0402",
+    "source_session_count": 46,
+    "source_turn_count": 543
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 11,
+        "session_id": "ku40_0404_s0002",
+        "source_quote": "I was halfway through The Cedar House Letters and had not finished it. I had been reading a few chapters after dinner, alongside a separate collection of essays. The library reminder covered both books but did not mean I had read either one to the end. I wanted to finish the novel before choosing another long book.",
+        "source_session_index": 2,
+        "source_turn_index": 10,
+        "timestamp": "2028/02/21 (Mon) 10:23",
+        "words": 57
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0404_s0046",
+        "source_quote": "I finished The Cedar House Letters last night, including the final chapter and epilogue. I returned it to the library this morning. The essay collection is still unfinished, and I have only put the next novel on my reading list. The completed book is the Cedar House novel we talked about earlier, not a book I merely intend to start.",
+        "source_session_index": 46,
+        "source_turn_index": 6,
+        "timestamp": "2028/04/28 (Fri) 20:32",
+        "words": 60
+      }
+    ],
+    "facts": {
+      "NEW": {
+        "episode": 1,
+        "id": "NEW",
+        "quote_end": 88,
+        "quote_start": 0,
+        "session_id": "ku40_0404_s0046",
+        "source_session_index": 46,
+        "source_turn_index": 6,
+        "text": "I finished The Cedar House Letters last night, including the final chapter and epilogue.",
+        "timestamp": "2028/04/28 (Fri) 20:32",
+        "value": true
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 70,
+        "quote_start": 0,
+        "session_id": "ku40_0404_s0002",
+        "source_session_index": 2,
+        "source_turn_index": 10,
+        "text": "I was halfway through The Cedar House Letters and had not finished it.",
+        "timestamp": "2028/02/21 (Mon) 10:23",
+        "value": false
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0404_s0046"
+    ],
+    "official_question": "Did I finish reading 'The Nightingale' by Kristin Hannah?",
+    "official_question_id": "b01defab",
+    "primary_profile": "boolean_state",
+    "question_id": "synthetic_ku40_v1_0404",
+    "record_sha256": "43ab64c2c990fcbf03190f52cc4af029780ae9e07e1d28049f48f69584b2422c",
+    "reference": {
+      "id": "NEW",
+      "op": "pick"
+    },
+    "reference_answer": "Yes",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "completion",
+      "different_book"
+    ],
+    "selected": true,
+    "semantic_review_note": "A completion state can change; unfinished or planned states for other books cannot override it.",
+    "source_profile_index": 404,
+    "source_r2_question_id": "synthetic_v2s_r2_0404",
+    "source_session_count": 50,
+    "source_turn_count": 503
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0405_s0010",
+        "source_quote": "The mandolin needed a setup because the action had become uncomfortable. I was going to take it to Northbridge Music, but their repair desk could not fit me in. I kept the booking enquiry in my notes so I would remember whom I had called. It was not a record of completed work.",
+        "source_session_index": 10,
+        "source_turn_index": 6,
+        "timestamp": "2028/04/10 (Mon) 06:10",
+        "words": 53
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0405_s0024",
+        "source_quote": "I had the mandolin serviced at Willow Music on Maple Street. They adjusted the action and fitted a new set of strings, and I collected it afterwards. I now store the instrument in the hallway cupboard instead of under the bed. That storage move is more recent than the service, but it does not change which shop did the work.",
+        "source_session_index": 24,
+        "source_turn_index": 6,
+        "timestamp": "2028/04/19 (Wed) 03:54",
+        "words": 60
+      }
+    ],
+    "facts": {
+      "ACTUAL": {
+        "episode": 1,
+        "id": "ACTUAL",
+        "quote_end": 60,
+        "quote_start": 0,
+        "session_id": "ku40_0405_s0024",
+        "source_session_index": 24,
+        "source_turn_index": 6,
+        "text": "I had the mandolin serviced at Willow Music on Maple Street.",
+        "timestamp": "2028/04/19 (Wed) 03:54",
+        "value": "Willow Music on Maple Street"
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0405_s0010",
+      "ku40_0405_s0024"
+    ],
+    "official_question": "Where did I get my guitar serviced?",
+    "official_question_id": "22d2cb42",
+    "primary_profile": "event_scoped_value",
+    "question_id": "synthetic_ku40_v1_0405",
+    "record_sha256": "a6d1b5e11a00b761705c588366d98bbb6b4a20173de0257667ad370678b9aa02",
+    "reference": {
+      "id": "ACTUAL",
+      "include_episodes": [
+        0
+      ],
+      "op": "pick"
+    },
+    "reference_answer": "Willow Music on Maple Street",
+    "restored_support_slots": [
+      {
+        "source_session_index": 24,
+        "source_turn_index": 6
+      }
+    ],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "service_event_not_storage",
+      "plan_not_actual_venue",
+      "complete_location"
+    ],
+    "selected": true,
+    "semantic_review_note": "The actual service venue is a historical event attribute, not the cancelled booking or the object's current storage location.",
+    "source_profile_index": 405,
+    "source_r2_question_id": "synthetic_v2_0405",
+    "source_session_count": 48,
+    "source_turn_count": 473
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0406_s0008",
+        "source_quote": "My best Canal Routes score used to be 118 points. I then scored 142 points in the club game and kept that result on my score sheet. We record everyone's results separately. Mira had a particularly strong night too, but her score goes on her own sheet. I do not treat another player's score as my personal record.",
+        "source_session_index": 8,
+        "source_turn_index": 6,
+        "timestamp": "2028/04/29 (Sat) 12:13",
+        "words": 58
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 9,
+        "session_id": "ku40_0406_s0048",
+        "source_quote": "I scored 129 points in our latest Canal Routes game. It was a good evening even though I did not beat my earlier club result. Mira finished on 170 points at her table. We have a target sheet for future games, but those targets are not played results and should not be added to the record book.",
+        "source_session_index": 48,
+        "source_turn_index": 8,
+        "timestamp": "2028/05/02 (Tue) 07:21",
+        "words": 57
+      }
+    ],
+    "facts": {
+      "LAST": {
+        "episode": 1,
+        "id": "LAST",
+        "quote_end": 52,
+        "quote_start": 0,
+        "session_id": "ku40_0406_s0048",
+        "source_session_index": 48,
+        "source_turn_index": 8,
+        "text": "I scored 129 points in our latest Canal Routes game.",
+        "timestamp": "2028/05/02 (Tue) 07:21",
+        "value": 129
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 49,
+        "quote_start": 0,
+        "session_id": "ku40_0406_s0008",
+        "source_session_index": 8,
+        "source_turn_index": 6,
+        "text": "My best Canal Routes score used to be 118 points.",
+        "timestamp": "2028/04/29 (Sat) 12:13",
+        "value": 118
+      },
+      "RECORD": {
+        "episode": 0,
+        "id": "RECORD",
+        "quote_end": 131,
+        "quote_start": 50,
+        "session_id": "ku40_0406_s0008",
+        "source_session_index": 8,
+        "source_turn_index": 6,
+        "text": "I then scored 142 points in the club game and kept that result on my score sheet.",
+        "timestamp": "2028/04/29 (Sat) 12:13",
+        "value": 142
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0406_s0008",
+      "ku40_0406_s0048"
+    ],
+    "official_question": "What is my current highest score in Ticket to Ride?",
+    "official_question_id": "0e4e4c46",
+    "primary_profile": "best_record",
+    "question_id": "synthetic_ku40_v1_0406",
+    "record_sha256": "76f8b49b5c43e6123b17cdaa03de9100a2b7d4cc8fbd8b8382fa36b38f2ffbe5",
+    "reference": {
+      "format": "points",
+      "ids": [
+        "OLD",
+        "RECORD",
+        "LAST"
+      ],
+      "op": "max"
+    },
+    "reference_answer": "142 points",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "maximum_not_last_score",
+      "wrong_actor_distractor"
+    ],
+    "selected": true,
+    "semantic_review_note": "Maximum personal result is not the latest result, another player's score or a future target.",
+    "source_profile_index": 406,
+    "source_r2_question_id": "synthetic_v2s_r2_0406",
+    "source_session_count": 49,
+    "source_turn_count": 481
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0412_s0004",
+        "source_quote": "For the Westhaven birthday trip, I initially planned to stay in North Key. I liked the quiet beach, but the ferry times made it awkward for the short break. I had not travelled or stayed there. The photographs in my notes were from a friend's holiday, not evidence that I had already made the trip myself.",
+        "source_session_index": 4,
+        "source_turn_index": 4,
+        "timestamp": "2028/05/21 (Sun) 06:02",
+        "words": 56
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0412_s0039",
+        "source_quote": "My birthday-trip booking is now for East Cove, and I have cancelled the North Key reservation. The birthday trip is still ahead of me, so this is a change of plan rather than a completed stay. A hotel in Baycross is booked for a separate work trip. I do not want that later work booking mixed into the birthday itinerary.",
+        "source_session_index": 39,
+        "source_turn_index": 6,
+        "timestamp": "2028/05/24 (Wed) 12:58",
+        "words": 60
+      }
+    ],
+    "facts": {
+      "NEW": {
+        "episode": 1,
+        "id": "NEW",
+        "quote_end": 94,
+        "quote_start": 0,
+        "session_id": "ku40_0412_s0039",
+        "source_session_index": 39,
+        "source_turn_index": 6,
+        "text": "My birthday-trip booking is now for East Cove, and I have cancelled the North Key reservation.",
+        "timestamp": "2028/05/24 (Wed) 12:58",
+        "value": "East Cove"
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 74,
+        "quote_start": 0,
+        "session_id": "ku40_0412_s0004",
+        "source_session_index": 4,
+        "source_turn_index": 4,
+        "text": "For the Westhaven birthday trip, I initially planned to stay in North Key.",
+        "timestamp": "2028/05/21 (Sun) 06:02",
+        "value": "North Key"
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0412_s0039"
+    ],
+    "official_question": "Where am I planning to stay for my birthday trip to Hawaii?",
+    "official_question_id": "eace081b",
+    "primary_profile": "planned_state",
+    "question_id": "synthetic_ku40_v1_0412",
+    "record_sha256": "e5d3a7ed5adb381dd76b3446e6e20c2ab8a1007c7cf77e20fe50311e52f21ef8",
+    "reference": {
+      "id": "NEW",
+      "op": "pick"
+    },
+    "reference_answer": "East Cove",
+    "restored_support_slots": [
+      {
+        "source_session_index": 39,
+        "source_turn_index": 6
+      }
+    ],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "requested_planned_state",
+      "cancelled_plan",
+      "trip_binding"
+    ],
+    "selected": true,
+    "semantic_review_note": "A question explicitly about plans must retain the current planned state; filtering all future facts would be wrong.",
+    "source_profile_index": 412,
+    "source_r2_question_id": "synthetic_v2_0412",
+    "source_session_count": 47,
+    "source_turn_count": 489
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 11,
+        "session_id": "ku40_0414_s0019",
+        "source_quote": "I began with Bronze status at Northline Air and later reached Silver. The account stayed under the same name while the status changed. I kept the old boarding passes, so Silver still appears in some of the photographs I send. My partner has a separate account and has not followed the same sequence of tiers.",
+        "source_session_index": 19,
+        "source_turn_index": 10,
+        "timestamp": "2027/08/30 (Mon) 09:16",
+        "words": 55
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 9,
+        "session_id": "ku40_0414_s0042",
+        "source_quote": "After Silver I qualified for Gold, and on the following review I moved up to Platinum. The welcome email is for the same Northline Air account. I recently forwarded a picture of the old Silver card while talking about my early trips, but that picture did not change the order of the upgrades. There has been no downgrade or account reset.",
+        "source_session_index": 42,
+        "source_turn_index": 8,
+        "timestamp": "2028/05/12 (Fri) 00:52",
+        "words": 61
+      }
+    ],
+    "facts": {
+      "FIRST": {
+        "episode": 0,
+        "id": "FIRST",
+        "quote_end": 69,
+        "quote_start": 0,
+        "session_id": "ku40_0414_s0019",
+        "source_session_index": 19,
+        "source_turn_index": 10,
+        "text": "I began with Bronze status at Northline Air and later reached Silver.",
+        "timestamp": "2027/08/30 (Mon) 09:16",
+        "value": "Bronze then Silver"
+      },
+      "PREVIOUS": {
+        "episode": 1,
+        "id": "PREVIOUS",
+        "quote_end": 86,
+        "quote_start": 0,
+        "session_id": "ku40_0414_s0042",
+        "source_session_index": 42,
+        "source_turn_index": 8,
+        "text": "After Silver I qualified for Gold, and on the following review I moved up to Platinum.",
+        "timestamp": "2028/05/12 (Fri) 00:52",
+        "value": "Gold"
+      }
+    },
+    "historical_official_judge_correct": false,
+    "minimal_reference_session_ids": [
+      "ku40_0414_s0019",
+      "ku40_0414_s0042"
+    ],
+    "official_question": "What was my previous frequent flyer status on United Airlines before I got the current status?",
+    "official_question_id": "50635ada",
+    "primary_profile": "predecessor_state",
+    "question_id": "synthetic_ku40_v1_0414",
+    "record_sha256": "bdfa5452f3c9359df0bc123b70ee4173def96e880e12637dbbf08abb58a5c924",
+    "reference": {
+      "id": "PREVIOUS",
+      "include_episodes": [
+        0
+      ],
+      "op": "pick"
+    },
+    "reference_answer": "Gold",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "immediate_predecessor",
+      "four_states"
+    ],
+    "selected": true,
+    "semantic_review_note": "Select the immediate predecessor of the named state in a four-state history, not the earliest or most recently quoted old card.",
+    "source_profile_index": 414,
+    "source_r2_question_id": "synthetic_v2s_r2_0414",
+    "source_session_count": 48,
+    "source_turn_count": 531
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 11,
+        "session_id": "ku40_0416_s0018",
+        "source_quote": "By the end of my first three months of collecting, I had 8 signed postcards. I had started with two and added six during that opening period. I dated the page so I could compare the early collection with later progress. Unsigned postcards went into a different album and were not part of the signed-card count.",
+        "source_session_index": 18,
+        "source_turn_index": 10,
+        "timestamp": "2027/12/19 (Sun) 06:25",
+        "words": 56
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0416_s0032",
+        "source_quote": "The signed-postcard album now contains 15 cards after several more months of collecting. That newer total includes the opening collection; it is not another amount to add to the first page. I still have the dated three-month page beside the later inventory. The unsigned album has grown too, but I have not mixed those cards into this tally.",
+        "source_session_index": 32,
+        "source_turn_index": 6,
+        "timestamp": "2028/06/07 (Wed) 18:15",
+        "words": 58
+      }
+    ],
+    "facts": {
+      "NOW": {
+        "episode": 1,
+        "id": "NOW",
+        "quote_end": 88,
+        "quote_start": 0,
+        "session_id": "ku40_0416_s0032",
+        "source_session_index": 32,
+        "source_turn_index": 6,
+        "text": "The signed-postcard album now contains 15 cards after several more months of collecting.",
+        "timestamp": "2028/06/07 (Wed) 18:15",
+        "value": 15
+      },
+      "WINDOW": {
+        "episode": 0,
+        "id": "WINDOW",
+        "quote_end": 76,
+        "quote_start": 0,
+        "session_id": "ku40_0416_s0018",
+        "source_session_index": 18,
+        "source_turn_index": 10,
+        "text": "By the end of my first three months of collecting, I had 8 signed postcards.",
+        "timestamp": "2027/12/19 (Sun) 06:25",
+        "value": 8
+      }
+    },
+    "historical_official_judge_correct": false,
+    "minimal_reference_session_ids": [
+      "ku40_0416_s0018"
+    ],
+    "official_question": "How many autographed baseballs have I added to my collection in the first three months of collection?",
+    "official_question_id": "0ddfec37",
+    "primary_profile": "time_windowed_progress",
+    "question_id": "synthetic_ku40_v1_0416",
+    "record_sha256": "18b8a33c0edcd13441da5e1183fbf5adcb03cdb46f900c8eb639e762dca05eee",
+    "reference": {
+      "id": "WINDOW",
+      "op": "pick"
+    },
+    "reference_answer": "8",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "bounded_period_not_lifetime",
+      "cumulative_snapshot"
+    ],
+    "selected": true,
+    "semantic_review_note": "The bounded opening-period snapshot must survive a later cumulative total and a related object category.",
+    "source_profile_index": 416,
+    "source_r2_question_id": "synthetic_v2s_r2_0416",
+    "source_session_count": 50,
+    "source_turn_count": 483
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0419_s0013",
+        "source_quote": "My language-exchange sessions with Ana were on Tuesday evenings. We met at the library after work and concentrated on conversation. My friend also knows an Ana from a different group, but that person was not my tutor. I kept the original calendar entry because the library needed notice if we wanted to cancel.",
+        "source_session_index": 13,
+        "source_turn_index": 4,
+        "timestamp": "2028/05/25 (Thu) 15:20",
+        "words": 53
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0419_s0023",
+        "source_quote": "I now meet my new language-exchange tutor Luka on Sundays. Ana has stopped tutoring me, so the Tuesday entry is a historical one rather than my current appointment. Luka uses another room and has a different approach. My friend's Monday session with her group is separate from both of my arrangements.",
+        "source_session_index": 23,
+        "source_turn_index": 6,
+        "timestamp": "2028/06/02 (Fri) 11:06",
+        "words": 51
+      }
+    ],
+    "facts": {
+      "NEW_TUTOR": {
+        "episode": 1,
+        "id": "NEW_TUTOR",
+        "quote_end": 58,
+        "quote_start": 0,
+        "session_id": "ku40_0419_s0023",
+        "source_session_index": 23,
+        "source_turn_index": 6,
+        "text": "I now meet my new language-exchange tutor Luka on Sundays.",
+        "timestamp": "2028/06/02 (Fri) 11:06",
+        "value": "Sunday"
+      },
+      "OLD_TUTOR": {
+        "episode": 0,
+        "id": "OLD_TUTOR",
+        "quote_end": 64,
+        "quote_start": 0,
+        "session_id": "ku40_0419_s0013",
+        "source_session_index": 13,
+        "source_turn_index": 4,
+        "text": "My language-exchange sessions with Ana were on Tuesday evenings.",
+        "timestamp": "2028/05/25 (Thu) 15:20",
+        "value": "Tuesday"
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0419_s0013"
+    ],
+    "official_question": "What day of the week did I meet with my previous language exchange tutor Juan?",
+    "official_question_id": "dfde3500",
+    "primary_profile": "predecessor_state",
+    "question_id": "synthetic_ku40_v1_0419",
+    "record_sha256": "eb0bdc103fc316945f8ee644b578ecdf0847b9d06208f258569c32ef4ad7c147",
+    "reference": {
+      "id": "OLD_TUTOR",
+      "op": "pick"
+    },
+    "reference_answer": "Tuesday",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "former_person_binding",
+      "weekday",
+      "different_person_same_attribute"
+    ],
+    "selected": true,
+    "semantic_review_note": "Changing the related person does not overwrite the old person's weekday; person and relationship instance are part of the key.",
+    "source_profile_index": 419,
+    "source_r2_question_id": "synthetic_v2s_r2_0419",
+    "source_session_count": 47,
+    "source_turn_count": 480
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0421_s0010",
+        "source_quote": "My Moor Lodge account used to hold 6,800 points. I was saving them rather than redeeming immediately, and I kept that old balance in a screenshot. My housemate has a separate account. The programme offers other redemptions as well, but I am interested in the standard free-night award rather than upgrades or vouchers.",
+        "source_session_index": 10,
+        "source_turn_index": 6,
+        "timestamp": "2028/06/14 (Wed) 04:35",
+        "words": 53
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0421_s0028",
+        "source_quote": "My Moor Lodge balance has reached 14,600 points. A standard free night costs 6,500 points, and only whole nights can be redeemed. My housemate has 3,000 points in her account, which I cannot use. I have not spent any of my newer balance yet. The earlier screenshot is just a saved milestone, not an additional balance.",
+        "source_session_index": 28,
+        "source_turn_index": 4,
+        "timestamp": "2028/06/15 (Thu) 00:38",
+        "words": 56
+      }
+    ],
+    "facts": {
+      "BALANCE": {
+        "episode": 1,
+        "id": "BALANCE",
+        "quote_end": 48,
+        "quote_start": 0,
+        "session_id": "ku40_0421_s0028",
+        "source_session_index": 28,
+        "source_turn_index": 4,
+        "text": "My Moor Lodge balance has reached 14,600 points.",
+        "timestamp": "2028/06/15 (Thu) 00:38",
+        "value": 14600
+      },
+      "COST": {
+        "episode": 1,
+        "id": "COST",
+        "quote_end": 129,
+        "quote_start": 49,
+        "session_id": "ku40_0421_s0028",
+        "source_session_index": 28,
+        "source_turn_index": 4,
+        "text": "A standard free night costs 6,500 points, and only whole nights can be redeemed.",
+        "timestamp": "2028/06/15 (Thu) 00:38",
+        "value": 6500
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 48,
+        "quote_start": 0,
+        "session_id": "ku40_0421_s0010",
+        "source_session_index": 10,
+        "source_turn_index": 6,
+        "text": "My Moor Lodge account used to hold 6,800 points.",
+        "timestamp": "2028/06/14 (Wed) 04:35",
+        "value": 6800
+      }
+    },
+    "historical_official_judge_correct": false,
+    "minimal_reference_session_ids": [
+      "ku40_0421_s0028"
+    ],
+    "official_question": "How many free night's stays can I redeem at any Hilton property with my accumulated points?",
+    "official_question_id": "7401057b",
+    "primary_profile": "derived_entitlement",
+    "question_id": "synthetic_ku40_v1_0421",
+    "record_sha256": "ea0108e971b594820a78dd31a840a5760eb95112579a97fb321e02d5c2000fcb",
+    "reference": {
+      "ids": [
+        "BALANCE",
+        "COST"
+      ],
+      "op": "floor_divide"
+    },
+    "reference_answer": "2",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "snapshot_then_floor_divide",
+      "points_per_night",
+      "wrong_actor_balance"
+    ],
+    "selected": true,
+    "semantic_review_note": "Resolve the latest balance before deterministic whole-unit entitlement; do not sum snapshots or another actor's points.",
+    "source_profile_index": 421,
+    "source_r2_question_id": "synthetic_v2s_r2_0421",
+    "source_session_count": 47,
+    "source_turn_count": 446
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 9,
+        "session_id": "ku40_0422_s0028",
+        "source_quote": "I weighed 82 kg when I began exercising regularly. I wrote that down before changing my routine so I would have a consistent starting point. My first short-term aim was to reach 79 kg. A friend was following her own plan and we compared habits, but our starting weights and progress were not the same.",
+        "source_session_index": 28,
+        "source_turn_index": 8,
+        "timestamp": "2028/06/02 (Fri) 10:16",
+        "words": 55
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0422_s0053",
+        "source_quote": "My latest weigh-in is 76 kg. The earlier 79 kg entry was an intermediate weigh-in after the first part of the programme. My friend has lost 10 kg, which is her result, not mine. I still use the original starting measurement for total progress rather than restarting the count at each weigh-in.",
+        "source_session_index": 53,
+        "source_turn_index": 6,
+        "timestamp": "2028/07/03 (Mon) 03:24",
+        "words": 52
+      }
+    ],
+    "facts": {
+      "BASELINE": {
+        "episode": 0,
+        "id": "BASELINE",
+        "quote_end": 50,
+        "quote_start": 0,
+        "session_id": "ku40_0422_s0028",
+        "source_session_index": 28,
+        "source_turn_index": 8,
+        "text": "I weighed 82 kg when I began exercising regularly.",
+        "timestamp": "2028/06/02 (Fri) 10:16",
+        "value": 82
+      },
+      "CURRENT": {
+        "episode": 1,
+        "id": "CURRENT",
+        "quote_end": 28,
+        "quote_start": 0,
+        "session_id": "ku40_0422_s0053",
+        "source_session_index": 53,
+        "source_turn_index": 6,
+        "text": "My latest weigh-in is 76 kg.",
+        "timestamp": "2028/07/03 (Mon) 03:24",
+        "value": 76
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0422_s0028",
+      "ku40_0422_s0053"
+    ],
+    "official_question": "How much weight have I lost since I started going to the gym consistently?",
+    "official_question_id": "cf22b7bf",
+    "primary_profile": "numeric_change",
+    "question_id": "synthetic_ku40_v1_0422",
+    "record_sha256": "1648c8da9292808922eb61a783380625eb13374c6632ecbdb6c86d360ef4e4a9",
+    "reference": {
+      "format": "kg",
+      "ids": [
+        "BASELINE",
+        "CURRENT"
+      ],
+      "op": "subtract"
+    },
+    "reference_answer": "6 kg",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "baseline_minus_current",
+      "mass_unit",
+      "wrong_actor_distractor"
+    ],
+    "selected": true,
+    "semantic_review_note": "Return total change from the bound baseline, not the current weight, an intermediate step or a friend's result.",
+    "source_profile_index": 422,
+    "source_r2_question_id": "synthetic_v2s_r2_0422",
+    "source_session_count": 55,
+    "source_turn_count": 550
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 9,
+        "session_id": "ku40_0424_s0007",
+        "source_quote": "My Thursday badminton league record stood at 4-1 after the early fixtures. We write wins first and losses second on the results sheet. Scores from individual games are kept in another column. My doubles partner also plays on Mondays, so her Monday fixtures are not part of the record for this league.",
+        "source_session_index": 7,
+        "source_turn_index": 8,
+        "timestamp": "2028/06/05 (Mon) 16:34",
+        "words": 52
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0424_s0043",
+        "source_quote": "After the next two fixtures, my Thursday league record is 5-2. That puts me on five wins and two losses in this league. I would like to reach 8-2 by the end of the season, but that remains a goal. The old 4-1 results slip is still in my kit bag because I have not cleared it out.",
+        "source_session_index": 43,
+        "source_turn_index": 6,
+        "timestamp": "2028/06/19 (Mon) 18:21",
+        "words": 58
+      }
+    ],
+    "facts": {
+      "NEW": {
+        "episode": 1,
+        "id": "NEW",
+        "quote_end": 62,
+        "quote_start": 0,
+        "session_id": "ku40_0424_s0043",
+        "source_session_index": 43,
+        "source_turn_index": 6,
+        "text": "After the next two fixtures, my Thursday league record is 5-2.",
+        "timestamp": "2028/06/19 (Mon) 18:21",
+        "value": "5-2"
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 74,
+        "quote_start": 0,
+        "session_id": "ku40_0424_s0007",
+        "source_session_index": 7,
+        "source_turn_index": 8,
+        "text": "My Thursday badminton league record stood at 4-1 after the early fixtures.",
+        "timestamp": "2028/06/05 (Mon) 16:34",
+        "value": "4-1"
+      }
+    },
+    "historical_official_judge_correct": false,
+    "minimal_reference_session_ids": [
+      "ku40_0424_s0043"
+    ],
+    "official_question": "What is my current record in the recreational volleyball league?",
+    "official_question_id": "c7dc5443",
+    "primary_profile": "structured_record",
+    "question_id": "synthetic_ku40_v1_0424",
+    "record_sha256": "badac2ca5a2f55587b936f2a74105c8889601c13e9c20be7614df7b66efd7785",
+    "reference": {
+      "id": "NEW",
+      "op": "pick"
+    },
+    "reference_answer": "5-2",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "paired_score_not_subtraction",
+      "goal_not_actual_record"
+    ],
+    "selected": true,
+    "semantic_review_note": "A compound record is one typed answer, not scalar arithmetic; a desired future record is not current evidence.",
+    "source_profile_index": 424,
+    "source_r2_question_id": "synthetic_v2_0424",
+    "source_session_count": 46,
+    "source_turn_count": 478
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0431_s0044",
+        "source_quote": "I had only one precision screwdriver that fitted the laptop screws. It lived in the small toolkit by the desk, and I used the same one for adjusting my camera plate. Other screwdrivers in the kitchen drawer had the wrong heads. I was thinking about buying a backup but had not done so at that point.",
+        "source_session_index": 44,
+        "source_turn_index": 4,
+        "timestamp": "2028/07/12 (Wed) 04:09",
+        "words": 56
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 5,
+        "session_id": "ku40_0431_s0046",
+        "source_quote": "I bought a second matching precision screwdriver and kept it as a spare in the laptop toolkit. I have lent the original to Niko for a repair, but the spare is still here. The loan did not remove both tools from my possession. The large kitchen screwdrivers are unchanged and still do not fit the laptop screws.",
+        "source_session_index": 46,
+        "source_turn_index": 4,
+        "timestamp": "2028/07/16 (Sun) 10:09",
+        "words": 57
+      }
+    ],
+    "facts": {
+      "NEW": {
+        "episode": 1,
+        "id": "NEW",
+        "quote_end": 94,
+        "quote_start": 0,
+        "session_id": "ku40_0431_s0046",
+        "source_session_index": 46,
+        "source_turn_index": 4,
+        "text": "I bought a second matching precision screwdriver and kept it as a spare in the laptop toolkit.",
+        "timestamp": "2028/07/16 (Sun) 10:09",
+        "value": true
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 67,
+        "quote_start": 0,
+        "session_id": "ku40_0431_s0044",
+        "source_session_index": 44,
+        "source_turn_index": 4,
+        "text": "I had only one precision screwdriver that fitted the laptop screws.",
+        "timestamp": "2028/07/12 (Wed) 04:09",
+        "value": false
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0431_s0046"
+    ],
+    "official_question": "Do I have a spare screwdriver for opening up my laptop?",
+    "official_question_id": "42ec0761",
+    "primary_profile": "boolean_state",
+    "question_id": "synthetic_ku40_v1_0431",
+    "record_sha256": "955fc4703ace3dc35a4520ec167570753c0410b15f5f61e38a494ff450adeb98",
+    "reference": {
+      "id": "NEW",
+      "op": "pick"
+    },
+    "reference_answer": "Yes",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "availability",
+      "additional_possession",
+      "loan_not_total_disposal"
+    ],
+    "selected": true,
+    "semantic_review_note": "Additional possession changes availability; a loan of a different member is not disposal of the whole set.",
+    "source_profile_index": 431,
+    "source_r2_question_id": "synthetic_v2s_r2_0431",
+    "source_session_count": 48,
+    "source_turn_count": 521
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 3,
+        "session_id": "ku40_0432_s0016",
+        "source_quote": "My first in-person meeting with Niko from Tallinn was the canal walk after his train arrived. Before that we had only exchanged messages. The walk ended at a cafe and I took a photograph there, but it was all part of that one meeting. My cousin knows a different Niko locally, who is not the person I mean.",
+        "source_session_index": 16,
+        "source_turn_index": 2,
+        "timestamp": "2028/05/15 (Mon) 18:41",
+        "words": 58
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0432_s0050",
+        "source_quote": "I met Niko from Tallinn again for a museum visit the following weekend. The cafe photo I sent later was from our first canal-walk meeting, not another catch-up. We have arranged dinner for his next trip, but that is still in the future. Sending the old photograph and planning dinner have not created more completed in-person meetings.",
+        "source_session_index": 50,
+        "source_turn_index": 6,
+        "timestamp": "2028/07/04 (Tue) 22:32",
+        "words": 57
+      }
+    ],
+    "facts": {
+      "MEET1": {
+        "episode": 0,
+        "id": "MEET1",
+        "quote_end": 93,
+        "quote_start": 0,
+        "session_id": "ku40_0432_s0016",
+        "source_session_index": 16,
+        "source_turn_index": 2,
+        "text": "My first in-person meeting with Niko from Tallinn was the canal walk after his train arrived.",
+        "timestamp": "2028/05/15 (Mon) 18:41",
+        "value": "canal walk"
+      },
+      "MEET2": {
+        "episode": 1,
+        "id": "MEET2",
+        "quote_end": 71,
+        "quote_start": 0,
+        "session_id": "ku40_0432_s0050",
+        "source_session_index": 50,
+        "source_turn_index": 6,
+        "text": "I met Niko from Tallinn again for a museum visit the following weekend.",
+        "timestamp": "2028/07/04 (Tue) 22:32",
+        "value": "museum visit"
+      },
+      "RECOUNT": {
+        "episode": 1,
+        "id": "RECOUNT",
+        "quote_end": 160,
+        "quote_start": 72,
+        "session_id": "ku40_0432_s0050",
+        "source_session_index": 50,
+        "source_turn_index": 6,
+        "text": "The cafe photo I sent later was from our first canal-walk meeting, not another catch-up.",
+        "timestamp": "2028/07/04 (Tue) 22:32",
+        "value": "canal walk"
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0432_s0016",
+      "ku40_0432_s0050"
+    ],
+    "official_question": "How many times have I met up with Alex from Germany?",
+    "official_question_id": "5c40ec5b",
+    "primary_profile": "cumulative_progress",
+    "question_id": "synthetic_ku40_v1_0432",
+    "record_sha256": "daaf1e0a5e7c12ae3d70679885e62c42b41de879ff89b3260cac8078aac77040",
+    "reference": {
+      "ids": [
+        "MEET1",
+        "MEET2",
+        "RECOUNT"
+      ],
+      "op": "distinct_count"
+    },
+    "reference_answer": "2",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "occurrences_not_mentions",
+      "repeat_identity",
+      "planned_meeting"
+    ],
+    "selected": true,
+    "semantic_review_note": "Count completed event identities, not source mentions, locations within one meeting or plans.",
+    "source_profile_index": 432,
+    "source_r2_question_id": "synthetic_v2s_r2_0432",
+    "source_session_count": 51,
+    "source_turn_count": 479
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 9,
+        "session_id": "ku40_0433_s0002",
+        "source_quote": "I set myself a weekday tea limit of 2 cups a day. I wanted a rule I could remember rather than a complicated weekly allowance. The weekend routine was looser, and I did not record it as the weekday limit. I sometimes forgot to follow the rule, which is different from formally changing it.",
+        "source_session_index": 2,
+        "source_turn_index": 8,
+        "timestamp": "2028/07/20 (Thu) 13:29",
+        "words": 54
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 3,
+        "session_id": "ku40_0433_s0013",
+        "source_quote": "I have changed my weekday tea limit to 3 cups a day. Yesterday I actually drank 4 cups, but that was going over the limit rather than adopting a new one. My partner still follows a one-cup rule of her own. The change I made to my rule is the two-cup-to-three-cup adjustment.",
+        "source_session_index": 13,
+        "source_turn_index": 2,
+        "timestamp": "2028/07/21 (Fri) 20:19",
+        "words": 52
+      }
+    ],
+    "facts": {
+      "NEW": {
+        "episode": 1,
+        "id": "NEW",
+        "quote_end": 52,
+        "quote_start": 0,
+        "session_id": "ku40_0433_s0013",
+        "source_session_index": 13,
+        "source_turn_index": 2,
+        "text": "I have changed my weekday tea limit to 3 cups a day.",
+        "timestamp": "2028/07/21 (Fri) 20:19",
+        "value": 3
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 49,
+        "quote_start": 0,
+        "session_id": "ku40_0433_s0002",
+        "source_session_index": 2,
+        "source_turn_index": 8,
+        "text": "I set myself a weekday tea limit of 2 cups a day.",
+        "timestamp": "2028/07/20 (Thu) 13:29",
+        "value": 2
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0433_s0002",
+      "ku40_0433_s0013"
+    ],
+    "official_question": "Did I mostly recently increase or decrease the limit on the number of cups of coffee in the morning?",
+    "official_question_id": "c6853660",
+    "primary_profile": "change_direction",
+    "question_id": "synthetic_ku40_v1_0433",
+    "record_sha256": "0401c88c3bae9e11c2f5796f697ff54d017d672a8f1781981c6ecab04b84a7d2",
+    "reference": {
+      "ids": [
+        "OLD",
+        "NEW"
+      ],
+      "op": "direction"
+    },
+    "reference_answer": "increased",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "limit_not_actual_consumption",
+      "direction_not_current_value"
+    ],
+    "selected": true,
+    "semantic_review_note": "Compare the latest change in the limit; observed consumption and another actor's rule are different attributes.",
+    "source_profile_index": 433,
+    "source_r2_question_id": "synthetic_v2s_r2_0433",
+    "source_session_count": 46,
+    "source_turn_count": 477
+  },
+  {
+    "abstention_evidence_note": "Near-miss sessions document scope discrimination, not positive answer evidence; no closed-world absence is implied by a retrieval result.",
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 1,
+        "session_id": "ku40_0436_s0032",
+        "source_quote": "The Thai restaurants I have tried in Stoneport are Basil Dock and Lemongrass Barn. I saved their menus because I liked comparing the noodle dishes and opening times. My brother suggested a few more places in another town, but those were his suggestions rather than meals I had already eaten. I keep my own visits separate from his recommendations.",
+        "source_session_index": 32,
+        "source_turn_index": 0,
+        "timestamp": "2028/07/20 (Thu) 15:56",
+        "words": 59
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 1,
+        "session_id": "ku40_0436_s0036",
+        "source_quote": "I have now also eaten at Tamarind Room, another Thai restaurant in Stoneport. We went back to Basil Dock afterwards to meet a friend, so that restaurant appears twice in my notes. The list records my own meals. Bookings and my brother's recommendations remain on a separate page rather than being counted as completed visits.",
+        "source_session_index": 36,
+        "source_turn_index": 0,
+        "timestamp": "2028/07/26 (Wed) 21:12",
+        "words": 55
+      }
+    ],
+    "facts": {
+      "OTHER1": {
+        "episode": 0,
+        "id": "OTHER1",
+        "quote_end": 82,
+        "quote_start": 0,
+        "session_id": "ku40_0436_s0032",
+        "source_session_index": 32,
+        "source_turn_index": 0,
+        "text": "The Thai restaurants I have tried in Stoneport are Basil Dock and Lemongrass Barn.",
+        "timestamp": "2028/07/20 (Thu) 15:56",
+        "value": [
+          "Basil Dock",
+          "Lemongrass Barn"
+        ]
+      },
+      "OTHER2": {
+        "episode": 1,
+        "id": "OTHER2",
+        "quote_end": 77,
+        "quote_start": 0,
+        "session_id": "ku40_0436_s0036",
+        "source_session_index": 36,
+        "source_turn_index": 0,
+        "text": "I have now also eaten at Tamarind Room, another Thai restaurant in Stoneport.",
+        "timestamp": "2028/07/26 (Wed) 21:12",
+        "value": "Tamarind Room"
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0436_s0032",
+      "ku40_0436_s0036"
+    ],
+    "official_question": "How many Italian restaurants have I tried in my city?",
+    "official_question_id": "6aeb4375_abs",
+    "primary_profile": "unsupported_scope",
+    "question_id": "synthetic_ku40_v1_0436_abs",
+    "record_sha256": "751f9cb609eb87701b26e7d888990ce8e13b7c837e3eeea090d3cd85c6606d9a",
+    "reference": {
+      "ids": [
+        "OTHER1",
+        "OTHER2"
+      ],
+      "missing_anchor": "Peruvian",
+      "op": "absent"
+    },
+    "reference_answer": "I do not know.",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "unsupported_category"
+    ],
+    "selected": true,
+    "semantic_review_note": "The requested cuisine is unsupported; the known Thai-restaurant count cannot answer a different category.",
+    "source_profile_index": 436,
+    "source_r2_question_id": "synthetic_v2s_r2_0436_abs",
+    "source_session_count": 46,
+    "source_turn_count": 521
+  },
+  {
+    "abstention_evidence_note": "Near-miss sessions document scope discrimination, not positive answer evidence; no closed-world absence is implied by a retrieval result.",
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 1,
+        "session_id": "ku40_0437_s0039",
+        "source_quote": "I started at Meridian Lab as a Platform Engineer, with 6 engineers reporting to me on the migration project. That unusual reporting arrangement was tied to the project rather than a management title. Another team reported to Arun. I kept the appointment letter because people often shortened the title when introducing me in meetings.",
+        "source_session_index": 39,
+        "source_turn_index": 0,
+        "timestamp": "2028/08/07 (Mon) 12:35",
+        "words": 54
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 1,
+        "session_id": "ku40_0437_s0044",
+        "source_quote": "The migration team I lead as Platform Engineer has since grown to 8 engineers. My title on the appointment letter is unchanged. Arun remains the manager of the other team. I have described the engineer role and its headcount at two stages, and the wider department also has contractors who do not report to me.",
+        "source_session_index": 44,
+        "source_turn_index": 0,
+        "timestamp": "2028/08/09 (Wed) 03:28",
+        "words": 55
+      }
+    ],
+    "facts": {
+      "ROLE": {
+        "episode": 0,
+        "id": "ROLE",
+        "quote_end": 108,
+        "quote_start": 0,
+        "session_id": "ku40_0437_s0039",
+        "source_session_index": 39,
+        "source_turn_index": 0,
+        "text": "I started at Meridian Lab as a Platform Engineer, with 6 engineers reporting to me on the migration project.",
+        "timestamp": "2028/08/07 (Mon) 12:35",
+        "value": 6
+      },
+      "TOTAL": {
+        "episode": 1,
+        "id": "TOTAL",
+        "quote_end": 78,
+        "quote_start": 0,
+        "session_id": "ku40_0437_s0044",
+        "source_session_index": 44,
+        "source_turn_index": 0,
+        "text": "The migration team I lead as Platform Engineer has since grown to 8 engineers.",
+        "timestamp": "2028/08/09 (Wed) 03:28",
+        "value": 8
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0437_s0039",
+      "ku40_0437_s0044"
+    ],
+    "official_question": "How many engineers do I lead when I just started my new role as Software Engineer Manager?",
+    "official_question_id": "031748ae_abs",
+    "primary_profile": "unsupported_scope",
+    "question_id": "synthetic_ku40_v1_0437_abs",
+    "record_sha256": "4ff72b536a7839543c1e4d855aa7be98ff5a8c6de449c581cb4cbedf1c470dbb",
+    "reference": {
+      "ids": [
+        "ROLE",
+        "TOTAL"
+      ],
+      "missing_anchor": "Platform Manager",
+      "op": "absent"
+    },
+    "reference_answer": "I do not know.",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "unsupported_role"
+    ],
+    "selected": true,
+    "semantic_review_note": "A nearby but different role must not inherit the known role's starting headcount.",
+    "source_profile_index": 437,
+    "source_r2_question_id": "synthetic_v2s_r2_0437_abs",
+    "source_session_count": 52,
+    "source_turn_count": 523
+  },
+  {
+    "abstention_evidence_note": "Near-miss sessions document scope discrimination, not positive answer evidence; no closed-world absence is implied by a retrieval result.",
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 1,
+        "session_id": "ku40_0438_s0000",
+        "source_quote": "My sessions with Dr. Vel were every other week when I began. I put the appointments in my calendar separately from the group workshop at the community centre. My mother attends that workshop, whereas the appointments are mine. The reminders use the doctor's surname so I can tell the two arrangements apart.",
+        "source_session_index": 0,
+        "source_turn_index": 0,
+        "timestamp": "2028/07/26 (Wed) 12:02",
+        "words": 52
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 1,
+        "session_id": "ku40_0438_s0030",
+        "source_quote": "I have moved to weekly appointments with Dr. Vel. The calendar now has that regular slot, and the older fortnightly reminders have been removed. The community-centre workshop still follows its own schedule. My notes here concern the same doctor I named before and my own appointments rather than the group sessions.",
+        "source_session_index": 30,
+        "source_turn_index": 0,
+        "timestamp": "2028/07/29 (Sat) 15:04",
+        "words": 51
+      }
+    ],
+    "facts": {
+      "NEW": {
+        "episode": 1,
+        "id": "NEW",
+        "quote_end": 49,
+        "quote_start": 0,
+        "session_id": "ku40_0438_s0030",
+        "source_session_index": 30,
+        "source_turn_index": 0,
+        "text": "I have moved to weekly appointments with Dr. Vel.",
+        "timestamp": "2028/07/29 (Sat) 15:04",
+        "value": "weekly"
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 60,
+        "quote_start": 0,
+        "session_id": "ku40_0438_s0000",
+        "source_session_index": 0,
+        "source_turn_index": 0,
+        "text": "My sessions with Dr. Vel were every other week when I began.",
+        "timestamp": "2028/07/26 (Wed) 12:02",
+        "value": "every other week"
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0438_s0000",
+      "ku40_0438_s0030"
+    ],
+    "official_question": "How often do I see Dr. Johnson?",
+    "official_question_id": "2698e78f_abs",
+    "primary_profile": "unsupported_scope",
+    "question_id": "synthetic_ku40_v1_0438_abs",
+    "record_sha256": "460f232a2432cd9c481a959192030684af963a14cfecbc1211b49210943c129a",
+    "reference": {
+      "ids": [
+        "OLD",
+        "NEW"
+      ],
+      "missing_anchor": "Dr. Vey",
+      "op": "absent"
+    },
+    "reference_answer": "I do not know.",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "unsupported_person"
+    ],
+    "selected": true,
+    "semantic_review_note": "A similar surname is not an alias without evidence. Frequency for Dr. Vel does not answer a question about Dr. Vey.",
+    "source_profile_index": 438,
+    "source_r2_question_id": "synthetic_v2s_r2_0438_abs",
+    "source_session_count": 46,
+    "source_turn_count": 462
+  },
+  {
+    "abstention_evidence_note": "Near-miss sessions document scope discrimination, not positive answer evidence; no closed-world absence is implied by a retrieval result.",
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 1,
+        "session_id": "ku40_0439_s0009",
+        "source_quote": "At the earlier check-in I had been living in my Pinehaven apartment for 4 months. I was still finding places for the books and learning which bus to take. The rental contract is for the Pinehaven flat. I had also helped a friend move, but her moving day was not the start date for my own tenancy.",
+        "source_session_index": 9,
+        "source_turn_index": 0,
+        "timestamp": "2028/02/20 (Sun) 12:01",
+        "words": 57
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 1,
+        "session_id": "ku40_0439_s0032",
+        "source_quote": "At our latest check-in, I had reached 7 months in the Pinehaven apartment. It is the same flat and the same tenancy, with no move in between. The spare room has become my study and the book boxes are finally gone. My friend's tenancy is separate, so I do not use her dates to describe how long I have lived here.",
+        "source_session_index": 32,
+        "source_turn_index": 0,
+        "timestamp": "2028/08/24 (Thu) 18:30",
+        "words": 61
+      }
+    ],
+    "facts": {
+      "NEW": {
+        "episode": 1,
+        "id": "NEW",
+        "quote_end": 74,
+        "quote_start": 0,
+        "session_id": "ku40_0439_s0032",
+        "source_session_index": 32,
+        "source_turn_index": 0,
+        "text": "At our latest check-in, I had reached 7 months in the Pinehaven apartment.",
+        "timestamp": "2028/08/24 (Thu) 18:30",
+        "value": "7 months"
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 81,
+        "quote_start": 0,
+        "session_id": "ku40_0439_s0009",
+        "source_session_index": 9,
+        "source_turn_index": 0,
+        "text": "At the earlier check-in I had been living in my Pinehaven apartment for 4 months.",
+        "timestamp": "2028/02/20 (Sun) 12:01",
+        "value": "4 months"
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0439_s0009",
+      "ku40_0439_s0032"
+    ],
+    "official_question": "How long have I been living in my current apartment in Shinjuku?",
+    "official_question_id": "2133c1b5_abs",
+    "primary_profile": "unsupported_scope",
+    "question_id": "synthetic_ku40_v1_0439_abs",
+    "record_sha256": "36023622410156a1f9d5250e3d726100c87d12a0b66f834155c960b287437720",
+    "reference": {
+      "ids": [
+        "OLD",
+        "NEW"
+      ],
+      "missing_anchor": "Pinehill",
+      "op": "absent"
+    },
+    "reference_answer": "I do not know.",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "unsupported_location"
+    ],
+    "selected": true,
+    "semantic_review_note": "Elapsed duration must remain bound to the requested location, not a similarly named different place.",
+    "source_profile_index": 439,
+    "source_r2_question_id": "synthetic_v2s_r2_0439_abs",
+    "source_session_count": 50,
+    "source_turn_count": 476
+  },
+  {
+    "abstention_evidence_note": "Near-miss sessions document scope discrimination, not positive answer evidence; no closed-world absence is implied by a retrieval result.",
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 1,
+        "session_id": "ku40_0440_s0018",
+        "source_quote": "In my first three months of collecting I acquired 8 signed postcards. I kept them in the small album and dated the page at the end of the opening period. Unsigned postcards went into another album. I did not count sleeves or duplicate photographs of a card as additional signed objects.",
+        "source_session_index": 18,
+        "source_turn_index": 0,
+        "timestamp": "2028/08/09 (Wed) 23:45",
+        "words": 51
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 1,
+        "session_id": "ku40_0440_s0038",
+        "source_quote": "My signed-postcard collection later grew to 15 cards. The newer inventory includes the original eight. I still have the dated opening page to show how the collection developed. The small album and its contents are the collection described in these notes; the sleeves and the unsigned-card album are separate.",
+        "source_session_index": 38,
+        "source_turn_index": 0,
+        "timestamp": "2028/08/11 (Fri) 17:24",
+        "words": 49
+      }
+    ],
+    "facts": {
+      "EARLY": {
+        "episode": 0,
+        "id": "EARLY",
+        "quote_end": 69,
+        "quote_start": 0,
+        "session_id": "ku40_0440_s0018",
+        "source_session_index": 18,
+        "source_turn_index": 0,
+        "text": "In my first three months of collecting I acquired 8 signed postcards.",
+        "timestamp": "2028/08/09 (Wed) 23:45",
+        "value": 8
+      },
+      "LATER": {
+        "episode": 1,
+        "id": "LATER",
+        "quote_end": 53,
+        "quote_start": 0,
+        "session_id": "ku40_0440_s0038",
+        "source_session_index": 38,
+        "source_turn_index": 0,
+        "text": "My signed-postcard collection later grew to 15 cards.",
+        "timestamp": "2028/08/11 (Fri) 17:24",
+        "value": 15
+      }
+    },
+    "historical_official_judge_correct": true,
+    "minimal_reference_session_ids": [
+      "ku40_0440_s0018",
+      "ku40_0440_s0038"
+    ],
+    "official_question": "How many autographed football have I added to my collection in the first three months of collection?",
+    "official_question_id": "0ddfec37_abs",
+    "primary_profile": "unsupported_scope",
+    "question_id": "synthetic_ku40_v1_0440_abs",
+    "record_sha256": "8b2bf1d3d3ec7447f4ab92cd5e382ffeed7404fa1c61abde84eef6b5cee9b443",
+    "reference": {
+      "ids": [
+        "EARLY",
+        "LATER"
+      ],
+      "missing_anchor": "signed posters",
+      "op": "absent"
+    },
+    "reference_answer": "I do not know.",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "unsupported_object"
+    ],
+    "selected": true,
+    "semantic_review_note": "The object category is unsupported, despite matching period and quantity wording.",
+    "source_profile_index": 440,
+    "source_r2_question_id": "synthetic_v2s_r2_0440_abs",
+    "source_session_count": 45,
+    "source_turn_count": 447
+  },
+  {
+    "abstention_evidence_note": "Near-miss sessions document scope discrimination, not positive answer evidence; no closed-world absence is implied by a retrieval result.",
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 1,
+        "session_id": "ku40_0441_s0000",
+        "source_quote": "I used to play tennis with my friends at the park twice a week. We booked the outdoor court and usually met after work. The bookings were for the same group of friends, not for a club league. On rainy evenings we stayed home rather than treating a cancelled court booking as a completed session.",
+        "source_session_index": 0,
+        "source_turn_index": 0,
+        "timestamp": "2028/08/02 (Wed) 22:49",
+        "words": 55
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 1,
+        "session_id": "ku40_0441_s0040",
+        "source_quote": "Our tennis group now meets at the park every other week. Everyone's work pattern changed, so we reduced the regular court booking. We still play on the outdoor court with the same group. The old twice-weekly reminder is only in my archived calendar, not the schedule we follow now.",
+        "source_session_index": 40,
+        "source_turn_index": 0,
+        "timestamp": "2028/08/04 (Fri) 04:38",
+        "words": 49
+      }
+    ],
+    "facts": {
+      "NEW": {
+        "episode": 1,
+        "id": "NEW",
+        "quote_end": 56,
+        "quote_start": 0,
+        "session_id": "ku40_0441_s0040",
+        "source_session_index": 40,
+        "source_turn_index": 0,
+        "text": "Our tennis group now meets at the park every other week.",
+        "timestamp": "2028/08/04 (Fri) 04:38",
+        "value": "every other week"
+      },
+      "OLD": {
+        "episode": 0,
+        "id": "OLD",
+        "quote_end": 63,
+        "quote_start": 0,
+        "session_id": "ku40_0441_s0000",
+        "source_session_index": 0,
+        "source_turn_index": 0,
+        "text": "I used to play tennis with my friends at the park twice a week.",
+        "timestamp": "2028/08/02 (Wed) 22:49",
+        "value": "twice a week"
+      }
+    },
+    "historical_official_judge_correct": false,
+    "minimal_reference_session_ids": [
+      "ku40_0441_s0000",
+      "ku40_0441_s0040"
+    ],
+    "official_question": "How often do I play table tennis with my friends at the local park?",
+    "official_question_id": "f685340e_abs",
+    "primary_profile": "unsupported_scope",
+    "question_id": "synthetic_ku40_v1_0441_abs",
+    "record_sha256": "02ba0eb7f1b6c9abd9805225a33eaaef1fce38c4aa87f4a821b5aac3a1ab13f4",
+    "reference": {
+      "ids": [
+        "OLD",
+        "NEW"
+      ],
+      "missing_anchor": "table tennis",
+      "op": "absent"
+    },
+    "reference_answer": "I do not know.",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "unsupported_activity_composite"
+    ],
+    "selected": true,
+    "semantic_review_note": "The whole activity phrase matters: tennis cannot satisfy table tennis by substring matching.",
+    "source_profile_index": 441,
+    "source_r2_question_id": "synthetic_v2s_r2_0441_abs",
+    "source_session_count": 43,
+    "source_turn_count": 456
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0442_s0030",
+        "source_quote": "Before looking for a gravel bike, I owned a commuter bike, a trail bike and a folding bike. The folding bike was the one I took on trains. The commuter and trail bikes had different jobs, but all three belonged to me. My neighbour sometimes left her road bike by the rack; that one was never mine.",
+        "source_session_index": 30,
+        "source_turn_index": 6,
+        "timestamp": "2028/08/07 (Mon) 13:03",
+        "words": 57
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 7,
+        "session_id": "ku40_0442_s0044",
+        "source_quote": "I have now bought the gravel bike and put it beside those bikes. The folding bike is still the one I use for train journeys. Buying the gravel bike did not dispose of any earlier bike, and seeing it in the current photograph should not erase the older ownership list. The neighbour still collects her own bike after visiting.",
+        "source_session_index": 44,
+        "source_turn_index": 6,
+        "timestamp": "2028/08/10 (Thu) 11:08",
+        "words": 59
+      }
+    ],
+    "facts": {
+      "AFTER": {
+        "episode": 1,
+        "id": "AFTER",
+        "quote_end": 64,
+        "quote_start": 0,
+        "session_id": "ku40_0442_s0044",
+        "source_session_index": 44,
+        "source_turn_index": 6,
+        "text": "I have now bought the gravel bike and put it beside those bikes.",
+        "timestamp": "2028/08/10 (Thu) 11:08",
+        "value": "gravel bike"
+      },
+      "BEFORE": {
+        "episode": 0,
+        "id": "BEFORE",
+        "quote_end": 91,
+        "quote_start": 0,
+        "session_id": "ku40_0442_s0030",
+        "source_session_index": 30,
+        "source_turn_index": 6,
+        "text": "Before looking for a gravel bike, I owned a commuter bike, a trail bike and a folding bike.",
+        "timestamp": "2028/08/07 (Mon) 13:03",
+        "value": [
+          "commuter bike",
+          "trail bike",
+          "folding bike"
+        ]
+      }
+    },
+    "historical_official_judge_correct": false,
+    "minimal_reference_session_ids": [
+      "ku40_0442_s0030"
+    ],
+    "official_question": "Before I purchased the gravel bike, do I have other bikes in addition to my mountain bike and my commuter bike?",
+    "official_question_id": "89941a94",
+    "primary_profile": "membership_changes",
+    "question_id": "synthetic_ku40_v1_0442",
+    "record_sha256": "30545ab8c1c5ded49abe8179f3248099410bf7e9a7d37dac46253ba88e55a862",
+    "reference": {
+      "exclude": [
+        "commuter bike",
+        "trail bike"
+      ],
+      "id": "BEFORE",
+      "op": "other_member"
+    },
+    "reference_answer": "Yes, a folding bike.",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "set_before_event",
+      "existence_of_other_member",
+      "excluded_named_members"
+    ],
+    "selected": true,
+    "semantic_review_note": "Answer the existence of an additional member at the pre-event state and name that supported member, not the two already excluded.",
+    "source_profile_index": 442,
+    "source_r2_question_id": "synthetic_v2s_r2_0442",
+    "source_session_count": 46,
+    "source_turn_count": 523
+  },
+  {
+    "abstention_evidence_note": null,
+    "episodes": [
+      {
+        "episode": 0,
+        "neutralized_assistant_turn": 9,
+        "session_id": "ku40_0443_s0002",
+        "source_quote": "I first kept my spare earbuds in the small drawer under my desk. I later moved the same pair into a canvas pouch by the bed while I cleared the drawer. The drawer still contains my partner's charging leads. That has made it easy to point at the old storage place even after the earbuds themselves have moved.",
+        "source_session_index": 2,
+        "source_turn_index": 8,
+        "timestamp": "2028/08/08 (Tue) 04:28",
+        "words": 58
+      },
+      {
+        "episode": 1,
+        "neutralized_assistant_turn": 9,
+        "session_id": "ku40_0443_s0031",
+        "source_quote": "My spare earbuds are in the labelled box on the top shelf of my wardrobe. I moved the pair there after clearing the canvas pouch from beside the bed. The box contains a few small accessories, and the shelf is high enough to keep them together. My partner's leads remain in the desk drawer; they have not moved with my earbuds.",
+        "source_session_index": 31,
+        "source_turn_index": 8,
+        "timestamp": "2028/08/12 (Sat) 09:25",
+        "words": 61
+      }
+    ],
+    "facts": {
+      "NEW": {
+        "episode": 1,
+        "id": "NEW",
+        "quote_end": 73,
+        "quote_start": 0,
+        "session_id": "ku40_0443_s0031",
+        "source_session_index": 31,
+        "source_turn_index": 8,
+        "text": "My spare earbuds are in the labelled box on the top shelf of my wardrobe.",
+        "timestamp": "2028/08/12 (Sat) 09:25",
+        "value": "the labelled box on the top shelf of my wardrobe"
+      },
+      "ORIGINAL": {
+        "episode": 0,
+        "id": "ORIGINAL",
+        "quote_end": 64,
+        "quote_start": 0,
+        "session_id": "ku40_0443_s0002",
+        "source_session_index": 2,
+        "source_turn_index": 8,
+        "text": "I first kept my spare earbuds in the small drawer under my desk.",
+        "timestamp": "2028/08/08 (Tue) 04:28",
+        "value": "the small drawer under my desk"
+      }
+    },
+    "historical_official_judge_correct": false,
+    "minimal_reference_session_ids": [
+      "ku40_0443_s0031"
+    ],
+    "official_question": "Where do I currently keep my old sneakers?",
+    "official_question_id": "07741c45",
+    "primary_profile": "current_attribute",
+    "question_id": "synthetic_ku40_v1_0443",
+    "record_sha256": "13b0728415e258f5ee6229291aa4373a916ce644753a2e701598f86298f9b9e0",
+    "reference": {
+      "id": "NEW",
+      "op": "pick"
+    },
+    "reference_answer": "the labelled box on the top shelf of my wardrobe",
+    "restored_support_slots": [],
+    "retired_source_slots": [],
+    "secondary_features": [
+      "complete_nested_location",
+      "same_object_across_moves"
+    ],
+    "selected": true,
+    "semantic_review_note": "Preserve the complete nested location for the same object and owner, not just box, shelf or wardrobe.",
+    "source_profile_index": 443,
+    "source_r2_question_id": "synthetic_v2_0443",
+    "source_session_count": 49,
+    "source_turn_count": 527
+  }
+]
